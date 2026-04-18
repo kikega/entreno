@@ -33,26 +33,22 @@
             {% endif %}
 
             <div class="rounded-md shadow-sm space-y-4">
-                <div>
-                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                <div class="relative">
+                    {{ form.username }}
+                    <label for="{{ form.username.id_for_label }}" class="absolute left-3 top-2 z-10 origin-[0] -translate-y-1 transform text-xs text-gray-500 duration-300 peer-placeholder-shown:translate-y-2.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:-translate-y-1 peer-focus:text-xs peer-focus:text-primary cursor-text pointer-events-none">
                         {{ form.username.label }}
                     </label>
-                    <div class="mt-1">
-                        {{ form.username }}
-                    </div>
                     {% if form.username.errors %}
-                        <p class="mt-2 text-sm text-red-600" id="email-error">{{ form.username.errors.0 }}</p>
+                        <p class="mt-1 text-sm text-red-600" id="email-error">{{ form.username.errors.0 }}</p>
                     {% endif %}
                 </div>
-                <div>
-                    <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                <div class="relative">
+                    {{ form.password }}
+                    <label for="{{ form.password.id_for_label }}" class="absolute left-3 top-2 z-10 origin-[0] -translate-y-1 transform text-xs text-gray-500 duration-300 peer-placeholder-shown:translate-y-2.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:-translate-y-1 peer-focus:text-xs peer-focus:text-primary cursor-text pointer-events-none">
                         {{ form.password.label }}
                     </label>
-                    <div class="mt-1">
-                        {{ form.password }}
-                    </div>
                     {% if form.password.errors %}
-                        <p class="mt-2 text-sm text-red-600" id="password-error">{{ form.password.errors.0 }}</p>
+                        <p class="mt-1 text-sm text-red-600" id="password-error">{{ form.password.errors.0 }}</p>
                     {% endif %}
                 </div>
             </div>
