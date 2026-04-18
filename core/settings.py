@@ -126,6 +126,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -137,3 +138,13 @@ AUTH_USER_MODEL = "users.CustomUser"
 LOGIN_URL = 'users:login'
 LOGIN_REDIRECT_URL = 'users:dashboard_router'
 LOGOUT_REDIRECT_URL = 'users:login'
+
+# --- Python 3.14 / Django 5.1 Compatibility Patch ---
+import django.template.context
+def _basecontext_copy_patch(self):
+    duplicate = self.__class__.__new__(self.__class__)
+    duplicate.__dict__.update(self.__dict__)
+    duplicate.dicts = self.dicts[:]
+    return duplicate
+django.template.context.BaseContext.__copy__ = _basecontext_copy_patch
+

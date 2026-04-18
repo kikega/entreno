@@ -1,0 +1,17 @@
+<tr>
+    <td class="px-6 py-4 whitespace-nowrap">
+        <div class="text-sm font-medium text-gray-900">{{ exercise.exercise.name }}</div>
+        {% if exercise.focus %}
+        <div class="text-xs text-gray-500">Foco: {{ exercise.focus }}</div>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {{ exercise.sets }} x {{ exercise.reps }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {{ exercise.load }}{% if exercise.rpe %} @ RPE {{ exercise.rpe }}{% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {{ exercise.rest }}
+    </td>
+</tr>

@@ -1,12 +1,18 @@
 from django.urls import path
-from django.views.generic import TemplateView
-from django.contrib.auth.decorators import login_required
+from . import views
 
 app_name = 'training'
 
-# Por ahora usaremos TemplateViews envueltas en login_required
-# Más adelante crearemos las vistas reales en views.py
 urlpatterns = [
-    path('trainer/', login_required(TemplateView.as_view(template_name='training/trainer_dashboard.html')), name='trainer_dashboard'),
-    path('athlete/', login_required(TemplateView.as_view(template_name='training/athlete_dashboard.html')), name='athlete_dashboard'),
+    # Dashboards
+    path('trainer/', views.TrainerDashboardView.as_view(), name='trainer_dashboard'),
+    path('athlete/', views.AthleteDashboardView.as_view(), name='athlete_dashboard'),
+    
+    # Workout Plans
+    path('plan/new/', views.WorkoutPlanCreateView.as_view(), name='plan_create'),
+    path('plan/<int:pk>/', views.WorkoutPlanDetailView.as_view(), name='plan_detail'),
+    path('plan/<int:plan_id>/add-exercise/', views.add_planned_exercise, name='add_exercise'),
+    
+    # Athlete Profile
+    path('athlete/<int:pk>/', views.AthleteDetailView.as_view(), name='athlete_detail'),
 ]

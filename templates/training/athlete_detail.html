@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Perfil de Deportista - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Encabezado del Perfil -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 px-6 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex items-center">
+            <div class="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center text-primary text-2xl font-bold">
+                {{ athlete.user.first_name|first|default:athlete.user.email|first|upper }}
+            </div>
+            <div class="ml-4">
+                <h2 class="text-2xl font-bold text-gray-900">{{ athlete.user.first_name }} {{ athlete.user.last_name }}</h2>
+                <div class="text-sm text-gray-500">{{ athlete.user.email }}</div>
+            </div>
+        </div>
+        <div>
+            <!-- Aquí el botón para crear un nuevo plan. Más adelante se podría pasar el ID del deportista como parámetro en la URL para que se autoseleccione en el formulario -->
+            <a href="{% url 'training:plan_create' %}" class="bg-primary text-white px-4 py-2 rounded-md font-medium hover:bg-blue-600 transition shadow-sm text-sm flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Nuevo Plan
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Datos Morfológicos -->
+        <div class="lg:col-span-1 bg-white shadow-sm rounded-lg border border-gray-200">
+            <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Datos Físicos</h3>
+            </div>
+            <div class="px-4 py-5 sm:p-6 space-y-4">
+                <div class="flex justify-between border-b border-gray-100 pb-2">
+                    <span class="text-sm font-medium text-gray-500">Peso</span>
+                    <span class="text-sm text-gray-900">{{ athlete.weight|default:"--" }} kg</span>
+                </div>
+                <div class="flex justify-between border-b border-gray-100 pb-2">
+                    <span class="text-sm font-medium text-gray-500">Altura</span>
+                    <span class="text-sm text-gray-900">{{ athlete.height|default:"--" }} cm</span>
+                </div>
+                <div class="flex justify-between pb-2">
+                    <span class="text-sm font-medium text-gray-500">Miembro desde</span>
+                    <span class="text-sm text-gray-900">{{ athlete.created_at|date:"M Y" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial de Planes -->
+        <div class="lg:col-span-2 bg-white shadow-sm rounded-lg border border-gray-200">
+            <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Planes de Entrenamiento</h3>
+            </div>
+            {% if plans %}
+                <ul class="divide-y divide-gray-200">
+                    {% for plan in plans %}
+                        <li class="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-50 transition gap-4">
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">{{ plan.name|default:"Plan de Entrenamiento" }}</div>
+                                <div class="text-sm text-gray-500">Fecha objetivo: {{ plan.target_date|date:"d M Y" }}</div>
+                                <div class="mt-1">
+                                    {% if plan.is_completed %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            Completado
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            Pendiente
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div>
+                                <a href="{% url 'training:plan_detail' plan.id %}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                    Ver Detalle
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="p-6 text-center text-gray-500 text-sm">
+                    Este deportista no tiene planes asignados aún.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

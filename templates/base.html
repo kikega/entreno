@@ -1,9 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Entreno App{% endblock %}</title>
+    
+    <link rel="icon" href="{% static 'img/logo.ico' %}">
 
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,8 +60,14 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     {% if user.is_authenticated %}
+                        {% if user.is_staff or user.is_superuser %}
+                            <a href="/admin/" class="text-sm font-medium text-gray-300 hover:text-white transition mr-4">Admin</a>
+                        {% endif %}
                         <span class="text-sm text-gray-300">{{ user.email }}</span>
-                        <a href="{% url 'users:logout' %}" class="text-sm font-medium hover:text-accent transition">Salir</a>
+                        <form method="post" action="{% url 'users:logout' %}" class="inline ml-4 m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="text-sm font-medium hover:text-accent transition bg-transparent border-none cursor-pointer">Salir</button>
+                        </form>
                     {% else %}
                         <a href="{% url 'users:login' %}" class="text-sm font-medium hover:text-accent transition">Iniciar Sesión</a>
                     {% endif %}
@@ -81,7 +90,8 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-white border-t border-gray-200 py-6 text-center text-gray-500 text-sm">
+    <footer class="bg-white border-t border-gray-200 py-6 text-center text-gray-500 text-sm flex flex-col items-center justify-center">
+        <img src="{% static 'img/logo2.png' %}" alt="Logo Footer" class="h-10 mb-3 opacity-80 hover:opacity-100 transition">
         <p>&copy; {% now "Y" %} EntrenoPro. Todos los derechos reservados.</p>
     </footer>
 
