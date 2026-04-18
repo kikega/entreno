@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Entrenador - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="flex flex-col space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-gray-900">Panel de Entrenador</h1>
+        <button class="bg-primary text-white px-4 py-2 rounded-md font-medium hover:bg-blue-600 transition shadow-sm text-sm flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Nuevo Plan
+        </button>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Deportistas Activos</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">0</dd>
+            </div>
+        </div>
+        <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Planes Creados</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">0</dd>
+            </div>
+        </div>
+        <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Ejercicios en Catálogo</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">0</dd>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Athletes List -->
+        <div class="bg-white shadow-sm rounded-lg border border-gray-200 col-span-1 lg:col-span-2">
+            <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Mis Deportistas</h3>
+            </div>
+            <div class="p-6 text-center text-gray-500 text-sm">
+                Aún no tienes deportistas asignados.
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white shadow-sm rounded-lg border border-gray-200 col-span-1">
+            <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Actividad Reciente</h3>
+            </div>
+            <div class="p-6 text-center text-gray-500 text-sm">
+                No hay actividad reciente.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

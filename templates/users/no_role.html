@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Sin Rol Asignado - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-16 px-4 sm:px-6 lg:px-8 text-center bg-white rounded-xl shadow-sm border border-gray-100">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+    </svg>
+    <h2 class="mt-4 text-2xl font-bold text-gray-900">Perfil Incompleto</h2>
+    <p class="mt-2 text-gray-600">
+        Tu cuenta no tiene asociado ningún perfil de Entrenador ni de Deportista. Por favor, contacta con el administrador del sistema para que configure tu rol.
+    </p>
+    <div class="mt-6">
+        <a href="{% url 'users:logout' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+            Cerrar sesión
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Deportista - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="flex flex-col space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-gray-900">Panel de Deportista</h1>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Entrenos Completados</dt>
+                <dd class="mt-1 text-3xl font-semibold text-accent">0</dd>
+            </div>
+        </div>
+        <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Próximo Entreno</dt>
+                <dd class="mt-1 text-lg font-semibold text-gray-900 mt-2">Sin plan asignado</dd>
+            </div>
+        </div>
+        <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Mi Entrenador</dt>
+                <dd class="mt-1 text-lg font-semibold text-gray-900 mt-2">No asignado</dd>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Upcoming Plan -->
+        <div class="bg-white shadow-sm rounded-lg border border-gray-200 col-span-1 lg:col-span-2">
+            <div class="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between items-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Mi Próximo Entreno</h3>
+            </div>
+            <div class="p-6 text-center text-gray-500 text-sm py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                No tienes entrenamientos planificados próximamente.
+            </div>
+        </div>
+
+        <!-- Progress Chart Placeholder -->
+        <div class="bg-white shadow-sm rounded-lg border border-gray-200 col-span-1">
+            <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Mi Evolución</h3>
+            </div>
+            <div class="p-6">
+                <canvas id="evolutionChart" class="w-full h-48"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('evolutionChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+                datasets: [{
+                    label: 'Carga levantada (kg)',
+                    data: [0, 0, 0, 0],
+                    borderColor: '#10b981',
+                    tension: 0.4,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
