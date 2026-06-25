@@ -3,6 +3,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse
+from django.contrib import messages
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
 
 import json
 from collections import defaultdict
@@ -10,8 +13,8 @@ from datetime import datetime
 
 from users.models import AthleteProfile
 from users.forms import AthleteProgressLogForm
-from .models import WorkoutPlan, PlannedExercise
-from .forms import WorkoutPlanForm, PlannedExerciseForm
+from .models import WorkoutPlan, PlannedExercise, WorkoutSession
+from .forms import WorkoutPlanForm, PlannedExerciseForm, WorkoutSessionForm
 
 class TrainerDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'training/trainer_dashboard.html'
@@ -131,8 +134,46 @@ class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['exercise_form'] = PlannedExerciseForm()
-        # Ensure the user is either the trainer or the athlete
+        
+        # Si el usuario es el deportista, pasamos el formulario de completar entrenamiento
+        if hasattr(self.request.user, 'athlete_profile'):
+            context['session_form'] = WorkoutSessionForm()
+            
+        # Si el plan ya está completado, intentamos obtener la sesión física registrada
+        if self.object.is_completed:
+            context['workout_session'] = getattr(self.object, 'session', None)
+            
         return context
+
+@login_required
+@require_POST
+def complete_workout(request, plan_id):
+    """
+    Registra el entrenamiento como completado y guarda la sesión física asociada.
+    """
+    plan = get_object_or_404(WorkoutPlan, pk=plan_id)
+    
+    # Validar que el usuario sea el deportista del plan
+    if not hasattr(request.user, 'athlete_profile') or plan.athlete != request.user.athlete_profile:
+        messages.error(request, "No tienes permiso para completar este entrenamiento.")
+        return redirect('training:athlete_dashboard')
+
+    form = WorkoutSessionForm(request.POST)
+    if form.is_valid():
+        session = form.save(commit=False)
+        session.workout_plan = plan
+        session.athlete = request.user.athlete_profile
+        session.save()
+
+        # Marcar plan como completado
+        plan.is_completed = True
+        plan.save()
+
+        messages.success(request, f"¡Entrenamiento '{plan.name}' completado con éxito! Gran trabajo.")
+    else:
+        messages.error(request, "Error al registrar la sesión de entrenamiento. Por favor verifica los datos.")
+    
+    return redirect('training:athlete_dashboard')
 
 def add_planned_exercise(request, plan_id):
     """

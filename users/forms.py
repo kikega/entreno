@@ -16,34 +16,34 @@ class CustomUserChangeForm(UserChangeForm):
 class CustomAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(
         label=_("Correo electrónico"),
-        widget=forms.EmailInput(attrs={'autofocus': True, 'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 pb-2 pt-5 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary', 'placeholder': ' '})
+        widget=forms.EmailInput(attrs={'autofocus': True, 'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'placeholder': ' '})
     )
     password = forms.CharField(
         label=_("Contraseña"),
         strip=False,
-        widget=forms.PasswordInput(attrs={'autocomplete': 'current-password', 'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 pb-2 pt-5 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary', 'placeholder': ' '})
+        widget=forms.PasswordInput(attrs={'autocomplete': 'current-password', 'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'placeholder': ' '})
     )
 
 class AthleteProfileForm(forms.ModelForm):
     first_name = forms.CharField(
         label=_("Nombre"),
         required=True,
-        widget=forms.TextInput(attrs={'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary'})
+        widget=forms.TextInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'})
     )
     last_name = forms.CharField(
         label=_("Apellidos"),
         required=True,
-        widget=forms.TextInput(attrs={'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary'})
+        widget=forms.TextInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'})
     )
 
     class Meta:
         model = AthleteProfile
         fields = ['weight', 'height', 'fat_percentage', 'lean_mass_percentage']
         widgets = {
-            'weight': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary', 'step': '0.01'}),
-            'height': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary', 'step': '0.01'}),
-            'fat_percentage': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary', 'step': '0.01'}),
-            'lean_mass_percentage': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary', 'step': '0.01'}),
+            'weight': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'step': '0.01'}),
+            'height': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'step': '0.01'}),
+            'fat_percentage': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'step': '0.01'}),
+            'lean_mass_percentage': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'step': '0.01'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -68,8 +68,8 @@ class AthleteProgressLogForm(forms.ModelForm):
         model = AthleteProgressLog
         fields = ['weight', 'fat_percentage', 'lean_mass_percentage', 'date']
         widgets = {
-            'weight': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary', 'step': '0.01', 'required': 'required'}),
-            'fat_percentage': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary', 'step': '0.01'}),
-            'lean_mass_percentage': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary', 'step': '0.01'}),
-            'date': forms.DateInput(attrs={'class': 'peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary', 'type': 'date'}),
+            'weight': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-accent focus:ring-accent focus:outline-none transition shadow-sm', 'step': '0.01', 'required': 'required', 'placeholder': 'Ej: 74.5'}),
+            'fat_percentage': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-accent focus:ring-accent focus:outline-none transition shadow-sm', 'step': '0.01', 'placeholder': 'Ej: 14.2'}),
+            'lean_mass_percentage': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-accent focus:ring-accent focus:outline-none transition shadow-sm', 'step': '0.01', 'placeholder': 'Ej: 81.3'}),
+            'date': forms.DateInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-accent focus:ring-accent focus:outline-none transition shadow-sm', 'type': 'date'}),
         }

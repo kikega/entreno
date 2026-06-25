@@ -1,17 +1,26 @@
-<tr>
-    <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm font-medium text-gray-900">{{ exercise.exercise.name }}</div>
+<tr class="hover:bg-slate-50/40 transition">
+    <td class="px-6 py-4.5 whitespace-nowrap">
+        <div class="text-base font-bold text-slate-800">{{ exercise.exercise.name }}</div>
         {% if exercise.focus %}
-        <div class="text-xs text-gray-500">Foco: {{ exercise.focus }}</div>
+            <div class="text-xs text-slate-400 mt-0.5"><span class="font-semibold text-slate-500">Foco:</span> {{ exercise.focus }}</div>
         {% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+    <td class="px-6 py-4.5 whitespace-nowrap text-base text-slate-600 font-semibold">
         {{ exercise.sets }} x {{ exercise.reps }}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {{ exercise.load }}{% if exercise.rpe %} @ RPE {{ exercise.rpe }}{% endif %}
+    <td class="px-6 py-4.5 whitespace-nowrap text-base text-slate-600 font-semibold">
+        {{ exercise.load }}{% if exercise.rpe %} @ RPE {{ exercise.rpe }}{% endif %}{% if exercise.rir %} (RIR {{ exercise.rir }}){% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {{ exercise.rest }}
+    <td class="px-6 py-4.5 whitespace-nowrap">
+        <div class="text-base text-slate-600 font-semibold">Descanso: {{ exercise.rest|default:"--" }}</div>
+        {% if exercise.tempo %}
+            <div class="text-xs text-slate-450 font-medium mt-0.5">Tempo: {{ exercise.tempo }}</div>
+        {% endif %}
+        {% if exercise.exercise.video_url %}
+            <a href="{{ exercise.exercise.video_url }}" target="_blank" class="inline-flex items-center text-xs text-primary font-semibold hover:underline gap-1 mt-1">
+                Ver video
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+            </a>
+        {% endif %}
     </td>
 </tr>

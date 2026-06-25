@@ -12,6 +12,7 @@ urlpatterns = [
     path('plan/new/', views.WorkoutPlanCreateView.as_view(), name='plan_create'),
     path('plan/<int:pk>/', views.WorkoutPlanDetailView.as_view(), name='plan_detail'),
     path('plan/<int:plan_id>/add-exercise/', views.add_planned_exercise, name='add_exercise'),
+    path('plan/<int:plan_id>/complete/', views.complete_workout, name='complete_workout'),
     
     # Athlete Profile
     path('athlete/<int:pk>/', views.AthleteDetailView.as_view(), name='athlete_detail'),

@@ -4,192 +4,221 @@
 {% block title %}Dashboard Deportista - EntrenoPro{% endblock %}
 
 {% block content %}
-<div class="flex flex-col space-y-6">
-    <!-- Encabezado -->
-    <div class="flex justify-between items-center bg-white p-6 rounded-xl border border-gray-150 shadow-sm">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">¡Hola, {{ request.user.first_name|default:request.user.email }}!</h1>
-            <p class="text-sm text-gray-500 mt-1">Este es tu panel de control para seguir tus planes y tu evolución física.</p>
+<div class="flex flex-col space-y-8 athlete-theme">
+    <!-- Encabezado de bienvenida -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-8 rounded-2xl border border-slate-800 shadow-lg text-white">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_45%)]"></div>
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <span class="text-xs font-headline font-bold tracking-widest text-accent uppercase bg-accent/10 px-3 py-1 rounded-full border border-accent/25">PANEL DEPORTISTA</span>
+                <h1 class="text-3xl md:text-4xl font-headline font-extrabold text-white mt-3">¡Hola, {{ request.user.first_name|default:request.user.email }}!</h1>
+                <p class="text-base text-slate-300 mt-2 max-w-xl">Mantén el ritmo, sigue tu evolución física y completa tus planes de entrenamiento diario.</p>
+            </div>
+            <a href="{% url 'users:profile_edit' %}" class="btn-accent px-5 py-3 rounded-xl font-headline font-semibold text-sm flex items-center gap-2 transition hover:scale-[1.02] shadow-lg shadow-accent/20">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Editar Mi Perfil
+            </a>
         </div>
-        <a href="{% url 'users:profile_edit' %}" class="bg-primary text-white px-4 py-2 rounded-md font-medium hover:bg-blue-600 transition shadow-sm text-sm flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            Editar Perfil
-        </a>
     </div>
 
-    <!-- Stats Overview -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <div class="bg-white p-6 rounded-xl border border-gray-150 shadow-sm flex items-center gap-4">
-            <div class="p-3 bg-green-50 text-accent rounded-lg">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <!-- Módulo de Estadísticas Clave -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 transition hover:shadow-md">
+            <div class="p-3.5 bg-emerald-50 text-accent rounded-xl border border-emerald-100">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <div>
-                <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Entrenos Completados</dt>
-                <dd class="text-2xl font-bold text-gray-900">{{ total_completed_workouts }}</dd>
+                <dt class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Entrenos Completados</dt>
+                <dd class="text-3xl font-headline font-extrabold text-slate-800 mt-1">{{ total_completed_workouts }}</dd>
             </div>
         </div>
-        <div class="bg-white p-6 rounded-xl border border-gray-150 shadow-sm flex items-center gap-4">
-            <div class="p-3 bg-blue-50 text-primary rounded-lg">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 transition hover:shadow-md">
+            <div class="p-3.5 bg-blue-50 text-primary rounded-xl border border-blue-100">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             </div>
-            <div>
-                <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Próximo Entreno</dt>
+            <div class="min-w-0 flex-1">
+                <dt class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Siguiente Sesión</dt>
                 {% if next_plan %}
-                    <dd class="text-sm font-bold text-gray-900 truncate">{{ next_plan.name|default:"Sesión planificada" }}</dd>
-                    <dd class="text-xs text-gray-500">{{ next_plan.target_date|date:"d M Y" }}</dd>
+                    <dd class="text-base font-bold text-slate-800 truncate mt-1">{{ next_plan.name|default:"Sesión planificada" }}</dd>
+                    <dd class="text-xs font-semibold text-accent mt-0.5">{{ next_plan.target_date|date:"d \d\e M, Y" }}</dd>
                 {% else %}
-                    <dd class="text-sm font-semibold text-gray-500">Sin planes asignados</dd>
+                    <dd class="text-sm font-semibold text-slate-400 mt-1">Sin planes asignados</dd>
                 {% endif %}
             </div>
         </div>
-        <div class="bg-white p-6 rounded-xl border border-gray-150 shadow-sm flex items-center gap-4">
-            <div class="p-3 bg-purple-50 text-purple-600 rounded-lg">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 transition hover:shadow-md">
+            <div class="p-3.5 bg-purple-50 text-purple-600 rounded-xl border border-purple-100">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
             </div>
             <div>
-                <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Mi Entrenador</dt>
+                <dt class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Entrenador Principal</dt>
                 {% if trainer %}
-                    <dd class="text-sm font-bold text-gray-900">{{ trainer.first_name }} {{ trainer.last_name }}</dd>
-                    <dd class="text-xs text-gray-500">{{ trainer.email }}</dd>
+                    <dd class="text-base font-bold text-slate-800 mt-1">{{ trainer.first_name }} {{ trainer.last_name }}</dd>
+                    <dd class="text-xs text-slate-400 mt-0.5">{{ trainer.email }}</dd>
                 {% else %}
-                    <dd class="text-xs font-semibold text-gray-500">No asignado</dd>
+                    <dd class="text-sm font-semibold text-slate-400 mt-1">Sin asignar</dd>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Gráfico de Evolución -->
-    <div class="bg-white shadow-sm rounded-xl border border-gray-150 p-6">
-        <h3 class="text-lg leading-6 font-bold text-gray-900 mb-2">Evolución Física y Relación con Entrenamientos</h3>
-        <p class="text-xs text-gray-500 mb-4">Relación entre tus mediciones corporales (líneas) y la duración de tus entrenamientos (barras).</p>
-        <div class="h-80 w-full">
+    <!-- Gráfico de Evolución Física -->
+    <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-6 md:p-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div>
+                <h3 class="text-xl font-headline font-bold text-slate-800">Evolución y Rendimiento Físico</h3>
+                <p class="text-sm text-slate-500 mt-1">Comparativa de tu composición corporal histórica frente a la duración de los entrenos realizados.</p>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-semibold text-slate-500">
+                <span class="flex items-center gap-1.5"><span class="w-3 h-1.5 rounded-full bg-primary"></span> Peso</span>
+                <span class="flex items-center gap-1.5"><span class="w-3.5 h-0.5 border-t border-dashed border-[#f97316]"></span> Grasa</span>
+                <span class="flex items-center gap-1.5"><span class="w-3.5 h-0.5 border-t border-dashed border-accent"></span> Magra</span>
+            </div>
+        </div>
+        <div class="h-96 w-full relative">
             <canvas id="evolutionChart"></canvas>
         </div>
     </div>
 
-    <!-- Main Content Area -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Columna Izquierda: Entrenamientos y Historial -->
-        <div class="lg:col-span-2 space-y-6">
-            <!-- Mi Próximo Entreno -->
-            <div class="bg-white shadow-sm rounded-xl border border-gray-150 overflow-hidden">
-                <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-gray-900">Planes de Entrenamiento</h3>
+    <!-- Sección Principal de Gestión -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Columna Izquierda: Listado de Planes de Entrenamiento e Historial -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Bloque de Planes de Entrenamiento -->
+            <div class="bg-white shadow-sm rounded-2xl border border-slate-150 overflow-hidden">
+                <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="text-lg font-headline font-bold text-slate-800">Planes Recientes Asignados</h3>
                 </div>
                 
                 {% if profile.assigned_plans.exists %}
-                    <div class="divide-y divide-gray-100">
+                    <div class="divide-y divide-slate-100">
                         {% for plan in profile.assigned_plans.all|dictsortreversed:"target_date"|slice:":5" %}
-                            <div class="p-6 flex items-center justify-between hover:bg-gray-50 transition">
-                                <div>
-                                    <h4 class="text-sm font-bold text-gray-900">{{ plan.name|default:"Plan de Entrenamiento" }}</h4>
-                                    <p class="text-xs text-gray-500 mt-1">Fecha programada: {{ plan.target_date|date:"d M Y" }}</p>
-                                    <span class="inline-flex mt-2 items-center px-2 py-0.5 rounded text-xs font-medium {% if plan.is_completed %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                        {% if plan.is_completed %}Completado{% else %}Pendiente{% endif %}
-                                    </span>
+                            <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/70 transition">
+                                <div class="flex items-start gap-4">
+                                    <div class="p-3 rounded-xl {% if plan.is_completed %}bg-emerald-50 text-accent{% else %}bg-amber-50 text-amber-500{% endif %} mt-0.5">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-base font-bold text-slate-800">{{ plan.name|default:"Plan de Entrenamiento" }}</h4>
+                                        <p class="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+                                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                            Programado: {{ plan.target_date|date:"d M Y" }}
+                                        </p>
+                                        <div class="mt-2.5">
+                                            {% if plan.is_completed %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold badge-completed">Completado</span>
+                                            {% else %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold badge-pending">Pendiente</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 </div>
-                                <a href="{% url 'training:plan_detail' plan.id %}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
-                                    Ver Detalles
-                                </a>
+                                <div class="flex items-center">
+                                    <a href="{% url 'training:plan_detail' plan.id %}" class="w-full sm:w-auto text-center px-4 py-2 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition shadow-sm">
+                                        Ver Detalles
+                                    </a>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="p-12 text-center text-gray-500 text-sm">
-                        <svg class="mx-auto h-12 w-12 text-gray-350 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <div class="p-12 text-center text-slate-400 text-base">
+                        <svg class="mx-auto h-16 w-16 text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                         Aún no tienes planes de entrenamiento asignados por tu entrenador.
                     </div>
                 {% endif %}
             </div>
 
-            <!-- Historial de Mediciones -->
-            <div class="bg-white shadow-sm rounded-xl border border-gray-150 overflow-hidden">
-                <div class="px-6 py-5 border-b border-gray-100">
-                    <h3 class="text-lg font-bold text-gray-900">Historial de Mediciones</h3>
+            <!-- Bloque de Historial de Mediciones Físicas -->
+            <div class="bg-white shadow-sm rounded-2xl border border-slate-150 overflow-hidden">
+                <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="text-lg font-headline font-bold text-slate-800">Historial de Mediciones</h3>
                 </div>
                 {% if recent_logs %}
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-100">
-                            <thead class="bg-gray-50">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50/60">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
-                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Peso (kg)</th>
-                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Masa Grasa (%)</th>
-                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Masa Magra (%)</th>
+                                    <th class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
+                                    <th class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Peso (kg)</th>
+                                    <th class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Masa Grasa (%)</th>
+                                    <th class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Masa Magra (%)</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-100">
+                            <tbody class="bg-white divide-y divide-slate-100">
                                 {% for log in recent_logs %}
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ log.date|date:"d M Y" }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.weight }} kg</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.fat_percentage|default:"--" }}%</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.lean_mass_percentage|default:"--" }}%</td>
+                                    <tr class="hover:bg-slate-50/40 transition">
+                                        <td class="px-6 py-4 whitespace-nowrap text-base text-slate-900 font-semibold">{{ log.date|date:"d M Y" }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-base text-slate-600 font-medium">{{ log.weight }} kg</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-base text-slate-500">{% if log.fat_percentage %}{{ log.fat_percentage }}%{% else %}--{% endif %}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-base text-slate-500">{% if log.lean_mass_percentage %}{{ log.lean_mass_percentage }}%{% else %}--{% endif %}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 {% else %}
-                    <div class="p-12 text-center text-gray-500 text-sm">
-                        No hay registros históricos de mediciones físicas. ¡Registra tus datos a la derecha!
+                    <div class="p-12 text-center text-slate-400 text-base">
+                        No hay registros históricos de mediciones físicas. ¡Registra tus datos actuales a la derecha!
                     </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Columna Derecha: Registrar y Ficha física -->
-        <div class="space-y-6">
+        <!-- Columna Derecha: Ficha física y Registrar Mediciones -->
+        <div class="space-y-8">
             <!-- Ficha Física Actual -->
-            <div class="bg-white shadow-sm rounded-xl border border-gray-150 p-6">
-                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Mi Ficha Física</h3>
+            <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-6">
+                <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-3">Mi Ficha Física Actual</h3>
                 <div class="space-y-4">
-                    <div class="flex justify-between border-b border-gray-100 pb-2">
-                        <span class="text-sm text-gray-500">Peso actual</span>
-                        <span class="text-sm font-bold text-gray-800">{% if profile.weight %}{{ profile.weight }} kg{% else %}--{% endif %}</span>
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
+                        <span class="text-base text-slate-500">Peso actual</span>
+                        <span class="text-base font-headline font-bold text-slate-800">{% if profile.weight %}{{ profile.weight }} kg{% else %}--{% endif %}</span>
                     </div>
-                    <div class="flex justify-between border-b border-gray-100 pb-2">
-                        <span class="text-sm text-gray-500">Altura</span>
-                        <span class="text-sm font-bold text-gray-800">{% if profile.height %}{{ profile.height }} cm{% else %}--{% endif %}</span>
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
+                        <span class="text-base text-slate-500">Altura</span>
+                        <span class="text-base font-headline font-bold text-slate-800">{% if profile.height %}{{ profile.height }} cm{% else %}--{% endif %}</span>
                     </div>
-                    <div class="flex justify-between border-b border-gray-100 pb-2">
-                        <span class="text-sm text-gray-500">Masa Grasa</span>
-                        <span class="text-sm font-bold text-gray-800">{% if profile.fat_percentage %}{{ profile.fat_percentage }}%{% else %}--{% endif %}</span>
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
+                        <span class="text-base text-slate-500">Porcentaje Grasa</span>
+                        <span class="text-base font-headline font-bold text-orange-500">{% if profile.fat_percentage %}{{ profile.fat_percentage }}%{% else %}--{% endif %}</span>
                     </div>
-                    <div class="flex justify-between pb-2">
-                        <span class="text-sm text-gray-500">Masa Magra</span>
-                        <span class="text-sm font-bold text-gray-800">{% if profile.lean_mass_percentage %}{{ profile.lean_mass_percentage }}%{% else %}--{% endif %}</span>
+                    <div class="flex justify-between items-center py-2.5">
+                        <span class="text-base text-slate-500">Porcentaje Masa Magra</span>
+                        <span class="text-base font-headline font-bold text-accent">{% if profile.lean_mass_percentage %}{{ profile.lean_mass_percentage }}%{% else %}--{% endif %}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Registrar Progreso Hoy -->
-            <div class="bg-white shadow-sm rounded-xl border border-gray-150 p-6">
-                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Registrar Medición</h3>
+            <!-- Registrar Progreso -->
+            <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-6">
+                <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-3">Nueva Medición Física</h3>
                 
-                <form method="POST" action="{% url 'users:log_progress' %}" class="space-y-4">
+                <form method="POST" action="{% url 'users:log_progress' %}" class="space-y-5">
                     {% csrf_token %}
                     <div>
-                        <label for="id_date" class="block text-xs font-semibold text-gray-500 mb-1">Fecha</label>
-                        <input type="date" name="date" id="id_date" value="{% now 'Y-m-d' %}" required class="peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
+                        <label for="id_date" class="block text-xs font-headline font-bold text-slate-500 mb-1">Fecha de Medición</label>
+                        {{ log_form.date }}
                     </div>
                     <div>
-                        <label for="id_weight" class="block text-xs font-semibold text-gray-500 mb-1">Peso (kg)</label>
-                        <input type="number" name="weight" id="id_weight" step="0.01" required class="peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Ej: 75.4">
+                        <label for="id_weight" class="block text-xs font-headline font-bold text-slate-500 mb-1">Peso Corporal (kg)</label>
+                        {{ log_form.weight }}
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label for="id_fat" class="block text-xs font-semibold text-gray-500 mb-1">Grasa (%)</label>
-                            <input type="number" name="fat_percentage" id="id_fat" step="0.01" class="peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Ej: 14.5">
+                            <label for="id_fat" class="block text-xs font-headline font-bold text-slate-500 mb-1">Grasa (%)</label>
+                            {{ log_form.fat_percentage }}
                         </div>
                         <div>
-                            <label for="id_lean" class="block text-xs font-semibold text-gray-500 mb-1">Masa Magra (%)</label>
-                            <input type="number" name="lean_mass_percentage" id="id_lean" step="0.01" class="peer block w-full appearance-none rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Ej: 80.2">
+                            <label for="id_lean" class="block text-xs font-headline font-bold text-slate-500 mb-1">Masa Magra (%)</label>
+                            {{ log_form.lean_mass_percentage }}
                         </div>
                     </div>
                     
-                    <button type="submit" class="w-full py-2.5 bg-accent hover:bg-emerald-600 text-white rounded-md text-sm font-semibold transition shadow-sm mt-2">
-                        Guardar Registro
+                    <button type="submit" class="btn-accent w-full py-3 rounded-xl text-base font-headline font-bold transition hover:scale-[1.01] shadow-md shadow-accent/15 mt-3">
+                        Registrar Medición
                     </button>
                 </form>
             </div>
@@ -203,44 +232,51 @@
     document.addEventListener("DOMContentLoaded", function() {
         const ctx = document.getElementById('evolutionChart').getContext('2d');
         
-        // Carga de datos reales desde Django
         const labels = {{ chart_labels|safe }};
         const weights = {{ chart_weights|safe }};
         const fats = {{ chart_fats|safe }};
         const leans = {{ chart_leans|safe }};
         const durations = {{ chart_durations|safe }};
         
-        // Si no hay datos cargados, proveer un estado vacío con diseño elegante
         const hasData = labels && labels.length > 0;
         
+        // Creamos los gradientes de color de fondo para las líneas de la composición física
+        const weightGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        weightGradient.addColorStop(0, 'rgba(37, 99, 235, 0.16)');
+        weightGradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+        
         const chartData = {
-            labels: hasData ? labels : ['Sin Datos'],
+            labels: hasData ? labels : ['Sin datos registrados'],
             datasets: [
                 {
                     label: 'Peso (kg)',
                     data: hasData ? weights : [0],
-                    borderColor: '#3b82f6', // blue-500
-                    backgroundColor: '#3b82f6',
+                    borderColor: '#2563eb', // blue-600
+                    backgroundColor: weightGradient,
                     type: 'line',
                     yAxisID: 'y',
-                    tension: 0.4,
-                    fill: false,
-                    borderWidth: 3,
+                    tension: 0.45,
+                    fill: true,
+                    borderWidth: 3.5,
                     pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#2563eb',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2
                 },
                 {
                     label: 'Masa Grasa (%)',
                     data: hasData ? fats : [0],
-                    borderColor: '#f97316', // orange-500
-                    backgroundColor: '#f97316',
+                    borderColor: '#ea580c', // orange-600
+                    backgroundColor: '#ea580c',
                     type: 'line',
                     yAxisID: 'y',
                     tension: 0.4,
                     fill: false,
                     borderWidth: 2,
-                    borderDash: [5, 5],
-                    pointRadius: 3
+                    borderDash: [5, 4],
+                    pointRadius: 3,
+                    pointHoverRadius: 5
                 },
                 {
                     label: 'Masa Magra (%)',
@@ -253,18 +289,19 @@
                     fill: false,
                     borderWidth: 2,
                     borderDash: [3, 3],
-                    pointRadius: 3
+                    pointRadius: 3,
+                    pointHoverRadius: 5
                 },
                 {
-                    label: 'Duración Entreno (min)',
+                    label: 'Duración (min)',
                     data: hasData ? durations : [0],
-                    backgroundColor: 'rgba(147, 197, 253, 0.35)', // light blue transparent
-                    borderColor: 'rgba(147, 197, 253, 0.8)',
+                    backgroundColor: 'rgba(219, 234, 254, 0.6)', // light blue bar
+                    borderColor: '#93c5fd',
                     type: 'bar',
                     yAxisID: 'y1',
                     borderWidth: 1,
-                    barThickness: 24,
-                    borderRadius: 4
+                    barThickness: 28,
+                    borderRadius: 6
                 }
             ]
         };
@@ -280,21 +317,30 @@
                 },
                 plugins: {
                     legend: {
-                        position: 'top',
-                        labels: {
-                            font: {
-                                family: 'Inter',
-                                size: 12
-                            },
-                            usePointStyle: true,
-                            boxWidth: 8
-                        }
+                        display: false // Usamos nuestra propia leyenda superior estilizada en HTML
                     },
                     tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleColor: '#ffffff',
+                        titleFont: { family: 'Montserrat', size: 13, weight: 'bold' },
+                        bodyFont: { family: 'Inter', size: 12 },
                         padding: 12,
-                        cornerRadius: 8,
-                        titleFont: { family: 'Inter', size: 13, weight: 'bold' },
-                        bodyFont: { family: 'Inter', size: 12 }
+                        cornerRadius: 12,
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        boxPadding: 4,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + (context.dataset.type === 'bar' ? ' min' : (context.dataset.label.includes('%') ? '%' : ' kg'));
+                                }
+                                return label;
+                            }
+                        }
                     }
                 },
                 scales: {
@@ -302,28 +348,29 @@
                         type: 'linear',
                         display: true,
                         position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Peso & Composición',
-                            font: { family: 'Inter', size: 11, weight: 'bold' }
-                        },
                         grid: {
-                            color: 'rgba(243, 244, 246, 1)'
+                            color: '#f1f5f9'
                         },
-                        suggestedMin: 40,
-                        suggestedMax: 100
+                        border: {
+                            dash: [5, 5]
+                        },
+                        ticks: {
+                            font: { family: 'Inter', size: 11, weight: '500' },
+                            color: '#64748b'
+                        },
+                        suggestedMin: 50,
+                        suggestedMax: 95
                     },
                     y1: {
                         type: 'linear',
                         display: true,
                         position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Duración Entrenos (min)',
-                            font: { family: 'Inter', size: 11, weight: 'bold' }
-                        },
                         grid: {
                             drawOnChartArea: false, // Evita superposición de rejillas
+                        },
+                        ticks: {
+                            font: { family: 'Inter', size: 11, weight: '500' },
+                            color: '#64748b'
                         },
                         beginAtZero: true,
                         suggestedMax: 120
@@ -333,7 +380,8 @@
                             display: false
                         },
                         ticks: {
-                            font: { family: 'Inter', size: 11 }
+                            font: { family: 'Inter', size: 11, weight: '500' },
+                            color: '#64748b'
                         }
                     }
                 }

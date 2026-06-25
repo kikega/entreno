@@ -1,44 +1,52 @@
 {% extends 'base.html' %}
 
-{% block title %}Nuevo Plan - EntrenoPro{% endblock %}
+{% block title %}Nuevo Plan de Entrenamiento - EntrenoPro{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto mt-8">
-    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
-        <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
-            <h3 class="text-xl leading-6 font-semibold text-gray-900">
-                Paso 1: Crear Plan de Entrenamiento
+<div class="max-w-xl mx-auto py-8">
+    <div class="bg-white shadow-md rounded-2xl border border-slate-150 overflow-hidden animate-fade-in">
+        <!-- Encabezado del Formulario -->
+        <div class="px-6 py-6 border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white relative">
+            <div class="absolute top-0 right-0 p-4 opacity-10">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            </div>
+            <span class="text-xs font-headline font-bold text-accent uppercase tracking-widest bg-accent/10 px-2 py-0.5 rounded border border-accent/25">PASO 1 DE 2</span>
+            <h3 class="text-xl font-headline font-bold mt-2">
+                Crear Plan de Entrenamiento
             </h3>
-            <p class="mt-1 text-sm text-gray-500">
-                Define la fecha y selecciona el deportista para este plan.
+            <p class="text-xs text-slate-300 mt-1">
+                Define el nombre del plan, la fecha objetivo y el deportista asignado.
             </p>
         </div>
-        <div class="px-4 py-5 sm:p-6">
-            <form method="post" action="{% url 'training:plan_create' %}">
+        
+        <!-- Formulario -->
+        <div class="p-6 md:p-8">
+            <form method="post" action="{% url 'training:plan_create' %}" class="space-y-6">
                 {% csrf_token %}
                 
-                <div class="space-y-6">
+                <div class="space-y-5">
                     {% for field in form %}
                     <div>
-                        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ field.id_for_label }}" class="block text-xs font-headline font-bold text-slate-500">
                             {{ field.label }}
                         </label>
                         {{ field }}
                         {% if field.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ field.errors.0 }}</p>
+                            <p class="mt-1 text-sm text-red-650 font-medium">{{ field.errors.0 }}</p>
                         {% endif %}
                         {% if field.help_text %}
-                            <p class="mt-2 text-sm text-gray-500">{{ field.help_text }}</p>
+                            <p class="mt-1 text-xs text-slate-400 leading-relaxed">{{ field.help_text }}</p>
                         {% endif %}
                     </div>
                     {% endfor %}
                 </div>
                 
-                <div class="mt-8 flex justify-end space-x-4">
-                    <a href="{% url 'training:trainer_dashboard' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition">
+                <!-- Botones de Acción -->
+                <div class="pt-6 border-t border-slate-100 flex items-center justify-end gap-3 mt-8">
+                    <a href="{% url 'training:trainer_dashboard' %}" class="w-full sm:w-auto text-center px-5 py-3 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
                         Cancelar
                     </a>
-                    <button type="submit" class="bg-primary py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition">
+                    <button type="submit" class="w-full sm:w-auto btn-primary px-5 py-3 rounded-xl font-headline font-bold text-sm transition hover:scale-[1.01] shadow-md shadow-primary/15">
                         Crear y Añadir Ejercicios
                     </button>
                 </div>

@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Entreno App{% endblock %}</title>
+    <title>{% block title %}EntrenoPro{% endblock %}</title>
     
     <link rel="icon" href="{% static 'img/logo.ico' %}">
 
-    <!-- Google Fonts: Inter -->
+    <!-- Google Fonts: Inter & Montserrat -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS (CDN for Dev) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,16 +21,26 @@
                 extend: {
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
+                        headline: ['Montserrat', 'sans-serif'],
                     },
                     colors: {
-                        primary: '#3b82f6', // blue-500
-                        secondary: '#1e293b', // slate-800
-                        accent: '#10b981', // emerald-500
+                        primary: {
+                            DEFAULT: '#2563eb', // blue-600
+                            hover: '#1d4ed8',
+                        },
+                        secondary: '#0f172a', // slate-900
+                        accent: {
+                            DEFAULT: '#10b981', // emerald-500
+                            hover: '#059669',
+                        }
                     }
                 }
             }
         }
     </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
 
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
@@ -39,7 +49,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; }
         .htmx-indicator { display: none; }
         .htmx-request .htmx-indicator { display: inline; }
         .htmx-request.htmx-indicator { display: inline; }
@@ -47,44 +56,60 @@
     
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col antialiased">
+<body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col antialiased">
     
-    <nav class="bg-secondary text-white shadow-md">
+    <nav class="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white shadow-lg border-b border-indigo-900/20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="/" class="flex-shrink-0 flex items-center gap-2">
-                        <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                        <span class="font-bold text-xl tracking-tight">EntrenoPro</span>
+                    <a href="/" class="flex-shrink-0 flex items-center gap-3 group">
+                        <div class="bg-primary/10 p-2 rounded-xl border border-primary/20 group-hover:border-primary/50 transition">
+                            <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <span class="font-headline font-bold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-accent bg-clip-text text-transparent group-hover:opacity-90 transition">EntrenoPro</span>
                     </a>
                 </div>
                 <div class="flex items-center space-x-4">
                     {% if user.is_authenticated %}
                         {% if user.trainer_profile and user.athlete_profile %}
-                            <a href="{% url 'users:dashboard_router' %}?switch=true" class="text-sm font-medium text-gray-300 hover:text-accent transition mr-4">Cambiar de rol</a>
+                            <a href="{% url 'users:dashboard_router' %}?switch=true" class="text-sm font-semibold bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 hover:border-white/20 transition flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                Cambiar de rol
+                            </a>
                         {% endif %}
                         {% if user.is_staff or user.is_superuser %}
-                            <a href="/admin/" class="text-sm font-medium text-gray-300 hover:text-white transition mr-4">Admin</a>
+                            <a href="/admin/" class="text-sm font-medium text-slate-300 hover:text-white transition">Admin</a>
                         {% endif %}
-                        <span class="text-sm text-gray-300">{{ user.email }}</span>
-                        <form method="post" action="{% url 'users:logout' %}" class="inline ml-4 m-0">
+                        <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/55">
+                            <span class="w-2 h-2 rounded-full {% if request.session.active_role == 'trainer' %}bg-primary{% else %}bg-accent{% endif %}"></span>
+                            <span class="text-xs font-medium text-slate-300">{{ user.email }}</span>
+                        </div>
+                        <form method="post" action="{% url 'users:logout' %}" class="inline m-0">
                             {% csrf_token %}
-                            <button type="submit" class="text-sm font-medium hover:text-accent transition bg-transparent border-none cursor-pointer">Salir</button>
+                            <button type="submit" class="text-sm font-semibold hover:text-red-400 text-slate-300 transition bg-transparent border-none cursor-pointer flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                Salir
+                            </button>
                         </form>
                     {% else %}
-                        <a href="{% url 'users:login' %}" class="text-sm font-medium hover:text-accent transition">Iniciar Sesión</a>
+                        <a href="{% url 'users:login' %}" class="text-sm font-semibold bg-primary hover:bg-primary-hover px-4 py-2 rounded-lg text-white transition shadow-md shadow-primary/20">Iniciar Sesión</a>
                     {% endif %}
                 </div>
             </div>
         </div>
     </nav>
 
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         {% if messages %}
-            <div class="mb-6 space-y-2">
+            <div class="mb-6 space-y-3">
                 {% for message in messages %}
-                    <div class="p-4 rounded-md {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% else %}bg-green-50 text-green-800 border border-green-200{% endif %}">
-                        {{ message }}
+                    <div class="p-4 rounded-xl shadow-sm flex items-start gap-3 border {% if message.tags == 'error' %}bg-red-50/90 text-red-900 border-red-200/60{% else %}bg-emerald-50/90 text-emerald-900 border-emerald-200/60{% endif %}">
+                        {% if message.tags == 'error' %}
+                            <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        {% else %}
+                            <svg class="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        {% endif %}
+                        <div class="text-sm font-medium">{{ message }}</div>
                     </div>
                 {% endfor %}
             </div>
@@ -93,8 +118,13 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-white border-t border-gray-200 py-6 text-center text-gray-500 text-sm flex flex-col items-center justify-center">
-        <img src="{% static 'img/logo2.png' %}" alt="Logo Footer" class="h-10 mb-3 opacity-80 hover:opacity-100 transition">
+    <footer class="bg-white border-t border-slate-100 py-8 text-center text-slate-400 text-sm flex flex-col items-center justify-center">
+        {% if user.is_authenticated %}
+            <div class="flex items-center gap-2 mb-4">
+                <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span class="font-headline font-bold text-lg text-slate-800">EntrenoPro</span>
+            </div>
+        {% endif %}
         <p>&copy; {% now "Y" %} EntrenoPro. Todos los derechos reservados.</p>
     </footer>
 
