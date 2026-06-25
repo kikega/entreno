@@ -60,6 +60,9 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     {% if user.is_authenticated %}
+                        {% if user.trainer_profile and user.athlete_profile %}
+                            <a href="{% url 'users:dashboard_router' %}?switch=true" class="text-sm font-medium text-gray-300 hover:text-accent transition mr-4">Cambiar de rol</a>
+                        {% endif %}
                         {% if user.is_staff or user.is_superuser %}
                             <a href="/admin/" class="text-sm font-medium text-gray-300 hover:text-white transition mr-4">Admin</a>
                         {% endif %}

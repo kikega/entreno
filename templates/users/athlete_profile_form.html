@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Editar Perfil - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow-md rounded-xl border border-gray-150 p-8">
+        <div class="border-b border-gray-100 pb-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Configuración de Perfil</h2>
+            <p class="text-sm text-gray-500 mt-1">Actualiza tus datos personales y mediciones físicas actuales.</p>
+        </div>
+
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="rounded-md bg-red-50 p-4 border border-red-200">
+                <div class="flex">
+                    <svg class="h-5 w-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <div>
+                        <h3 class="text-sm font-medium text-red-800">Por favor, corrige los siguientes errores:</h3>
+                        <ul class="mt-2 list-disc list-inside text-sm text-red-700">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Sección Datos Personales -->
+            <div class="space-y-4">
+                <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Datos Personales</h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                        {{ form.first_name }}
+                    </div>
+                    <div>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Apellidos</label>
+                        {{ form.last_name }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección Composición Corporal -->
+            <div class="space-y-4 pt-6 border-t border-gray-100">
+                <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Composición Física</h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.weight.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Peso actual (kg)</label>
+                        {{ form.weight }}
+                    </div>
+                    <div>
+                        <label for="{{ form.height.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Altura (cm)</label>
+                        {{ form.height }}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.fat_percentage.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Porcentaje Grasa (%)</label>
+                        {{ form.fat_percentage }}
+                    </div>
+                    <div>
+                        <label for="{{ form.lean_mass_percentage.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Porcentaje Masa Magra (%)</label>
+                        {{ form.lean_mass_percentage }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">
+                <a href="{% url 'training:athlete_dashboard' %}" class="px-4 py-2 border border-gray-350 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit" class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
+                    Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

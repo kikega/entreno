@@ -138,6 +138,11 @@ AUTH_USER_MODEL = "users.CustomUser"
 LOGIN_URL = 'users:login'
 LOGIN_REDIRECT_URL = 'users:dashboard_router'
 LOGOUT_REDIRECT_URL = 'users:login'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Nombres de cookies de sesión y CSRF únicos para evitar colisiones con otros proyectos locales
+SESSION_COOKIE_NAME = 'entreno_sessionid'
+CSRF_COOKIE_NAME = 'entreno_csrftoken'
 
 # --- Python 3.14 / Django 5.1 Compatibility Patch ---
 import django.template.context
