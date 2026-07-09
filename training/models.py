@@ -17,7 +17,7 @@ class Exercise(models.Model):
     name = models.CharField(_('nombre'), max_length=200)
     category = models.CharField(_('categoría'), max_length=50, choices=CATEGORY_CHOICES, default='otro')
     description = models.TextField(_('descripción'), blank=True)
-    video_url = models.URLField(_('enlace de video'), blank=True)
+    video_url = models.URLField(_('enlace de video'), blank=True, null=True)
     created_by = models.ForeignKey(TrainerProfile, on_delete=models.CASCADE, related_name='created_exercises', verbose_name=_('creado por'))
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
