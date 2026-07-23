@@ -1,5 +1,0 @@
-Django
-psycopg
-python-dotenv
-django-environ
-djangorestframework
