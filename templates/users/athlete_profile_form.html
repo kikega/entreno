@@ -56,6 +56,26 @@
                 </div>
             </div>
 
+            <!-- Sección Perfil Deportivo & Objetivos -->
+            <div class="space-y-4 pt-4">
+                <h3 class="text-sm font-headline font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Perfil Deportivo & Objetivos</h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div>
+                        <label for="{{ form.sport.id_for_label }}" class="block text-xs font-headline font-bold text-slate-500 mb-1">Deporte Principal</label>
+                        {{ form.sport }}
+                    </div>
+                    <div>
+                        <label for="{{ form.experience_level.id_for_label }}" class="block text-xs font-headline font-bold text-slate-500 mb-1">Nivel de Experiencia</label>
+                        {{ form.experience_level }}
+                    </div>
+                    <div>
+                        <label for="{{ form.training_goal.id_for_label }}" class="block text-xs font-headline font-bold text-slate-500 mb-1">Objetivo Principal</label>
+                        {{ form.training_goal }}
+                    </div>
+                </div>
+            </div>
+
             <!-- Sección Composición Corporal -->
             <div class="space-y-4 pt-4">
                 <h3 class="text-sm font-headline font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Composición Física Actual</h3>

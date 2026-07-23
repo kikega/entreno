@@ -14,8 +14,24 @@ class Exercise(models.Model):
         ('otro', 'Otro'),
     ]
 
+    MOVEMENT_CHOICES = [
+        ('empuje_horizontal', 'Empuje Horizontal (Banca, Flexiones)'),
+        ('empuje_vertical', 'Empuje Vertical (Press Militar)'),
+        ('traccion_horizontal', 'Tracción Horizontal (Remo)'),
+        ('traccion_vertical', 'Tracción Vertical (Dominadas)'),
+        ('dominante_cadera', 'Dominante de Cadera (Peso Muerto, Hip Thrust)'),
+        ('dominante_rodilla', 'Dominante de Rodilla (Sentadilla, Zancadas)'),
+        ('potencia_olimpica', 'Potencia Olímpica (Snatch, Clean, Jerk)'),
+        ('metabolico', 'Condición Metabólica (Sled, Carrera, Ergómetro)'),
+        ('isometria_agarre', 'Agarre / Tracción Específica (BJJ/MMA Grip)'),
+        ('core_rotacional', 'Core / Anti-Rotación (Landmine, Paloff)'),
+        ('otro', 'Otro'),
+    ]
+
     name = models.CharField(_('nombre'), max_length=200)
     category = models.CharField(_('categoría'), max_length=50, choices=CATEGORY_CHOICES, default='otro')
+    movement_pattern = models.CharField(_('patrón de movimiento'), max_length=50, choices=MOVEMENT_CHOICES, default='otro')
+    sport_tags = models.JSONField(_('etiquetas de deportes'), default=list, blank=True)
     description = models.TextField(_('descripción'), blank=True)
     video_url = models.URLField(_('enlace de video'), blank=True, null=True)
     created_by = models.ForeignKey(TrainerProfile, on_delete=models.CASCADE, related_name='created_exercises', verbose_name=_('creado por'))
@@ -33,6 +49,7 @@ class WorkoutPlan(models.Model):
     name = models.CharField(_('nombre del plan'), max_length=200, blank=True)
     trainer = models.ForeignKey(TrainerProfile, on_delete=models.CASCADE, related_name='created_plans', verbose_name=_('entrenador'))
     athlete = models.ForeignKey(AthleteProfile, on_delete=models.CASCADE, related_name='assigned_plans', verbose_name=_('deportista'))
+    sport = models.CharField(_('deporte en enfoque'), max_length=50, choices=AthleteProfile.SPORT_CHOICES, default='otro')
     target_date = models.DateField(_('fecha programada'))
     is_completed = models.BooleanField(_('completado'), default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -74,6 +91,7 @@ class WorkoutSession(models.Model):
     duration_minutes = models.PositiveIntegerField(_('duración (minutos)'), null=True, blank=True)
     calories_burned = models.PositiveIntegerField(_('calorías consumidas'), null=True, blank=True)
     avg_heart_rate = models.PositiveIntegerField(_('frecuencia cardíaca media'), null=True, blank=True)
+    session_rpe = models.DecimalField(_('RPE global de la sesión (1-10)'), max_digits=3, decimal_places=1, null=True, blank=True)
     notes = models.TextField(_('notas del deportista'), blank=True)
 
     class Meta:
@@ -98,3 +116,19 @@ class LoggedExercise(models.Model):
 
     def __str__(self):
         return f"Log: {self.planned_exercise.exercise.name}"
+
+class LoggedSet(models.Model):
+    logged_exercise = models.ForeignKey(LoggedExercise, on_delete=models.CASCADE, related_name='sets', verbose_name=_('ejercicio registrado'))
+    set_number = models.PositiveIntegerField(_('número de serie'), default=1)
+    reps = models.PositiveIntegerField(_('repeticiones reales'), default=0)
+    weight_kg = models.DecimalField(_('peso real (kg)'), max_digits=6, decimal_places=2, default=0.0)
+    rpe = models.DecimalField(_('RPE'), max_digits=3, decimal_places=1, null=True, blank=True)
+    completed_at = models.DateTimeField(_('hora completada'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('serie registrada')
+        verbose_name_plural = _('series registradas')
+        ordering = ['set_number']
+
+    def __str__(self):
+        return f"Serie {self.set_number}: {self.weight_kg}kg x {self.reps} (RPE {self.rpe})"

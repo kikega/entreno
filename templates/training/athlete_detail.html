@@ -23,6 +23,9 @@
             <a href="{% url 'training:trainer_dashboard' %}" class="w-full md:w-auto text-center px-4 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
                 Volver
             </a>
+            <a href="{% url 'training:trainer_athlete_edit' athlete.id %}" class="w-full md:w-auto text-center px-4 py-2.5 bg-indigo-50 border border-indigo-200 text-sm font-bold rounded-xl text-indigo-700 hover:bg-indigo-100 transition shadow-sm flex items-center justify-center gap-1">
+                ✏️ Editar Perfil Deportivo
+            </a>
             <a href="{% url 'training:plan_create' %}" class="btn-primary w-full md:w-auto px-4 py-2.5 rounded-xl font-headline font-semibold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] shadow-md shadow-primary/20">
                 <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                 Asignar Plan
@@ -32,31 +35,54 @@
 
     <!-- Contenido Principal: Datos Físicos y Planes -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Ficha de Datos Físicos -->
-        <div class="lg:col-span-1 bg-white shadow-sm rounded-2xl border border-slate-150 overflow-hidden">
-            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-                <h3 class="text-base font-headline font-bold text-slate-800">Ficha Corporal</h3>
+        <!-- Ficha de Datos Físicos & Deportivo -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-white shadow-sm rounded-2xl border border-slate-150 overflow-hidden">
+                <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                    <h3 class="text-base font-headline font-bold text-slate-800">Perfil Deportivo</h3>
+                    <span class="px-2 py-0.5 text-xs font-bold bg-primary/10 text-primary rounded-full">{{ athlete.get_sport_display }}</span>
+                </div>
+                <div class="p-6 space-y-4 text-xs">
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
+                        <span class="text-slate-500 font-medium">Deporte Principal</span>
+                        <span class="font-bold text-slate-800">{{ athlete.get_sport_display }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
+                        <span class="text-slate-500 font-medium">Nivel Experiencia</span>
+                        <span class="font-bold text-slate-800">{{ athlete.get_experience_level_display }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2.5">
+                        <span class="text-slate-500 font-medium">Objetivo Principal</span>
+                        <span class="font-bold text-indigo-600">{{ athlete.get_training_goal_display }}</span>
+                    </div>
+                </div>
             </div>
-            <div class="p-6 space-y-4">
-                <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
-                    <span class="text-base text-slate-500 font-medium">Peso Actual</span>
-                    <span class="text-base font-bold text-slate-800">{% if athlete.weight %}{{ athlete.weight }} kg{% else %}--{% endif %}</span>
+
+            <div class="bg-white shadow-sm rounded-2xl border border-slate-150 overflow-hidden">
+                <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="text-base font-headline font-bold text-slate-800">Ficha Corporal</h3>
                 </div>
-                <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
-                    <span class="text-base text-slate-500 font-medium">Altura</span>
-                    <span class="text-base font-bold text-slate-800">{% if athlete.height %}{{ athlete.height }} cm{% else %}--{% endif %}</span>
-                </div>
-                <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
-                    <span class="text-base text-slate-500 font-medium">Grasa Corporal</span>
-                    <span class="text-base font-bold text-orange-500">{% if athlete.fat_percentage %}{{ athlete.fat_percentage }}%{% else %}--{% endif %}</span>
-                </div>
-                <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
-                    <span class="text-base text-slate-500 font-medium">Masa Magra</span>
-                    <span class="text-base font-bold text-accent">{% if athlete.lean_mass_percentage %}{{ athlete.lean_mass_percentage }}%{% else %}--{% endif %}</span>
-                </div>
-                <div class="flex justify-between items-center py-2.5">
-                    <span class="text-base text-slate-500 font-medium">Miembro Desde</span>
-                    <span class="text-base font-bold text-slate-800">{{ athlete.created_at|date:"M Y" }}</span>
+                <div class="p-6 space-y-4 text-xs">
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
+                        <span class="text-slate-500 font-medium">Peso Actual</span>
+                        <span class="font-bold text-slate-800">{% if athlete.weight %}{{ athlete.weight }} kg{% else %}--{% endif %}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
+                        <span class="text-slate-500 font-medium">Altura</span>
+                        <span class="font-bold text-slate-800">{% if athlete.height %}{{ athlete.height }} cm{% else %}--{% endif %}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
+                        <span class="text-slate-500 font-medium">Grasa Corporal</span>
+                        <span class="font-bold text-orange-500">{% if athlete.fat_percentage %}{{ athlete.fat_percentage }}%{% else %}--{% endif %}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-100">
+                        <span class="text-slate-500 font-medium">Masa Magra</span>
+                        <span class="font-bold text-accent">{% if athlete.lean_mass_percentage %}{{ athlete.lean_mass_percentage }}%{% else %}--{% endif %}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2.5">
+                        <span class="text-slate-500 font-medium">Miembro Desde</span>
+                        <span class="font-bold text-slate-800">{{ athlete.created_at|date:"M Y" }}</span>
+                    </div>
                 </div>
             </div>
         </div>

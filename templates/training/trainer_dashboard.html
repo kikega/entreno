@@ -11,12 +11,12 @@
         <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
                 <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-primary/15 px-3 py-1 rounded-full border border-primary/25">PANEL ENTRENADOR</span>
-                <h1 class="text-3xl md:text-4xl font-headline font-extrabold text-white mt-3">Panel de Planificación</h1>
-                <p class="text-base text-slate-300 mt-2 max-w-xl">Supervisa los entrenamientos, define nuevos ejercicios y crea rutinas personalizadas para tus deportistas de alto rendimiento.</p>
+                <h1 class="text-3xl md:text-4xl font-headline font-extrabold text-white mt-3">Panel de Planificación & ML Copilot</h1>
+                <p class="text-base text-slate-300 mt-2 max-w-xl">Supervisa los entrenamientos, analiza el riesgo de sobreentrenamiento (ACWR) y genera planes adaptados por deporte con 1 solo clic.</p>
             </div>
             <a href="{% url 'training:plan_create' %}" class="btn-primary px-5 py-3 rounded-xl font-headline font-semibold text-sm flex items-center gap-2 transition hover:scale-[1.02] shadow-lg shadow-primary/20">
                 <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-                Planificar Nuevo Entrenamiento
+                Planificar Manualmente
             </a>
         </div>
     </div>
@@ -56,33 +56,54 @@
 
     <!-- Grid de Deportistas y Actividad Reciente -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Listado de Deportistas -->
+        <!-- Listado de Deportistas con métricas ML -->
         <div class="bg-white shadow-sm rounded-2xl border border-slate-150 col-span-1 lg:col-span-2 overflow-hidden">
-            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-                <h3 class="text-lg font-headline font-bold text-slate-800">Mis Deportistas Asignados</h3>
+            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h3 class="text-lg font-headline font-bold text-slate-800">Deportistas Asignados & Métricas ML</h3>
+                <span class="text-xs text-slate-400 font-medium">Deportes: MMA, Karate, BJJ, CrossFit, Hyrox, Pérdida Peso</span>
             </div>
-            {% if athletes %}
+            {% if athletes_metrics %}
                 <ul class="divide-y divide-slate-100">
-                    {% for athlete in athletes %}
-                        <li class="px-6 py-5 flex items-center justify-between hover:bg-slate-50/50 transition">
-                            <div class="flex items-center gap-4">
-                                <div class="flex-shrink-0 h-12 w-12 bg-blue-100 text-primary rounded-xl flex items-center justify-center font-headline font-bold text-lg border border-blue-200">
+                    {% for item in athletes_metrics %}
+                        {% with athlete=item.athlete m=item.metrics %}
+                        <li class="px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 h-12 w-12 bg-blue-100 text-primary rounded-xl flex items-center justify-center font-headline font-bold text-lg border border-blue-200 mt-1">
                                     {{ athlete.user.first_name|first|default:athlete.user.email|first|upper }}
                                 </div>
-                                <div>
-                                    <div class="text-base font-bold text-slate-800">{{ athlete.user.first_name }} {{ athlete.user.last_name }}</div>
-                                    <div class="text-sm text-slate-400 flex items-center gap-1.5 mt-0.5">
-                                        <svg class="w-4 h-4 text-slate-350" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                                        {{ athlete.user.email }}
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="text-base font-bold text-slate-800">{{ athlete.user.first_name }} {{ athlete.user.last_name }}</h4>
+                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">
+                                            {{ m.sport }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-slate-400">{{ athlete.user.email }} • Nivel: {{ m.experience_level }}</p>
+                                    
+                                    <!-- Status ACWR de Lesiones/Carga -->
+                                    <div class="flex items-center gap-2 pt-1 text-xs">
+                                        <span class="font-medium text-slate-500">Estado ACWR:</span>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-{{ m.acwr.status_color }}-100 text-{{ m.acwr.status_color }}-800">
+                                            Ratio {{ m.acwr.acwr_ratio }} - {{ m.acwr.status_label }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
-                            <div>
-                                <a href="{% url 'training:athlete_detail' athlete.id %}" class="inline-flex items-center px-4 py-2 border border-slate-200 text-sm font-semibold rounded-xl text-primary bg-white hover:bg-blue-50/55 hover:border-primary/20 transition shadow-sm">
-                                    Ver Expediente
+                            
+                            <div class="flex items-center gap-2 self-end md:self-center">
+                                <form action="{% url 'training:generate_smart_plan' athlete.id %}" method="POST">
+                                    {% csrf_token %}
+                                    <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-primary text-white text-xs font-bold rounded-xl hover:opacity-90 transition shadow-sm">
+                                        <span>✨ Plan ML {{ athlete.get_sport_display }}</span>
+                                    </button>
+                                </form>
+                                
+                                <a href="{% url 'training:athlete_detail' athlete.id %}" class="inline-flex items-center px-3.5 py-2 border border-slate-200 text-xs font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                                    Expediente
                                 </a>
                             </div>
                         </li>
+                        {% endwith %}
                     {% endfor %}
                 </ul>
             {% else %}
@@ -93,32 +114,34 @@
             {% endif %}
         </div>
 
-        <!-- Panel de Actividad Reciente -->
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-6 flex flex-col">
-            <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider mb-5 border-b border-slate-100 pb-3">Actividad Reciente</h3>
+        <!-- Panel de Actividad Reciente y Plantillas Soportadas -->
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-6 flex flex-col space-y-6">
+            <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-3">Motor ML por Deporte</h3>
             
-            <div class="flex-grow">
-                <div class="relative pl-6 border-l-2 border-slate-100 space-y-6">
-                    <div class="relative">
-                        <span class="absolute -left-[31px] top-1 w-4.5 h-4.5 rounded-full bg-blue-50 border-2 border-primary flex items-center justify-center">
-                            <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                        </span>
-                        <h4 class="text-sm font-bold text-slate-800">Plan Asignado Correctamente</h4>
-                        <p class="text-xs text-slate-400 mt-1">Hoy a las 18:32</p>
-                    </div>
+            <div class="space-y-3 text-xs">
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                    <span class="font-bold text-slate-800">🥋 MMA / Karate / BJJ</span>
+                    <span class="text-emerald-600 font-semibold">Potencia & Agarre</span>
+                </div>
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                    <span class="font-bold text-slate-800">🏋️ CrossFit / Hyrox</span>
+                    <span class="text-indigo-600 font-semibold">Resistencia Intermitente</span>
+                </div>
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                    <span class="font-bold text-slate-800">🔥 Pérdida de Peso</span>
+                    <span class="text-amber-600 font-semibold">Circuitos HIIPA</span>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 pt-4">
+                <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Alertas de Carga Reciente</h4>
+                <div class="relative pl-6 border-l-2 border-slate-100 space-y-4 text-xs">
                     <div class="relative">
                         <span class="absolute -left-[31px] top-1 w-4.5 h-4.5 rounded-full bg-emerald-50 border-2 border-accent flex items-center justify-center">
                             <span class="w-1.5 h-1.5 rounded-full bg-accent"></span>
                         </span>
-                        <h4 class="text-sm font-bold text-slate-800">Deportista completó sesión</h4>
-                        <p class="text-xs text-slate-400 mt-1">Ayer a las 20:15</p>
-                    </div>
-                    <div class="relative">
-                        <span class="absolute -left-[31px] top-1 w-4.5 h-4.5 rounded-full bg-amber-50 border-2 border-amber-500 flex items-center justify-center">
-                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                        </span>
-                        <h4 class="text-sm font-bold text-slate-800">Catálogo de Ejercicio Actualizado</h4>
-                        <p class="text-xs text-slate-400 mt-1">Hace 2 días</p>
+                        <h4 class="font-bold text-slate-800">Carga Óptima de Trabajo</h4>
+                        <p class="text-slate-400 mt-0.5">Atletas en ratio seguro (0.8 - 1.3 ACWR)</p>
                     </div>
                 </div>
             </div>

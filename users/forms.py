@@ -38,12 +38,15 @@ class AthleteProfileForm(forms.ModelForm):
 
     class Meta:
         model = AthleteProfile
-        fields = ['weight', 'height', 'fat_percentage', 'lean_mass_percentage']
+        fields = ['weight', 'height', 'fat_percentage', 'lean_mass_percentage', 'sport', 'experience_level', 'training_goal']
         widgets = {
             'weight': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'step': '0.01'}),
             'height': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'step': '0.01'}),
             'fat_percentage': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'step': '0.01'}),
             'lean_mass_percentage': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'step': '0.01'}),
+            'sport': forms.Select(attrs={'class': 'peer block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'}),
+            'experience_level': forms.Select(attrs={'class': 'peer block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'}),
+            'training_goal': forms.Select(attrs={'class': 'peer block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'}),
         }
 
     def __init__(self, *args, **kwargs):
