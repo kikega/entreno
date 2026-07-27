@@ -102,8 +102,12 @@ class LoadProgressionPredictor:
     """
 
     def __init__(self):
+        """
+        Inicializa el modelo regressor de RandomForest y el estado de entrenamiento del predictor.
+        """
         self.model = RandomForestRegressor(n_estimators=50, random_state=42)
         self._is_trained = False
+
 
     def predict_next_load(self, athlete_profile, exercise: Exercise, previous_logs: List[LoggedSet]) -> Dict[str, Any]:
         """

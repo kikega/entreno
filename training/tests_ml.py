@@ -9,8 +9,14 @@ User = get_user_model()
 
 
 class AnalyticsAndMLTestCase(TestCase):
+    """
+    Pruebas unitarias e integración para las fórmulas de analítica (1RM, sRPE, ACWR)
+    y los motores de plantillas y predicción por machine learning (SmartPlanGenerator).
+    """
 
     def setUp(self):
+        """Prepara el entorno de prueba con un usuario entrenador y un usuario deportista de MMA."""
+
         self.trainer_user = User.objects.create_user(
             email='entrenador_ml@test.com',
             password='Password123!',
@@ -37,33 +43,45 @@ class AnalyticsAndMLTestCase(TestCase):
         )
 
     def test_brzycki_formula(self):
+        """Verifica la precisión del cálculo estimado de 1RM con la fórmula de Brzycki."""
         val_1rm = calculate_1rm_brzycki(100.0, 5)
+
         self.assertGreater(val_1rm, 110.0)
         self.assertLess(val_1rm, 115.0)
 
     def test_srpe_calculation(self):
+        """Verifica el cálculo de Carga Interna (sRPE = duración * RPE)."""
         srpe = calculate_srpe(60, 8.5)
+
         self.assertEqual(srpe, 510.0)
 
     def test_acwr_calculation(self):
+        """Comprueba el cálculo de la Relación Carga Aguda:Crónica (ACWR) y su estado de riesgo."""
         acwr = calculate_acwr(self.athlete)
+
         self.assertIn('acwr_ratio', acwr)
         self.assertIn('risk_status', acwr)
 
     def test_sport_template_engine(self):
+        """Comprueba la generación de plantillas específicas para cada uno de los deportes soportados."""
         for sport in ['mma', 'karate', 'bjj', 'crossfit', 'hyrox', 'weight_loss']:
+
             tpl = SportTemplateEngine.get_template(sport)
             self.assertIn('name', tpl)
             self.assertGreaterEqual(len(tpl['exercises']), 4)
 
     def test_smart_plan_generator(self):
+        """Valida que SmartPlanGenerator genere automáticamente un WorkoutPlan completo con ejercicios acordes al deporte."""
         plan = SmartPlanGenerator.generate_plan_for_athlete(self.trainer, self.athlete)
+
         self.assertIsInstance(plan, WorkoutPlan)
         self.assertEqual(plan.sport, 'mma')
         self.assertGreaterEqual(plan.planned_exercises.count(), 5)
 
     def test_logged_set_creation(self):
+        """Valida la creación y persistencia de sesiones de entrenamiento, ejercicios y series registradas."""
         plan = SmartPlanGenerator.generate_plan_for_athlete(self.trainer, self.athlete)
+
         planned_ex = plan.planned_exercises.first()
 
         session = WorkoutSession.objects.create(

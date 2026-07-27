@@ -2,7 +2,11 @@ from django import forms
 from .models import WorkoutPlan, PlannedExercise, WorkoutSession
 
 class WorkoutPlanForm(forms.ModelForm):
+    """
+    Formulario para la creación y edición de planes de entrenamiento asignados a un deportista.
+    """
     class Meta:
+
         model = WorkoutPlan
         fields = ['name', 'athlete', 'target_date']
         widgets = {
@@ -10,7 +14,12 @@ class WorkoutPlanForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        """
+        Inicializa el formulario personalizando los widgets y filtrando el queryset de deportistas
+        para incluir únicamente a los asignados al entrenador actual.
+        """
         trainer = kwargs.pop('trainer', None)
+
         super().__init__(*args, **kwargs)
         
         # Filtrar deportistas para que solo aparezcan los asignados a este entrenador
@@ -22,7 +31,11 @@ class WorkoutPlanForm(forms.ModelForm):
 
 
 class PlannedExerciseForm(forms.ModelForm):
+    """
+    Formulario para prescribir un ejercicio individual dentro de un plan de entrenamiento.
+    """
     class Meta:
+
         model = PlannedExercise
         fields = ['exercise', 'order', 'sets', 'reps', 'load', 'rpe', 'rir', 'tempo', 'focus', 'rest', 'notes']
         widgets = {
@@ -30,13 +43,19 @@ class PlannedExerciseForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        """Inicializa el formulario aplicando estilos CSS unificados a los widgets."""
         super().__init__(*args, **kwargs)
+
         for field in self.fields.values():
             field.widget.attrs.update({'class': 'mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:ring-primary focus:outline-none transition'})
 
 
 class WorkoutSessionForm(forms.ModelForm):
+    """
+    Formulario para registrar los datos globales al completar una sesión de entrenamiento (duración, calorías, FC, RPE y notas).
+    """
     class Meta:
+
         model = WorkoutSession
         fields = ['duration_minutes', 'calories_burned', 'avg_heart_rate', 'notes']
         widgets = {

@@ -13,12 +13,19 @@ from .models import AthleteProfile, AthleteProgressLog
 from .forms import CustomAuthenticationForm, AthleteProfileForm, AthleteProgressLogForm
 
 class CustomLoginView(LoginView):
+    """
+    Vista personalizada de inicio de sesión utilizando la dirección de correo electrónico como credencial.
+    """
     template_name = 'users/login.html'
     authentication_form = CustomAuthenticationForm
     redirect_authenticated_user = True
 
 class CustomLogoutView(LogoutView):
+    """
+    Vista personalizada para cerrar la sesión activa del usuario y redirigirlo al inicio de sesión.
+    """
     next_page = 'users:login'
+
 
 @login_required
 def dashboard_router(request):
@@ -59,15 +66,22 @@ def dashboard_router(request):
         return render(request, 'users/no_role.html')
 
 class AthleteProfileUpdateView(LoginRequiredMixin, UpdateView):
+    """
+    Vista para que los deportistas editen su perfil personal, datos antropométricos y objetivos de entrenamiento.
+    """
     model = AthleteProfile
     form_class = AthleteProfileForm
     template_name = 'users/athlete_profile_form.html'
     success_url = reverse_lazy('training:athlete_dashboard')
 
     def get_object(self, queryset=None):
+        """Retorna el perfil de atleta perteneciente al usuario actualmente autenticado."""
         return self.request.user.athlete_profile
 
     def form_valid(self, form):
+        """Guarda los cambios del perfil y genera o actualiza un registro de progreso para el día de hoy."""
+        response = super().form_valid(form)
+
         response = super().form_valid(form)
         profile = self.object
         today = timezone.now().date()
@@ -87,7 +101,12 @@ class AthleteProfileUpdateView(LoginRequiredMixin, UpdateView):
 @login_required
 @require_POST
 def log_progress(request):
+    """
+    Endpoint para registrar el progreso antropométrico diario de un deportista (peso, % grasa, % masa magra).
+    Soporta peticiones estándar y fragmentos HTMX.
+    """
     profile = get_object_or_404(AthleteProfile, user=request.user)
+
     form = AthleteProgressLogForm(request.POST)
     if form.is_valid():
         log = form.save(commit=False)

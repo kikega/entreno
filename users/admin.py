@@ -6,7 +6,11 @@ from .forms import CustomUserCreationForm, CustomUserChangeForm
 from django.utils.translation import gettext_lazy as _
 
 class CustomUserAdmin(UserAdmin):
+    """
+    Configuración personalizada del panel de administración para el modelo CustomUser.
+    """
     add_form = CustomUserCreationForm
+
     form = CustomUserChangeForm
     model = CustomUser
     add_form_template = None

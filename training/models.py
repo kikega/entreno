@@ -3,6 +3,11 @@ from django.utils.translation import gettext_lazy as _
 from users.models import TrainerProfile, AthleteProfile
 
 class Exercise(models.Model):
+    """
+    Representa un ejercicio individual en el catálogo del sistema, incluyendo su categoría,
+    patrón de movimiento biomecánico, etiquetas deportivas y creador.
+    """
+
     CATEGORY_CHOICES = [
         ('fuerza', 'Fuerza'),
         ('potencia', 'Potencia'),
@@ -43,9 +48,16 @@ class Exercise(models.Model):
         verbose_name_plural = _('ejercicios')
 
     def __str__(self):
+        """Devuelve el nombre representativo del ejercicio."""
         return self.name
 
+
 class WorkoutPlan(models.Model):
+    """
+    Plan de entrenamiento prescriptivo asignado por un entrenador a un deportista
+    para una fecha u objetivo específico.
+    """
+
     name = models.CharField(_('nombre del plan'), max_length=200, blank=True)
     trainer = models.ForeignKey(TrainerProfile, on_delete=models.CASCADE, related_name='created_plans', verbose_name=_('entrenador'))
     athlete = models.ForeignKey(AthleteProfile, on_delete=models.CASCADE, related_name='assigned_plans', verbose_name=_('deportista'))
@@ -60,9 +72,16 @@ class WorkoutPlan(models.Model):
         verbose_name_plural = _('planes de entrenamiento')
 
     def __str__(self):
+        """Devuelve una cadena descriptiva con el nombre del plan, email del deportista y fecha programada."""
         return f"{self.name or 'Plan'} - {self.athlete.user.email} ({self.target_date})"
 
+
 class PlannedExercise(models.Model):
+    """
+    Ejercicio prescrito dentro de un plan de entrenamiento concreto, especificando orden,
+    series, repeticiones, carga objetivo, RPE, RIR, tempo y descanso.
+    """
+
     workout_plan = models.ForeignKey(WorkoutPlan, on_delete=models.CASCADE, related_name='planned_exercises', verbose_name=_('plan de entrenamiento'))
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='planned_in', verbose_name=_('ejercicio'))
     order = models.PositiveIntegerField(_('orden'), default=0)
@@ -82,9 +101,16 @@ class PlannedExercise(models.Model):
         ordering = ['order']
 
     def __str__(self):
+        """Devuelve el nombre del ejercicio y el plan de entrenamiento al que pertenece."""
         return f"{self.exercise.name} ({self.workout_plan})"
 
+
 class WorkoutSession(models.Model):
+    """
+    Registro real de una sesión de entrenamiento completada por el deportista,
+    almacenando duración, calorías, frecuencia cardíaca media, RPE global y notas.
+    """
+
     workout_plan = models.OneToOneField(WorkoutPlan, on_delete=models.CASCADE, related_name='session', verbose_name=_('plan de entrenamiento'))
     athlete = models.ForeignKey(AthleteProfile, on_delete=models.CASCADE, related_name='sessions', verbose_name=_('deportista'))
     date_completed = models.DateTimeField(_('fecha completado'), auto_now_add=True)
@@ -99,9 +125,15 @@ class WorkoutSession(models.Model):
         verbose_name_plural = _('sesiones de entrenamiento')
 
     def __str__(self):
+        """Devuelve la identificación de la sesión vinculada a su plan de entrenamiento."""
         return f"Sesión: {self.workout_plan}"
 
+
 class LoggedExercise(models.Model):
+    """
+    Agrupador de series ejecutadas en una sesión de entrenamiento para un ejercicio planificado.
+    """
+
     workout_session = models.ForeignKey(WorkoutSession, on_delete=models.CASCADE, related_name='logged_exercises', verbose_name=_('sesión de entrenamiento'))
     planned_exercise = models.ForeignKey(PlannedExercise, on_delete=models.CASCADE, related_name='logs', verbose_name=_('ejercicio planificado'))
     actual_sets = models.CharField(_('series reales'), max_length=50, blank=True)
@@ -115,9 +147,16 @@ class LoggedExercise(models.Model):
         verbose_name_plural = _('ejercicios registrados')
 
     def __str__(self):
+        """Devuelve una representación del ejercicio registrado."""
         return f"Log: {self.planned_exercise.exercise.name}"
 
+
 class LoggedSet(models.Model):
+    """
+    Registro individual de una serie ejecutada, guardando repeticiones reales,
+    peso (kg), RPE individual y fecha/hora de finalización.
+    """
+
     logged_exercise = models.ForeignKey(LoggedExercise, on_delete=models.CASCADE, related_name='sets', verbose_name=_('ejercicio registrado'))
     set_number = models.PositiveIntegerField(_('número de serie'), default=1)
     reps = models.PositiveIntegerField(_('repeticiones reales'), default=0)
@@ -131,4 +170,6 @@ class LoggedSet(models.Model):
         ordering = ['set_number']
 
     def __str__(self):
+        """Devuelve la descripción del número de serie, peso, repeticiones y RPE."""
         return f"Serie {self.set_number}: {self.weight_kg}kg x {self.reps} (RPE {self.rpe})"
+

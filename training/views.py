@@ -20,9 +20,14 @@ from .ml_engine import SmartPlanGenerator
 
 
 class TrainerDashboardView(LoginRequiredMixin, TemplateView):
+    """
+    Vista de panel principal para entrenadores. Muestra la lista de deportistas asignados,
+    sus métricas de carga/rendimiento (ACWR, volúmenes) y resumen general de la actividad.
+    """
     template_name = 'training/trainer_dashboard.html'
 
     def dispatch(self, request, *args, **kwargs):
+        """Valida que el usuario tenga perfil de entrenador y establece el rol activo en la sesión."""
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
         if not hasattr(request.user, 'trainer_profile'):
@@ -31,6 +36,9 @@ class TrainerDashboardView(LoginRequiredMixin, TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
+        """Construye el contexto con los datos del entrenador, sus atletas asignados y métricas calculadas."""
+        context = super().get_context_data(**kwargs)
+
         context = super().get_context_data(**kwargs)
         if hasattr(self.request.user, 'trainer_profile'):
             trainer = self.request.user.trainer_profile
@@ -53,9 +61,14 @@ class TrainerDashboardView(LoginRequiredMixin, TemplateView):
 
 
 class AthleteDashboardView(LoginRequiredMixin, TemplateView):
+    """
+    Vista de panel principal para deportistas. Muestra sus métricas personales,
+    próximos planes asignados, gráficos de peso/composición e historial reciente.
+    """
     template_name = 'training/athlete_dashboard.html'
 
     def dispatch(self, request, *args, **kwargs):
+        """Valida que el usuario sea un deportista activo y establece el rol en la sesión."""
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
         if not hasattr(request.user, 'athlete_profile'):
@@ -64,6 +77,9 @@ class AthleteDashboardView(LoginRequiredMixin, TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
+        """Procesa y compila el historial de logs, sesiones y datos serializados para gráficos."""
+        context = super().get_context_data(**kwargs)
+
         context = super().get_context_data(**kwargs)
         profile = self.request.user.athlete_profile
 
@@ -124,30 +140,44 @@ class AthleteDashboardView(LoginRequiredMixin, TemplateView):
 
 
 class WorkoutPlanCreateView(LoginRequiredMixin, CreateView):
+    """
+    Permite a los entrenadores crear manualmente un nuevo plan de entrenamiento para sus deportistas.
+    """
     model = WorkoutPlan
     form_class = WorkoutPlanForm
     template_name = 'training/workout_plan_form.html'
 
     def get_form_kwargs(self):
+        """Pasa la instancia del entrenador al formulario para filtrar sus atletas asignados."""
         kwargs = super().get_form_kwargs()
         if hasattr(self.request.user, 'trainer_profile'):
             kwargs['trainer'] = self.request.user.trainer_profile
         return kwargs
 
     def form_valid(self, form):
+        """Asigna automáticamente el perfil del entrenador solicitante al plan antes de guardar."""
         form.instance.trainer = self.request.user.trainer_profile
         return super().form_valid(form)
 
     def get_success_url(self):
+        """Redirige al detalle del plan recién creado para añadir ejercicios."""
         return reverse('training:plan_detail', kwargs={'pk': self.object.pk})
 
 
+
 class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
+    """
+    Vista de detalle de un plan de entrenamiento. Muestra los ejercicios prescritos,
+    permitiendo al entrenador añadir ejercicios o al atleta registrar una sesión.
+    """
     model = WorkoutPlan
     template_name = 'training/workout_plan_detail.html'
     context_object_name = 'plan'
 
     def get_context_data(self, **kwargs):
+        """Inyecta los formularios de PlannedExercise y WorkoutSession según el rol del usuario."""
+        context = super().get_context_data(**kwargs)
+
         context = super().get_context_data(**kwargs)
         context['exercise_form'] = PlannedExerciseForm()
 
@@ -161,11 +191,17 @@ class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
 
 
 class LiveWorkoutView(LoginRequiredMixin, DetailView):
+    """
+    Interfaz interactiva en vivo para que el deportista ejecute y registre serie a serie un entrenamiento.
+    """
     model = WorkoutPlan
     template_name = 'training/live_workout.html'
     context_object_name = 'plan'
 
     def dispatch(self, request, *args, **kwargs):
+        """Comprueba que el deportista autenticado sea el destinatario del plan antes de dar acceso."""
+        obj = self.get_object()
+
         obj = self.get_object()
         # Verificar permisos del deportista
         if hasattr(request.user, 'athlete_profile') and obj.athlete != request.user.athlete_profile:
@@ -307,11 +343,15 @@ def add_planned_exercise(request, plan_id):
 
 
 class AthleteDetailView(LoginRequiredMixin, DetailView):
+    """
+    Muestra la ficha detallada de un atleta a su entrenador, incluyendo su historial de planes y métricas deportivas.
+    """
     model = AthleteProfile
     template_name = 'training/athlete_detail.html'
     context_object_name = 'athlete'
 
     def get_context_data(self, **kwargs):
+        """Carga los planes asignados ordenados por fecha y las métricas avanzadas del deportista."""
         context = super().get_context_data(**kwargs)
         context['plans'] = self.object.assigned_plans.all().order_by('-target_date')
         context['metrics'] = get_athlete_sport_metrics(self.object)
@@ -327,11 +367,14 @@ class TrainerAthleteProfileUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'users/athlete_profile_form.html'
 
     def get_queryset(self):
+        """Garantiza que el entrenador solo pueda acceder a los atletas que tiene explícitamente asignados."""
         if hasattr(self.request.user, 'trainer_profile'):
             return AthleteProfile.objects.filter(assigned_trainer=self.request.user)
         return AthleteProfile.objects.none()
 
     def get_success_url(self):
+        """Informa del éxito de la operación y redirige al detalle del deportista."""
         messages.success(self.request, f"Perfil deportivo de {self.object.user.first_name or self.object.user.email} actualizado con éxito.")
         return reverse('training:athlete_detail', kwargs={'pk': self.object.pk})
+
 

@@ -5,7 +5,11 @@ from django.utils import timezone
 from .managers import CustomUserManager
 
 class CustomUser(AbstractUser):
+    """
+    Modelo de usuario personalizado donde el correo electrónico es el identificador único para autenticación.
+    """
     username = None
+
     email = models.EmailField(_('correo electrónico'), unique=True)
 
     USERNAME_FIELD = 'email'
@@ -18,10 +22,16 @@ class CustomUser(AbstractUser):
         verbose_name_plural = _('usuarios')
 
     def __str__(self):
+        """Devuelve el correo electrónico como representación del usuario."""
         return self.email
 
+
 class TrainerProfile(models.Model):
+    """
+    Perfil ampliado para usuarios con rol de Entrenador en la plataforma.
+    """
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='trainer_profile', verbose_name=_('usuario'))
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -30,10 +40,17 @@ class TrainerProfile(models.Model):
         verbose_name_plural = _('perfiles de entrenador')
 
     def __str__(self):
+        """Devuelve la identificación del perfil del entrenador."""
         return f"Entrenador: {self.user.email}"
 
+
 class AthleteProfile(models.Model):
+    """
+    Perfil ampliado para deportistas. Almacena características físicas (peso, altura, porcentajes de masa),
+    deporte principal, nivel de experiencia, objetivo y asignación de entrenador.
+    """
     SPORT_CHOICES = [
+
         ('mma', 'MMA (Artes Marciales Mixtas)'),
         ('karate', 'Karate'),
         ('bjj', 'Jiu-Jitsu Brasileño (BJJ)'),
@@ -77,10 +94,16 @@ class AthleteProfile(models.Model):
         verbose_name_plural = _('perfiles de deportista')
 
     def __str__(self):
+        """Devuelve la identificación del perfil del deportista."""
         return f"Deportista: {self.user.email}"
 
+
 class AthleteProgressLog(models.Model):
+    """
+    Registro histórico de avance antropométrico (peso, grasa, masa magra) por fecha para un deportista.
+    """
     athlete = models.ForeignKey(AthleteProfile, on_delete=models.CASCADE, related_name='progress_logs', verbose_name=_('deportista'))
+
     date = models.DateField(_('fecha'), default=timezone.now)
     weight = models.DecimalField(_('peso (kg)'), max_digits=5, decimal_places=2)
     fat_percentage = models.DecimalField(_('porcentaje masa grasa (%)'), max_digits=5, decimal_places=2, null=True, blank=True)
@@ -93,4 +116,6 @@ class AthleteProgressLog(models.Model):
         unique_together = ('athlete', 'date')
 
     def __str__(self):
+        """Devuelve la fecha y el peso registrado para el deportista."""
         return f"{self.athlete.user.email} - {self.date}: {self.weight} kg"
+

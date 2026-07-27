@@ -4,17 +4,23 @@ from django.utils.translation import gettext_lazy as _
 from .models import CustomUser, AthleteProfile, AthleteProgressLog
 
 class CustomUserCreationForm(UserCreationForm):
+    """Formulario para la creación de nuevos usuarios utilizando email como credencial principal."""
     class Meta:
+
         model = CustomUser
         fields = ('email', 'first_name', 'last_name')
 
 class CustomUserChangeForm(UserChangeForm):
+    """Formulario para la edición de datos de usuario en la administración."""
     class Meta:
+
         model = CustomUser
         fields = ('email', 'first_name', 'last_name')
 
 class CustomAuthenticationForm(AuthenticationForm):
+    """Formulario de autenticación personalizado que sustituye el nombre de usuario por email."""
     username = forms.EmailField(
+
         label=_("Correo electrónico"),
         widget=forms.EmailInput(attrs={'autofocus': True, 'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'placeholder': ' '})
     )
@@ -25,7 +31,11 @@ class CustomAuthenticationForm(AuthenticationForm):
     )
 
 class AthleteProfileForm(forms.ModelForm):
+    """
+    Formulario para actualizar la información antropométrica, deportiva y personal (nombre/apellidos) de un atleta.
+    """
     first_name = forms.CharField(
+
         label=_("Nombre"),
         required=True,
         widget=forms.TextInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'})
@@ -50,13 +60,17 @@ class AthleteProfileForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        """Inicializa el formulario cargando el nombre y apellidos actuales desde el modelo CustomUser."""
         super().__init__(*args, **kwargs)
+
         if self.instance and self.instance.user:
             self.fields['first_name'].initial = self.instance.user.first_name
             self.fields['last_name'].initial = self.instance.user.last_name
 
     def save(self, commit=True):
+        """Guarda el perfil de deportista y actualiza simultáneamente el nombre y apellidos en la entidad CustomUser."""
         athlete = super().save(commit=False)
+
         if commit:
             athlete.save()
             # Also save user fields
@@ -67,7 +81,11 @@ class AthleteProfileForm(forms.ModelForm):
         return athlete
 
 class AthleteProgressLogForm(forms.ModelForm):
+    """
+    Formulario para el registro de mediciones de peso y composición corporal en una fecha determinada.
+    """
     class Meta:
+
         model = AthleteProgressLog
         fields = ['weight', 'fat_percentage', 'lean_mass_percentage', 'date']
         widgets = {
