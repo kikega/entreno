@@ -79,19 +79,22 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "django" },
-    { name = "django-debug-toolbar" },
     { name = "django-environ" },
     { name = "djangorestframework" },
+    { name = "joblib" },
     { name = "lightgbm" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "psycopg" },
-    { name = "pytest-django" },
     { name = "python-dotenv" },
     { name = "scikit-learn" },
 ]
 
 [package.dev-dependencies]
+dev = [
+    { name = "django-debug-toolbar" },
+    { name = "pytest-django" },
+]
 prod = [
     { name = "gunicorn" },
 ]
@@ -99,19 +102,22 @@ prod = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=6.0.7" },
-    { name = "django-debug-toolbar", specifier = ">=7.0.0" },
     { name = "django-environ", specifier = ">=0.11.2" },
     { name = "djangorestframework", specifier = ">=3.14.0" },
+    { name = "joblib", specifier = ">=1.4.0" },
     { name = "lightgbm", specifier = ">=4.7.0" },
     { name = "numpy", specifier = ">=2.5.1" },
     { name = "pandas", specifier = ">=3.0.5" },
     { name = "psycopg", specifier = ">=3.3.4" },
-    { name = "pytest-django", specifier = ">=4.12.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "scikit-learn", specifier = ">=1.9.0" },
 ]
 
 [package.metadata.requires-dev]
+dev = [
+    { name = "django-debug-toolbar", specifier = ">=7.0.0" },
+    { name = "pytest-django", specifier = ">=4.12.0" },
+]
 prod = [{ name = "gunicorn", specifier = ">=26.0.0" }]
 
 [[package]]

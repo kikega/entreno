@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Catálogo de Ejercicios - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="space-y-6 trainer-theme">
+    <!-- Encabezado -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-lg text-white">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.12),transparent_45%)]"></div>
+        <div class="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div class="min-w-0">
+                <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-primary/15 px-3 py-1 rounded-full border border-primary/25">CATÁLOGO DE EJERCICIOS</span>
+                <h1 class="text-2xl sm:text-3xl font-headline font-extrabold text-white mt-3">Gestión de Ejercicios</h1>
+                <p class="text-sm sm:text-base text-slate-300 mt-2 max-w-xl">Crea, modifica o elimina los ejercicios de tu catálogo personal para usarlos en los planes de tus deportistas.</p>
+            </div>
+            <a href="{% url 'training:exercise_create' %}" class="btn-primary w-full lg:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-headline font-semibold text-sm transition hover:scale-[1.02] shadow-lg shadow-primary/20 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                Nuevo Ejercicio
+            </a>
+        </div>
+    </div>
+
+    <!-- Buscador + total -->
+    <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="text-sm text-slate-600">
+            <span class="font-headline font-bold text-slate-800">{{ total_exercises }}</span> ejercicio{{ total_exercises|pluralize }} en tu catálogo
+        </div>
+        <form method="get" action="{% url 'training:exercise_list' %}" class="flex gap-2 w-full sm:w-auto">
+            <input type="text" name="q" value="{{ search }}" placeholder="Buscar por nombre, categoría o patrón..." class="flex-1 sm:w-72 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:ring-primary focus:outline-none transition">
+            <button type="submit" class="px-4 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition shadow-sm">Buscar</button>
+            {% if search %}
+                <a href="{% url 'training:exercise_list' %}" class="inline-flex items-center px-3 py-2.5 border border-slate-200 text-sm font-semibold rounded-lg text-slate-600 bg-white hover:bg-slate-50 transition">Limpiar</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Grid de ejercicios -->
+    {% if exercises %}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {% for ex in exercises %}
+                <div class="bg-white shadow-sm rounded-2xl border border-slate-150 overflow-hidden flex flex-col transition hover:shadow-md">
+                    <div class="p-5 border-b border-slate-100 bg-slate-50/40 flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <h3 class="text-base font-headline font-bold text-slate-800 truncate" title="{{ ex.name }}">{{ ex.name }}</h3>
+                            <div class="flex flex-wrap items-center gap-2 mt-2">
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-sky-50 text-primary border border-sky-100">{{ ex.get_category_display }}</span>
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">{{ ex.get_movement_pattern_display }}</span>
+                            </div>
+                        </div>
+                        <div class="h-11 w-11 shrink-0 bg-sky-100 text-primary rounded-xl flex items-center justify-center font-headline font-bold text-lg border border-sky-200">
+                            {{ ex.name|first|upper }}
+                        </div>
+                    </div>
+
+                    <div class="p-5 flex-1 space-y-3 text-xs">
+                        {% if ex.sport_tags %}
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for tag in ex.sport_tags %}
+                                    <span class="px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-100 font-semibold">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if ex.description %}
+                            <p class="text-slate-500 leading-relaxed line-clamp-2">{{ ex.description }}</p>
+                        {% else %}
+                            <p class="text-slate-400 italic">Sin descripción.</p>
+                        {% endif %}
+                        {% if ex.video_url %}
+                            <a href="{{ ex.video_url }}" target="_blank" class="inline-flex items-center gap-1.5 text-primary font-semibold hover:underline">
+                                Ver video
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    <div class="px-5 py-4 border-t border-slate-100 bg-slate-50/40 flex items-center gap-2">
+                        <a href="{% url 'training:exercise_edit' ex.pk %}" class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 text-xs font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Editar
+                        </a>
+                        <a href="{% url 'training:exercise_delete' ex.pk %}" class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-red-200 text-xs font-semibold rounded-xl text-red-600 bg-white hover:bg-red-50 transition shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            Eliminar
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginación -->
+        {% if is_paginated %}
+            <div class="flex items-center justify-center gap-2">
+                {% if page_obj.has_previous %}
+                    <a href="?q={{ search }}&page={{ page_obj.previous_page_number }}" class="px-4 py-2 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">Anterior</a>
+                {% endif %}
+                <span class="text-sm text-slate-500 font-medium">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?q={{ search }}&page={{ page_obj.next_page_number }}" class="px-4 py-2 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">Siguiente</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-12 text-center text-slate-400">
+            <svg class="mx-auto h-16 w-16 text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            {% if search %}
+                No se encontraron ejercicios para "<strong class="text-slate-500">{{ search }}</strong>".
+            {% else %}
+                Aún no has creado ejercicios. ¡Crea tu primer ejercicio para empezar a planificar!
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="text-center">
+        <a href="{% url 'training:trainer_dashboard' %}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-700 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Volver al Panel
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -15,11 +15,19 @@ urlpatterns = [
     path('plan/<int:plan_id>/add-exercise/', views.add_planned_exercise, name='add_exercise'),
     path('plan/<int:plan_id>/complete/', views.complete_workout, name='complete_workout'),
     
-    # HTMX Set Logging & Smart Plan Generator
+    # HTMX Set Logging, Start/Finish Exercise & Smart Plan Generator
     path('planned/<int:planned_id>/log-set/', views.log_set_htmx, name='log_set_htmx'),
+    path('planned/<int:planned_id>/start/', views.start_exercise, name='start_exercise'),
+    path('planned/<int:planned_id>/finish/', views.finish_exercise, name='finish_exercise'),
     path('athlete/<int:athlete_id>/generate-smart-plan/', views.generate_smart_plan, name='generate_smart_plan'),
     
     # Athlete Profile
     path('athlete/<int:pk>/', views.AthleteDetailView.as_view(), name='athlete_detail'),
     path('athlete/<int:pk>/edit/', views.TrainerAthleteProfileUpdateView.as_view(), name='trainer_athlete_edit'),
+
+    # Exercise Catalog (CRUD entrenador)
+    path('exercises/', views.ExerciseListView.as_view(), name='exercise_list'),
+    path('exercises/new/', views.ExerciseCreateView.as_view(), name='exercise_create'),
+    path('exercises/<int:pk>/edit/', views.ExerciseUpdateView.as_view(), name='exercise_edit'),
+    path('exercises/<int:pk>/delete/', views.ExerciseDeleteView.as_view(), name='exercise_delete'),
 ]

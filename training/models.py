@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from training.analytics import is_rm_based_exercise
 from users.models import TrainerProfile, AthleteProfile
 
 class Exercise(models.Model):
@@ -114,6 +115,7 @@ class WorkoutSession(models.Model):
     workout_plan = models.OneToOneField(WorkoutPlan, on_delete=models.CASCADE, related_name='session', verbose_name=_('plan de entrenamiento'))
     athlete = models.ForeignKey(AthleteProfile, on_delete=models.CASCADE, related_name='sessions', verbose_name=_('deportista'))
     date_completed = models.DateTimeField(_('fecha completado'), auto_now_add=True)
+    started_at = models.DateTimeField(_('hora de inicio'), null=True, blank=True)
     duration_minutes = models.PositiveIntegerField(_('duración (minutos)'), null=True, blank=True)
     calories_burned = models.PositiveIntegerField(_('calorías consumidas'), null=True, blank=True)
     avg_heart_rate = models.PositiveIntegerField(_('frecuencia cardíaca media'), null=True, blank=True)
@@ -142,9 +144,42 @@ class LoggedExercise(models.Model):
     actual_rpe = models.CharField(_('RPE real'), max_length=50, blank=True)
     notes = models.TextField(_('notas'), blank=True)
 
+    # Temporización del ejercicio en el modo en vivo
+    started_at = models.DateTimeField(_('hora de inicio'), null=True, blank=True)
+    finished_at = models.DateTimeField(_('hora de finalización'), null=True, blank=True)
+
     class Meta:
         verbose_name = _('ejercicio registrado')
         verbose_name_plural = _('ejercicios registrados')
+
+    @property
+    def is_in_progress(self):
+        return self.started_at is not None and self.finished_at is None
+
+    @property
+    def is_started(self):
+        return self.started_at is not None
+
+    @property
+    def duration_seconds(self):
+        if self.started_at and self.finished_at:
+            delta = self.finished_at - self.started_at
+            return int(delta.total_seconds())
+        return 0
+
+    @property
+    def is_rm_exercise(self):
+        return is_rm_based_exercise(self.planned_exercise)
+
+    @property
+    def best_1rm(self):
+        """Mejor 1RM estimado entre las series registradas de este ejercicio en esta sesión."""
+        best = 0.0
+        for s in self.sets.all():
+            est = s.est_1rm
+            if est and est > best:
+                best = est
+        return round(best, 1) if best else 0.0
 
     def __str__(self):
         """Devuelve una representación del ejercicio registrado."""
@@ -168,6 +203,16 @@ class LoggedSet(models.Model):
         verbose_name = _('serie registrada')
         verbose_name_plural = _('series registradas')
         ordering = ['set_number']
+
+    @property
+    def est_1rm(self):
+        from .analytics import estimate_1rm
+        return estimate_1rm(self.weight_kg, self.reps)
+
+    @property
+    def pct_1rm(self):
+        from .analytics import pct_of_1rm
+        return pct_of_1rm(self.weight_kg, self.est_1rm)
 
     def __str__(self):
         """Devuelve la descripción del número de serie, peso, repeticiones y RPE."""

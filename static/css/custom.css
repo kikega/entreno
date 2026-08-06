@@ -8,10 +8,10 @@
     --font-body: 'Inter', sans-serif;
     
     /* Variables de Color inspiradas en el sistema Stitch */
-    --color-primary: #2563eb;       /* Azul Coach */
-    --color-primary-hover: #1d4ed8;
-    --color-accent: #10b981;        /* Verde Deportista / Éxito */
-    --color-accent-hover: #059669;
+    --color-primary: #2984d1;       /* Sky-600 */
+    --color-primary-hover: #1c69a8;
+    --color-accent: #34a6f4;        /* Sky-500 */
+    --color-accent-hover: #2984d1;
     --color-bg-light: #f8fafc;      /* Slate-50 */
     --color-surface-white: #ffffff;
     --color-text-main: #0f172a;     /* Slate-900 */
@@ -69,26 +69,26 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
     outline: none !important;
     border-color: var(--color-primary) !important;
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12) !important;
+    box-shadow: 0 0 0 4px rgba(41, 132, 209, 0.12) !important;
 }
 
 /* Inputs de deportistas en foco color verde esmeralda */
 .athlete-theme input:focus, .athlete-theme select:focus {
     border-color: var(--color-accent) !important;
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12) !important;
+    box-shadow: 0 0 0 4px rgba(52, 166, 244, 0.12) !important;
 }
 
 /* Botones Premium con Micro-animación */
 .btn-primary {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #2984d1, #1c69a8);
     color: white;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 4px 12px rgba(41, 132, 209, 0.2);
 }
 
 .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
+    box-shadow: 0 6px 16px rgba(41, 132, 209, 0.32);
 }
 
 .btn-primary:active {
@@ -96,15 +96,15 @@ input:focus, select:focus, textarea:focus {
 }
 
 .btn-accent {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #34a6f4, #2984d1);
     color: white;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 4px 12px rgba(52, 166, 244, 0.2);
 }
 
 .btn-accent:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.32);
+    box-shadow: 0 6px 16px rgba(52, 166, 244, 0.32);
 }
 
 .btn-accent:active {
@@ -148,7 +148,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .badge-completed {
-    background-color: rgba(16, 185, 129, 0.1);
-    color: #059669;
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    background-color: rgba(41, 132, 209, 0.1);
+    color: #2984d1;
+    border: 1px solid rgba(41, 132, 209, 0.2);
 }

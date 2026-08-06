@@ -22,6 +22,9 @@ media
 collectstatic
 logs    
 
+# Modelo ML entrenado (se regenera con manage.py train_plan_model)
+training/ml/model.joblib
+
 # IDE
 .vscode/
 .idea/

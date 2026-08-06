@@ -25,14 +25,27 @@
                         headline: ['Montserrat', 'sans-serif'],
                     },
                     colors: {
-                        primary: {
-                            DEFAULT: '#2563eb', // blue-600
-                            hover: '#1d4ed8',
+                        sky: {
+                            50: '#F0F9FF',
+                            100: '#DFF2FE',
+                            200: '#B8E6FE',
+                            300: '#74D4FF',
+                            400: '#21BCFF',
+                            500: '#34A6F4',
+                            600: '#2984D1',
+                            700: '#1C69A8',
+                            800: '#10598A',
+                            900: '#024A70',
+                            950: '#052F4A',
                         },
-                        secondary: '#0f172a', // slate-900
+                        primary: {
+                            DEFAULT: '#2984D1', // sky-600
+                            hover: '#1C69A8',
+                        },
+                        secondary: '#052F4A', // sky-950
                         accent: {
-                            DEFAULT: '#10b981', // emerald-500
-                            hover: '#059669',
+                            DEFAULT: '#34A6F4', // sky-500
+                            hover: '#2984D1',
                         }
                     }
                 }
@@ -46,6 +59,16 @@
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
 
+    <script>
+        // Envía el token CSRF de Django en todas las peticiones HTMX (botones hx-post sin formulario)
+        document.addEventListener('htmx:configRequest', function(evt) {
+            const token = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (token) {
+                evt.detail.headers['X-CSRFToken'] = token.value;
+            }
+        });
+    </script>
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -57,39 +80,42 @@
     
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col antialiased">
+<body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col antialiased overflow-x-hidden">
     
-    <nav class="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white shadow-lg border-b border-indigo-900/20">
+    <nav class="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white shadow-lg border-b border-sky-900/20 sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
+            <div class="flex items-center justify-between h-16 gap-3">
+                <div class="flex items-center min-w-0">
                     <a href="/" class="flex-shrink-0 flex items-center gap-3 group">
                         <div class="bg-primary/10 p-2 rounded-xl border border-primary/20 group-hover:border-primary/50 transition">
                             <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                         </div>
-                        <span class="font-headline font-bold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-accent bg-clip-text text-transparent group-hover:opacity-90 transition">EntrenoPro</span>
+                        <span class="font-headline font-bold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-accent bg-clip-text text-transparent group-hover:opacity-90 transition truncate">EntrenoPro</span>
                     </a>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
                     {% if user.is_authenticated %}
                         {% if user.trainer_profile and user.athlete_profile %}
-                            <a href="{% url 'users:dashboard_router' %}?switch=true" class="text-sm font-semibold bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 hover:border-white/20 transition flex items-center gap-1.5">
+                            <a href="{% url 'users:dashboard_router' %}?switch=true" title="Cambiar de rol" class="flex items-center gap-1.5 text-sm font-semibold bg-white/5 border border-white/10 px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 hover:border-white/20 transition">
                                 <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                                Cambiar de rol
+                                <span class="hidden md:inline">Cambiar de rol</span>
                             </a>
                         {% endif %}
                         {% if user.is_staff or user.is_superuser %}
-                            <a href="/admin/" class="text-sm font-medium text-slate-300 hover:text-white transition">Admin</a>
+                            <a href="/admin/" class="text-sm font-medium text-slate-300 hover:text-white transition hidden sm:inline-block">Admin</a>
                         {% endif %}
-                        <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/55">
-                            <span class="w-2 h-2 rounded-full {% if request.session.active_role == 'trainer' %}bg-primary{% else %}bg-accent{% endif %}"></span>
-                            <span class="text-xs font-medium text-slate-300">{{ user.email }}</span>
+                        <div class="hidden sm:flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/55 min-w-0">
+                            <span class="w-2 h-2 rounded-full flex-shrink-0 {% if request.session.active_role == 'trainer' %}bg-primary{% else %}bg-accent{% endif %}"></span>
+                            <span class="text-xs font-medium text-slate-300 truncate max-w-[12rem]">{{ user.email }}</span>
+                        </div>
+                        <div class="sm:hidden flex-shrink-0 w-9 h-9 rounded-lg bg-slate-800/50 border border-slate-700/55 flex items-center justify-center font-headline font-bold text-sm text-slate-200 uppercase">
+                            {{ user.first_name|first|default:user.email|first }}
                         </div>
                         <form method="post" action="{% url 'users:logout' %}" class="inline m-0">
                             {% csrf_token %}
-                            <button type="submit" class="text-sm font-semibold hover:text-red-400 text-slate-300 transition bg-transparent border-none cursor-pointer flex items-center gap-1">
+                            <button type="submit" title="Salir" class="text-sm font-semibold hover:text-red-400 text-slate-300 transition bg-transparent border-none cursor-pointer flex items-center gap-1 px-1.5 sm:px-0">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                                Salir
+                                <span class="hidden md:inline">Salir</span>
                             </button>
                         </form>
                     {% else %}
@@ -104,11 +130,11 @@
         {% if messages %}
             <div class="mb-6 space-y-3">
                 {% for message in messages %}
-                    <div class="p-4 rounded-xl shadow-sm flex items-start gap-3 border {% if message.tags == 'error' %}bg-red-50/90 text-red-900 border-red-200/60{% else %}bg-emerald-50/90 text-emerald-900 border-emerald-200/60{% endif %}">
+                    <div class="p-4 rounded-xl shadow-sm flex items-start gap-3 border {% if message.tags == 'error' %}bg-red-50/90 text-red-900 border-red-200/60{% else %}bg-sky-50/90 text-sky-500-900 border-sky-200/60{% endif %}">
                         {% if message.tags == 'error' %}
                             <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         {% else %}
-                            <svg class="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <svg class="w-5 h-5 text-sky-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         {% endif %}
                         <div class="text-sm font-medium">{{ message }}</div>
                     </div>

@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load training_extras %}
+
+{% block title %}Entrenamiento en Vivo - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="flex flex-col space-y-6 athlete-theme">
+    <!-- Cabecera en vivo -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-lg text-white">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_45%)]"></div>
+        <div class="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div class="min-w-0">
+                <span class="text-xs font-headline font-bold tracking-widest text-accent uppercase bg-accent/15 px-3 py-1 rounded-full border border-accent/25 inline-flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span> MODO EN VIVO
+                </span>
+                <h1 class="text-2xl sm:text-3xl font-headline font-extrabold text-white mt-3">{{ plan.name|default:"Entrenamiento" }}</h1>
+                <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-300">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span>{{ plan.target_date|date:"d M Y" }}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        <span>{{ plan.planned_exercises.count }} ejercicio{{ plan.planned_exercises.count|pluralize }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto shrink-0">
+                {% if not plan.is_completed %}
+                    <button type="button" onclick="openModal('completeWorkoutModal')" class="btn-accent px-5 py-3 rounded-xl font-headline font-bold text-sm inline-flex items-center justify-center gap-2 transition hover:scale-[1.02] shadow-lg shadow-accent/20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Finalizar Entrenamiento
+                    </button>
+                {% endif %}
+                <a href="{% url 'training:athlete_dashboard' %}" class="inline-flex items-center justify-center px-5 py-3 border border-white/15 bg-white/10 text-sm font-semibold rounded-xl text-white hover:bg-white/20 transition">
+                    Salir del Entreno
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen de la sesión -->
+    {% if not plan.is_completed %}
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-5 flex flex-wrap items-center gap-x-8 gap-y-3">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase">Tiempo total de sesión</p>
+                    <p class="text-lg font-headline font-extrabold text-slate-800 mono-timer" id="sessionTimer" data-started="{{ session.started_at|date:'c' }}">00:00</p>
+                </div>
+            </div>
+            <div class="text-sm text-slate-500 ml-auto">
+                Registra cada <strong>serie</strong> de cada ejercicio. Si el ejercicio usa <strong>peso</strong>, escribe la carga y se calculará tu <strong>% de 1RM</strong> automáticamente.
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Lista de ejercicios en vivo -->
+    <div id="live-workout-list" class="space-y-6" {% if session.started_at %}data-started-init="1"{% endif %}>
+        {% for item in live_items %}
+        <div id="partial-{{ item.planned.id }}">
+            {% include 'training/partials/live_exercise_card.html' with planned=item.planned logged=item.logged %}
+        </div>
+        {% empty %}
+            <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-12 text-center text-slate-400">
+                No hay ejercicios asignados a este plan todavía. Contacta con tu entrenador.
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Resumen de sesión completada -->
+    {% if plan.is_completed and workout_session %}
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-6 text-center">
+            <div class="inline-flex p-3 rounded-full bg-sky-50 border border-sky-200 mb-4">
+                <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h3 class="text-xl font-headline font-bold text-slate-800">Entrenamiento completado</h3>
+            <p class="text-sm text-slate-500 mt-1">¡Gran trabajo! Revisa el resumen de tu sesión.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- ===== Modal: Completar Entrenamiento ===== -->
+{% if not plan.is_completed %}
+<div id="completeWorkoutModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('completeWorkoutModal')"></div>
+    <div class="relative min-h-full flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="relative bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto animate-fade-in">
+            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 sticky top-0 rounded-t-2xl">
+                <h3 class="text-lg font-headline font-bold text-slate-800">Finalizar Entrenamiento</h3>
+                <button type="button" onclick="closeModal('completeWorkoutModal')" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="px-6 py-6">
+                {% if session.started_at %}
+                    <div class="mb-5 p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-sm text-amber-800">
+                        Duración registrada de la sesión:
+                        <strong id="modalDuration" class="mono-timer">--:--</strong>
+                        <input type="hidden" id="sessionDurationSeconds" value="0">
+                    </div>
+                {% endif %}
+                <form method="POST" action="{% url 'training:complete_workout' plan.id %}" class="space-y-5">
+                    {% csrf_token %}
+                    <input type="hidden" name="session_stage" value="live">
+                    <div>
+                        <label for="id_duration" class="block text-xs font-headline font-bold text-slate-500 mb-1">Duración (minutos)</label>
+                        {{ session_form.duration_minutes }}
+                    </div>
+                    <div>
+                        <label for="id_calories" class="block text-xs font-headline font-bold text-slate-500 mb-1">Calorías Quemadas</label>
+                        {{ session_form.calories_burned }}
+                    </div>
+                    <div>
+                        <label for="id_heart_rate" class="block text-xs font-headline font-bold text-slate-500 mb-1">Pulso Medio (ppm)</label>
+                        {{ session_form.avg_heart_rate }}
+                    </div>
+                    <div>
+                        <label for="id_notes" class="block text-xs font-headline font-bold text-slate-500 mb-1">Tus Comentarios / Notas</label>
+                        {{ session_form.notes }}
+                    </div>
+                    <div class="pt-4 flex flex-col-reverse sm:flex-row sm:items-end sm:justify-end gap-2 border-t border-slate-100">
+                        <button type="button" onclick="closeModal('completeWorkoutModal')" class="w-full sm:w-auto px-5 py-3 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="w-full sm:w-auto btn-accent px-5 py-3 rounded-xl text-base font-headline font-bold transition shadow-md shadow-accent/15">
+                            Marcar como Completado
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ===== Modal: Confirmar Finalización de Ejercicio ===== -->
+<div id="finishExerciseModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeFinishModal()"></div>
+    <div class="relative min-h-full flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="relative bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+            <div class="px-6 py-6 text-center">
+                <div class="mx-auto inline-flex p-3.5 rounded-2xl bg-amber-50 border border-amber-200 mb-4">
+                    <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h3 class="text-lg font-headline font-bold text-slate-800">Terminar Ejercicio</h3>
+                <p id="finishExerciseName" class="text-sm text-slate-500 mt-1"></p>
+
+                <div class="mt-5 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <p class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Tiempo invertido</p>
+                    <p id="finishExerciseTimer" class="text-3xl font-headline font-extrabold text-slate-800 mt-1 font-mono tabular-nums">00:00</p>
+                </div>
+
+                <p class="text-xs text-slate-400 mt-4">Al terminar se detendrá el cronómetro y se guardará el tiempo de este ejercicio.</p>
+            </div>
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/40">
+                <button type="button" onclick="closeFinishModal()" class="px-5 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                    Cancelar
+                </button>
+                <button type="button" id="finishExerciseConfirm" class="btn-primary px-5 py-2.5 rounded-xl text-base font-headline font-bold transition hover:scale-[1.02] shadow-md shadow-primary/15">
+                    Terminar Ejercicio
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+        initSessionToggle();
+    }
+
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('[role="dialog"]').forEach(function(m) {
+                if (!m.classList.contains('hidden')) closeModal(m.id);
+            });
+        }
+    });
+
+    // Cronómetros monofila basados en el atributo data-started (ISO)
+    function runningSeconds(dataStarted) {
+        if (!dataStarted) return 0;
+        const start = new Date(dataStarted).getTime();
+        if (isNaN(start)) return 0;
+        return Math.max(0, Math.floor((Date.now() - start) / 1000));
+    }
+
+    function fmtTime(totalSeconds) {
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = totalSeconds % 60;
+        const mm = String(m).padStart(2, '0');
+        const ss = String(s).padStart(2, '0');
+        return h > 0 ? h + ':' + mm + ':' + ss : mm + ':' + ss;
+    }
+
+    function updateAllTimers() {
+        document.querySelectorAll('.mono-timer[data-started]').forEach(function(el) {
+            const elapsed = runningSeconds(el.dataset.started);
+            el.textContent = fmtTime(elapsed);
+        });
+    }
+
+    function initSessionToggle() {
+        const timer = document.getElementById('sessionTimer');
+        const modalDur = document.getElementById('modalDuration');
+        if (!timer || !timer.dataset.started) return;
+        const el = timer.dataset.started ? runningSeconds(timer.dataset.started) : 0;
+        if (modalDur) modalDur.textContent = fmtTime(el);
+        const input = document.getElementById('sessionDurationSeconds');
+        if (input) input.value = el;
+    }
+
+    // Encender temporizadores periódicos
+    setInterval(updateAllTimers, 1000);
+    updateAllTimers();
+    initSessionToggle();
+
+    // ===== Confirmación de finalización de ejercicio (modal propio) =====
+    function closeFinishModal() {
+        const el = document.getElementById('finishExerciseModal');
+        if (!el) return;
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+
+    function openFinishConfirm(plannedId, exerciseName) {
+        const el = document.getElementById('finishExerciseModal');
+        if (!el) return;
+
+        document.getElementById('finishExerciseName').textContent = exerciseName || '';
+
+        const card = document.getElementById('live-card-' + plannedId);
+        const timerEl = card ? card.querySelector('.mono-timer[data-started]') : null;
+        const secs = timerEl ? runningSeconds(timerEl.dataset.started) : 0;
+        document.getElementById('finishExerciseTimer').textContent = fmtTime(secs);
+
+        const confirmBtn = document.getElementById('finishExerciseConfirm');
+        confirmBtn.setAttribute('hx-post', '/training/planned/' + plannedId + '/finish/');
+        confirmBtn.setAttribute('hx-target', '#live-card-' + plannedId);
+        confirmBtn.setAttribute('hx-swap', 'outerHTML');
+        htmx.process(confirmBtn);
+
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+
+    document.body.addEventListener('htmx:afterSwap', function() {
+        closeFinishModal();
+        updateAllTimers();
+    });
+</script>
+{% endblock %}

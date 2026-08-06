@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar{% else %}Nuevo{% endif %} Ejercicio - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-8 trainer-theme">
+    <div class="bg-white shadow-md rounded-2xl border border-slate-150 overflow-hidden animate-fade-in">
+        <!-- Encabezado -->
+        <div class="px-6 py-6 border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white relative">
+            <div class="absolute top-0 right-0 p-4 opacity-10">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <span class="text-xs font-headline font-bold text-accent uppercase tracking-widest bg-accent/10 px-2 py-0.5 rounded border border-accent/25">CATÁLOGO DE EJERCICIOS</span>
+            <h3 class="text-xl font-headline font-bold mt-2">{% if object %}Editar Ejercicio{% else %}Nuevo Ejercicio{% endif %}</h3>
+            <p class="text-xs text-slate-300 mt-1">
+                {% if object %}Modifica los detalles del ejercicio del catálogo.{% else %}Define un ejercicio y sus características para usarlo en los planes.{% endif %}
+            </p>
+        </div>
+
+        <!-- Formulario -->
+        <div class="p-6 md:p-8">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="rounded-xl bg-red-50 p-4 border border-red-200/60 text-sm text-red-700">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+<div>
+                    <label for="id_name" class="block text-xs font-headline font-bold text-slate-500 mb-1">Nombre del Ejercicio</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label for="id_category" class="block text-xs font-headline font-bold text-slate-500 mb-1">Categoría</label>
+                        {{ form.category }}
+                        {% if form.category.errors %}<p class="mt-1 text-sm text-red-600">{{ form.category.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="id_movement_pattern" class="block text-xs font-headline font-bold text-slate-500 mb-1">Patrón de Movimiento</label>
+                        {{ form.movement_pattern }}
+                        {% if form.movement_pattern.errors %}<p class="mt-1 text-sm text-red-600">{{ form.movement_pattern.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <span class="block text-xs font-headline font-bold text-slate-500 mb-2">Etiquetas de Deportes</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {% for value, label in form.sport_tags.field.choices %}
+                            <div class="relative flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 cursor-pointer transition hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                                <input type="checkbox" name="{{ form.sport_tags.html_name }}" value="{{ value }}"
+                                       id="id_sport_tags_{{ forloop.counter0 }}"
+                                       class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                                       {% if value in form.sport_tags.value or value in form.sport_tags.initial %}checked{% endif %}>
+                                <label for="id_sport_tags_{{ forloop.counter0 }}" class="text-sm font-medium text-slate-700 cursor-pointer">{{ label }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <p class="mt-1 text-xs text-slate-400">{{ form.sport_tags.help_text }}</p>
+                    {% if form.sport_tags.errors %}<p class="mt-1 text-sm text-red-600">{{ form.sport_tags.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label for="id_description" class="block text-xs font-headline font-bold text-slate-500 mb-1">Descripción / Indicaciones</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label for="id_video_url" class="block text-xs font-headline font-bold text-slate-500 mb-1">Enlace a Video de Ejemplo</label>
+                    {{ form.video_url }}
+                    {% if form.video_url.errors %}<p class="mt-1 text-sm text-red-600">{{ form.video_url.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div class="pt-6 border-t border-slate-100 flex items-center justify-end gap-3">
+                    <a href="{% url 'training:exercise_list' %}" class="w-full sm:w-auto text-center px-5 py-3 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="w-full sm:w-auto btn-primary px-5 py-3 rounded-xl font-headline font-bold text-sm transition hover:scale-[1.01] shadow-md shadow-primary/15">
+                        {% if object %}Guardar Cambios{% else %}Crear Ejercicio{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

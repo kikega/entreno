@@ -28,6 +28,88 @@ def calculate_srpe(duration_minutes: float, rpe: float) -> float:
     return round(float(duration_minutes) * float(rpe), 2)
 
 
+# Categorías y patrones de movimiento con carga ponderada (aplican cálculos de 1RM / %carga relativa).
+RM_BASED_CATEGORIES = {'fuerza', 'potencia', 'velocidad'}
+RM_BASED_PATTERNS = {
+    'empuje_horizontal', 'empuje_vertical', 'traccion_horizontal',
+    'traccion_vertical', 'dominante_cadera', 'dominante_rodilla',
+    'potencia_olimpica', 'isometria_agarre',
+}
+
+
+def is_rm_based_exercise(planned_exercise) -> bool:
+    """
+    Determina si un ejercicio (PlannedExercise) usa cargas con RM calculable.
+    Se basa en la categoría y el patrón de movimiento del ejercicio base.
+    """
+    exercise = planned_exercise.exercise
+    if exercise.category in RM_BASED_CATEGORIES:
+        return True
+    return exercise.movement_pattern in RM_BASED_PATTERNS
+
+
+def estimate_1rm(weight_kg, reps) -> float:
+    """Estima el 1RM de una serie vía Brzycki."""
+    weight = float(weight_kg) if weight_kg is not None else 0.0
+    reps_i = int(reps or 0)
+    if weight <= 0 or reps_i <= 0:
+        return 0.0
+    return calculate_1rm_brzycki(weight, reps_i)
+
+
+def pct_of_1rm(weight_kg, est_1rm) -> float:
+    """Devuelve el % de la carga respecto al 1RM, redondeado a 1 decimal."""
+    weight = float(weight_kg) if weight_kg is not None else 0.0
+    if est_1rm and est_1rm > 0:
+        return round((weight / est_1rm) * 100, 1)
+    return 0.0
+
+
+def exercise_1rm_evolution(athlete_profile, exclude_logged=None) -> Dict[str, list]:
+    """
+    Devuelve la evolución del mejor 1RM estimado por ejercicio a lo largo del tiempo.
+    Formato: { 'nombre_ejercicio': [ {'date': '2026-01-01', '1rm': 120.0}, ... ] }
+    Ordenado cronológicamente usando el mejor 1RM de cada ejercicio en cada sesión.
+    """
+    from training.models import LoggedSet
+
+    qs = LoggedSet.objects.filter(
+        logged_exercise__workout_session__athlete=athlete_profile
+    )
+    if exclude_logged:
+        qs = qs.exclude(logged_exercise=exclude_logged)
+    qs = qs.select_related(
+        'logged_exercise__workout_session',
+        'logged_exercise__planned_exercise__exercise',
+    ).order_by('logged_exercise__workout_session__date_completed', 'set_number')
+
+    # Acumular mejor 1RM por (ejercicio, sesión)
+    best_by_key: Dict[tuple, dict] = {}
+    for s in qs:
+        planned = s.logged_exercise.planned_exercise
+        if not is_rm_based_exercise(planned):
+            continue
+        est = estimate_1rm(s.weight_kg, s.reps)
+        if est <= 0:
+            continue
+        session = s.logged_exercise.workout_session
+        key = (planned.exercise.name, session.pk)
+        meta = best_by_key.setdefault(key, {
+            'date': session.date_completed.strftime('%Y-%m-%d'),
+            'best': 0.0,
+        })
+        if est > meta['best']:
+            meta['best'] = est
+
+    # Agrupar por nombre en orden cronológico
+    evolution: Dict[str, list] = {}
+    for (name, _session_pk), meta in best_by_key.items():
+        evolution.setdefault(name, []).append({'date': meta['date'], '1rm': round(meta['best'], 1)})
+    for name in evolution:
+        evolution[name].sort(key=lambda p: p['date'])
+    return evolution
+
+
 def calculate_acwr(athlete_profile, target_date=None) -> Dict[str, Any]:
     """
     Calcula la Relación Carga Aguda:Crónica (ACWR) para el deportista.

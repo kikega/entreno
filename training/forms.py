@@ -1,5 +1,14 @@
 from django import forms
-from .models import WorkoutPlan, PlannedExercise, WorkoutSession
+from django.utils.html import format_html
+from users.models import AthleteProfile
+from .models import WorkoutPlan, PlannedExercise, WorkoutSession, Exercise
+
+GENERIC_INPUT_CLASS = (
+    'mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 '
+    'text-base text-slate-900 shadow-sm focus:border-primary focus:ring-primary '
+    'focus:outline-none transition'
+)
+
 
 class WorkoutPlanForm(forms.ModelForm):
     """
@@ -27,7 +36,7 @@ class WorkoutPlanForm(forms.ModelForm):
             self.fields['athlete'].queryset = self.fields['athlete'].queryset.filter(assigned_trainer=trainer.user)
             
         for field in self.fields.values():
-            field.widget.attrs.update({'class': 'mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:ring-primary focus:outline-none transition'})
+            field.widget.attrs.update({'class': GENERIC_INPUT_CLASS})
 
 
 class PlannedExerciseForm(forms.ModelForm):
@@ -47,7 +56,38 @@ class PlannedExerciseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         for field in self.fields.values():
-            field.widget.attrs.update({'class': 'mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:ring-primary focus:outline-none transition'})
+            field.widget.attrs.update({'class': GENERIC_INPUT_CLASS})
+
+
+class ExerciseForm(forms.ModelForm):
+    """
+    Formulario para crear y editar ejercicios del catálogo del entrenador.
+    """
+
+    sport_tags = forms.MultipleChoiceField(
+        label='Etiquetas de deportes',
+        choices=AthleteProfile.SPORT_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
+
+    class Meta:
+        model = Exercise
+        fields = ['name', 'category', 'movement_pattern', 'sport_tags', 'description', 'video_url']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'video_url': forms.URLInput(attrs={'placeholder': 'https://ejemplo.com/video'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': GENERIC_INPUT_CLASS})
+
+        self.fields['sport_tags'].widget.attrs.pop('class', None)
+        self.fields['sport_tags'].widget.attrs['class'] = 'space-y-2'
+        self.fields['sport_tags'].label = 'Etiquetas de deportes'
+        self.fields['sport_tags'].help_text = 'Selecciona los deportes a los que está orientado el ejercicio.'
 
 
 class WorkoutSessionForm(forms.ModelForm):
@@ -80,4 +120,3 @@ class WorkoutSessionForm(forms.ModelForm):
                 'placeholder': 'Escribe cómo te has sentido, tus sensaciones, marcas especiales, etc.'
             }),
         }
-

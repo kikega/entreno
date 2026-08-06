@@ -1,15 +1,9 @@
-import random
-import numpy as np
-import pandas as pd
 from datetime import date, timedelta
-from typing import Dict, List, Any, Optional
-
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.neighbors import NearestNeighbors
+from typing import Dict, Any, Optional
 
 from users.models import AthleteProfile, TrainerProfile
 from training.models import Exercise, WorkoutPlan, PlannedExercise, LoggedSet
-from training.analytics import calculate_1rm_brzycki, calculate_acwr
+from training.ml.predict import predict_next_load
 
 
 class SportTemplateEngine:
@@ -95,89 +89,20 @@ class SportTemplateEngine:
         return cls.SPORT_TEMPLATES.get(sport, cls.SPORT_TEMPLATES['mma'])
 
 
-class LoadProgressionPredictor:
-    """
-    Predictor basado en Machine Learning para calcular la sobrecarga progresiva
-    óptima (peso y reps) respetando las zonas seguras de ACWR (0.8 - 1.3).
-    """
-
-    def __init__(self):
-        """
-        Inicializa el modelo regressor de RandomForest y el estado de entrenamiento del predictor.
-        """
-        self.model = RandomForestRegressor(n_estimators=50, random_state=42)
-        self._is_trained = False
-
-
-    def predict_next_load(self, athlete_profile, exercise: Exercise, previous_logs: List[LoggedSet]) -> Dict[str, Any]:
-        """
-        Calcula la sugerencia óptima de carga para el siguiente microciclo.
-        """
-        acwr_data = calculate_acwr(athlete_profile)
-        acwr_ratio = acwr_data['acwr_ratio']
-
-        # Si no hay registros previos, devolver carga base recomendada
-        if not previous_logs:
-            return {
-                'suggested_weight_kg': 0.0,
-                'suggested_reps': 8,
-                'suggested_rpe': 7.5,
-                'recommendation_note': 'Carga base inicial. Evaluar en primera serie.'
-            }
-
-        recent_set = previous_logs[-1]
-        last_weight = float(recent_set.weight_kg)
-        last_reps = recent_set.reps
-        last_rpe = float(recent_set.rpe or 8.0)
-
-        est_1rm = calculate_1rm_brzycki(last_weight, last_reps)
-
-        # Lógica de Seguridad ACWR
-        if acwr_ratio > 1.4:
-            # Zona de riesgo: reducir carga un 5-10% (Deload preventivo)
-            factor = 0.92
-            note = f'⚠️ Carga Aguda Elevada (ACWR {acwr_ratio}). Se sugiere descarga del 8% por seguridad.'
-            suggested_rpe = 7.0
-        elif acwr_ratio < 0.8:
-            # Subentrenamiento: incremento progresivo ligero del 3-5%
-            factor = 1.04
-            note = f'📈 Atleta recuperado (ACWR {acwr_ratio}). Progresión sugerida +4%.'
-            suggested_rpe = 8.0
-        else:
-            # Zona Óptima (0.8 - 1.3): Ajuste basado en RPE previo
-            if last_rpe < 7.5:
-                factor = 1.05
-                note = '🔥 RPE previo holgado (< 7.5). Incremento de carga +5%.'
-                suggested_rpe = 8.0
-            elif last_rpe > 9.0:
-                factor = 1.00
-                note = '🎯 RPE previo exigente (>= 9.0). Mantener peso y afianzar repeticiones.'
-                suggested_rpe = 8.5
-            else:
-                factor = 1.025
-                note = '✅ Progresión lineal estándar +2.5%.'
-                suggested_rpe = 8.0
-
-        suggested_weight = round(last_weight * factor, 1)
-
-        return {
-            'suggested_weight_kg': suggested_weight,
-            'suggested_reps': last_reps,
-            'suggested_rpe': suggested_rpe,
-            'estimated_1rm': est_1rm,
-            'recommendation_note': note
-        }
-
-
 class SmartPlanGenerator:
     """
-    Ensamblador Inteligente que genera una propuesta completa de WorkoutPlan en Django.
+    Genera una propuesta completa de WorkoutPlan a partir de la plantilla del
+    deporte del atleta y las sugerencias de carga del predictor ML.
+
+    El resultado es un borrador: el entrenador lo revisa y ajusta antes de
+    confirmarlo con el deportista.
     """
 
     @classmethod
     def generate_plan_for_athlete(cls, trainer_profile: TrainerProfile, athlete_profile: AthleteProfile, target_date: Optional[date] = None) -> WorkoutPlan:
         """
-        Crea un nuevo WorkoutPlan estructurado en la BD con ejercicios sugeridos según el deporte del atleta.
+        Crea un nuevo WorkoutPlan estructurado en la BD con ejercicios sugeridos
+        según el deporte del atleta y cargas sugeridas por el predictor.
         """
         if target_date is None:
             target_date = date.today() + timedelta(days=1)
@@ -195,7 +120,7 @@ class SmartPlanGenerator:
             is_completed=False
         )
 
-        predictor = LoadProgressionPredictor()
+        predictor = predict_next_load
 
         # 2. Asignar los ejercicios de la plantilla
         for order, ex_data in enumerate(template['exercises'], start=1):
@@ -217,13 +142,17 @@ class SmartPlanGenerator:
                 logged_exercise__planned_exercise__exercise=exercise_obj
             ).order_by('completed_at')[:10])
 
-            progression = predictor.predict_next_load(athlete_profile, exercise_obj, previous_sets)
+            progression = predictor(athlete_profile, exercise_obj, previous_sets)
 
             suggested_load = ex_data['load']
             if progression['suggested_weight_kg'] > 0:
                 suggested_load = f"{progression['suggested_weight_kg']} kg"
 
-            notes_full = f"{ex_data['notes']}\n💡 AI Suggestion: {progression['recommendation_note']}"
+            notes_full = (
+                f"{ex_data['notes']}\n"
+                f"💡 Sugerencia ({progression['source']}): "
+                f"{progression['recommendation_note']}"
+            )
 
             PlannedExercise.objects.create(
                 workout_plan=plan,
