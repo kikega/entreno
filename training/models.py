@@ -40,7 +40,7 @@ class Exercise(models.Model):
     sport_tags = models.JSONField(_('etiquetas de deportes'), default=list, blank=True)
     description = models.TextField(_('descripción'), blank=True)
     video_url = models.URLField(_('enlace de video'), blank=True, null=True)
-    created_by = models.ForeignKey(TrainerProfile, on_delete=models.CASCADE, related_name='created_exercises', verbose_name=_('creado por'))
+    created_by = models.ForeignKey(TrainerProfile, on_delete=models.CASCADE, null=True, blank=True, related_name='created_exercises', verbose_name=_('creado por'))
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -51,6 +51,85 @@ class Exercise(models.Model):
     def __str__(self):
         """Devuelve el nombre representativo del ejercicio."""
         return self.name
+
+
+class ExerciseDisciplineFit(models.Model):
+    """
+    Encaje entre un ejercicio y una disciplina deportiva. Permite evaluar del
+    1 al FIT_CHOICES qué tipo de ejercicio encaja mejor en cada deporte, de
+    modo que el generador pueda ampliar las recomendaciones más allá de una
+    lista cerrada de ejercicios.
+    """
+    FIT_CHOICES = [
+        (1, _('Ajuste bajo')),
+        (2, _('Ajuste medio-bajo')),
+        (3, _('Ajuste medio')),
+        (4, _('Ajuste alto')),
+        (5, _('Ajuste máximo')),
+    ]
+
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='discipline_fits', verbose_name=_('ejercicio'))
+    sport = models.CharField(_('deporte'), max_length=50, choices=AthleteProfile.SPORT_CHOICES)
+    fit = models.PositiveSmallIntegerField(_('ajuste (1-5)'), choices=FIT_CHOICES, default=3)
+
+    class Meta:
+        verbose_name = _('encaje ejercicio-deporte')
+        verbose_name_plural = _('encajes ejercicio-deporte')
+        unique_together = ('exercise', 'sport')
+        ordering = ['-fit', 'exercise']
+
+    def __str__(self):
+        return f"{self.exercise.name} → {self.get_sport_display()} (fit {self.fit})"
+
+
+class DisciplineTemplate(models.Model):
+    """
+    Plantilla de plan por disciplina. El sistema provee plantillas globales
+    (is_default=True, created_by=None); un entrenador puede 'copiarlas' y
+    editarlas a su cuenta para tener su propia versión sin pisar a otros.
+    """
+    name = models.CharField(_('nombre'), max_length=200)
+    sport = models.CharField(_('deporte'), max_length=50, choices=AthleteProfile.SPORT_CHOICES)
+    focus = models.CharField(_('foco'), max_length=200, blank=True)
+    is_default = models.BooleanField(_('plantilla del sistema'), default=False)
+    is_active = models.BooleanField(_('activa'), default=True)
+    created_by = models.ForeignKey(TrainerProfile, on_delete=models.CASCADE, null=True, blank=True, related_name='discipline_templates', verbose_name=_('creada por'))
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='copies', verbose_name=_('plantilla origen'))
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('plantilla por disciplina')
+        verbose_name_plural = _('plantillas por disciplina')
+        ordering = ['sport', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_sport_display()})"
+
+
+class TemplateExercise(models.Model):
+    """
+    Ejercicio prescrito dentro de una plantilla por disciplina. Referencia al
+    catálogo real de Exercises, de modo que un ejercicio puede reutilizarse en
+    varias disciplinas y el generador puede sugerir más desde el catálogo.
+    """
+    template = models.ForeignKey(DisciplineTemplate, on_delete=models.CASCADE, related_name='items', verbose_name=_('plantilla'))
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='template_slots', verbose_name=_('ejercicio'))
+    order = models.PositiveIntegerField(_('orden'), default=0)
+    sets = models.CharField(_('series'), max_length=50, blank=True)
+    reps = models.CharField(_('repeticiones'), max_length=50, blank=True)
+    load = models.CharField(_('carga'), max_length=50, blank=True)
+    rpe = models.CharField(_('RPE'), max_length=50, blank=True)
+    rest = models.CharField(_('descanso'), max_length=50, blank=True)
+    notes = models.TextField(_('indicaciones'), blank=True)
+
+    class Meta:
+        verbose_name = _('ejercicio de plantilla')
+        verbose_name_plural = _('ejercicios de plantilla')
+        ordering = ['template', 'order']
+
+    def __str__(self):
+        return f"{self.exercise.name} ({self.template})"
 
 
 class WorkoutPlan(models.Model):

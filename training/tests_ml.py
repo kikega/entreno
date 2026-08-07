@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 
 from users.models import TrainerProfile, AthleteProfile
-from training.models import WorkoutPlan, LoggedExercise, LoggedSet, WorkoutSession
+from training.models import WorkoutPlan, LoggedExercise, LoggedSet, WorkoutSession, DisciplineTemplate
 from training.analytics import calculate_1rm_brzycki, calculate_srpe, calculate_acwr
 from training.ml_engine import SportTemplateEngine, SmartPlanGenerator
 from training.ml.build_dataset import build_supervised_dataset, MIN_SAMPLES_FOR_TRAINING
@@ -76,9 +76,24 @@ class AnalyticsAndMLTestCase(TestCase):
 
     def test_sport_template_engine(self):
         for sport in ['mma', 'karate', 'bjj', 'crossfit', 'hyrox', 'weight_loss']:
-            tpl = SportTemplateEngine.get_template(sport)
-            self.assertIn('name', tpl)
-            self.assertGreaterEqual(len(tpl['exercises']), 4)
+            template = DisciplineTemplate.objects.filter(sport=sport, is_default=True).first()
+            self.assertIsNotNone(template)
+            self.assertGreaterEqual(template.items.count(), 4)
+
+    def test_template_produces_up_to_5_exercises(self):
+        template = DisciplineTemplate.objects.filter(sport='mma', is_default=True).first()
+        self.assertIsNotNone(template)
+        self.assertLessEqual(template.items.count(), 5)
+
+    def test_fit_ranking_suggests_from_catalog(self):
+        template = DisciplineTemplate.objects.filter(sport='mma', is_default=True).first()
+        suggestions = SportTemplateEngine.suggest_more_exercises(
+            template.sport, template=template
+        )
+        self.assertIsInstance(suggestions, list)
+        for suggestion in suggestions:
+            fit = suggestion.discipline_fits.get(sport='mma').fit
+            self.assertGreaterEqual(fit, 3)
 
     def test_smart_plan_generator(self):
         plan = SmartPlanGenerator.generate_plan_for_athlete(self.trainer, self.athlete)
