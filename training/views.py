@@ -11,7 +11,7 @@ import json
 from collections import defaultdict
 from datetime import datetime
 
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils import timezone
 
 from users.models import AthleteProfile
@@ -551,7 +551,8 @@ class TrainerAthleteProfileUpdateView(LoginRequiredMixin, UpdateView):
 
 class ExerciseListView(TrainerRequiredMixin, ListView):
     """
-    Catálogo de ejercicios del entrenador: lista, buscador y edición (añadir/modificar/eliminar).
+    Catálogo de ejercicios del entrenador: lista por categorías (pestañas),
+    buscador por nombre y paginación numerada con edición (añadir/modificar/eliminar).
     """
     model = Exercise
     template_name = 'training/exercise_list.html'
@@ -559,21 +560,40 @@ class ExerciseListView(TrainerRequiredMixin, ListView):
     paginate_by = 12
 
     def get_queryset(self):
-        qs = Exercise.objects.filter(
+        self.base_qs = Exercise.objects.filter(
             created_by=self.request.user.trainer_profile
-        ).order_by('name')
+        )
+        qs = self.base_qs.order_by('name')
         q = self.request.GET.get('q', '').strip()
         if q:
-            qs = qs.filter(
-                Q(name__icontains=q)
-                | Q(category__icontains=q)
-                | Q(movement_pattern__icontains=q)
-            )
+            qs = qs.filter(name__icontains=q)
+        self.current_category = self.request.GET.get('cat', '').strip()
+        if self.current_category in dict(Exercise.CATEGORY_CHOICES):
+            qs = qs.filter(category=self.current_category)
         return qs
+
+    def render_to_response(self, context, **response_kwargs):
+        """En peticiones HTMX devuelve solo el bloque de resultados (grid + paginador)."""
+        if self.request.headers.get('HX-Request'):
+            return render(self.request, 'training/partials/exercise_results.html', context)
+        return super().render_to_response(context, **response_kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_exercises'] = self.get_queryset().count()
+        category_labels = dict(Exercise.CATEGORY_CHOICES)
+        counts = (
+            self.base_qs.values('category')
+            .annotate(total=Count('id'))
+            .order_by('-total')
+        )
+        categories = [
+            {'value': item['category'], 'label': category_labels.get(item['category'], item['category']), 'count': item['total']}
+            for item in counts
+            if item['total'] > 0
+        ]
+        context['categories'] = categories
+        context['total_exercises'] = self.base_qs.count()
+        context['current_category'] = getattr(self, 'current_category', '')
         context['search'] = self.request.GET.get('q', '')
         return context
 
