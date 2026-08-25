@@ -4,9 +4,9 @@ from . import views
 app_name = 'training'
 
 urlpatterns = [
-    # Dashboards
-    path('trainer/', views.TrainerDashboardView.as_view(), name='trainer_dashboard'),
-    path('athlete/', views.AthleteDashboardView.as_view(), name='athlete_dashboard'),
+    # Dashboards (compatibilidad: redirigen al espacio unificado con su pestaña)
+    path('trainer/', views.dashboard_redirect, {'tab': 'trainer'}, name='trainer_dashboard'),
+    path('athlete/', views.dashboard_redirect, {'tab': 'athlete'}, name='athlete_dashboard'),
     
     # Workout Plans
     path('plan/new/', views.WorkoutPlanCreateView.as_view(), name='plan_create'),

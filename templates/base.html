@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}EntrenoPro{% endblock %}</title>
-    
+
     <link rel="icon" href="{% static 'img/logo.ico' %}">
     <link rel="manifest" href="{% static 'manifest.json' %}">
 
@@ -77,84 +77,148 @@
         .htmx-request .htmx-indicator { display: inline; }
         .htmx-request.htmx-indicator { display: inline; }
     </style>
-    
+
     {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col antialiased overflow-x-hidden">
-    
-    <nav class="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white shadow-lg border-b border-sky-900/20 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16 gap-3">
-                <div class="flex items-center min-w-0">
-                    <a href="/" class="flex-shrink-0 flex items-center gap-3 group">
-                        <div class="bg-primary/10 p-2 rounded-xl border border-primary/20 group-hover:border-primary/50 transition">
-                            <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                        </div>
-                        <span class="font-headline font-bold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-accent bg-clip-text text-transparent group-hover:opacity-90 transition truncate">EntrenoPro</span>
-                    </a>
+
+{% if user.is_authenticated %}
+    <!-- ===== Sidebar (desktop) ===== -->
+    <aside class="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-sky-950 text-white z-40 border-r border-white/5">
+        <div class="h-16 flex items-center px-5 border-b border-white/10 shrink-0">
+            <a href="/" class="flex items-center gap-3 group" aria-label="Ir al resumen">
+                <div class="bg-primary/10 p-2 rounded-xl border border-primary/20 group-hover:border-primary/50 transition">
+                    <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
-                <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                    {% if user.is_authenticated %}
-                        {% if user.trainer_profile and user.athlete_profile %}
-                            <a href="{% url 'users:dashboard_router' %}?switch=true" title="Cambiar de rol" class="flex items-center gap-1.5 text-sm font-semibold bg-white/5 border border-white/10 px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 hover:border-white/20 transition">
-                                <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                                <span class="hidden md:inline">Cambiar de rol</span>
-                            </a>
-                        {% endif %}
-                        {% if user.is_staff or user.is_superuser %}
-                            <a href="/admin/" class="text-sm font-medium text-slate-300 hover:text-white transition hidden sm:inline-block">Admin</a>
-                        {% endif %}
-                        <div class="hidden sm:flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/55 min-w-0">
-                            <span class="w-2 h-2 rounded-full flex-shrink-0 {% if request.session.active_role == 'trainer' %}bg-primary{% else %}bg-accent{% endif %}"></span>
-                            <span class="text-xs font-medium text-slate-300 truncate max-w-[12rem]">{{ user.email }}</span>
-                        </div>
-                        <div class="sm:hidden flex-shrink-0 w-9 h-9 rounded-lg bg-slate-800/50 border border-slate-700/55 flex items-center justify-center font-headline font-bold text-sm text-slate-200 uppercase">
-                            {{ user.first_name|first|default:user.email|first }}
-                        </div>
-                        <form method="post" action="{% url 'users:logout' %}" class="inline m-0">
-                            {% csrf_token %}
-                            <button type="submit" title="Salir" class="text-sm font-semibold hover:text-red-400 text-slate-300 transition bg-transparent border-none cursor-pointer flex items-center gap-1 px-1.5 sm:px-0">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                                <span class="hidden md:inline">Salir</span>
-                            </button>
-                        </form>
-                    {% else %}
-                        <a href="{% url 'users:login' %}" class="text-sm font-semibold bg-primary hover:bg-primary-hover px-4 py-2 rounded-lg text-white transition shadow-md shadow-primary/20">Iniciar Sesión</a>
+                <span class="font-headline font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-accent bg-clip-text text-transparent">EntrenoPro</span>
+            </a>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto px-3 py-6 space-y-1" aria-label="Navegación principal">
+            {% for item in caps.nav_items %}
+                <a href="{% url item.url_name %}"
+                   aria-current="{% if item.active %}page{% else %}false{% endif %}"
+                   class="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition
+                          {% if item.active %}bg-white/10 text-white shadow-inner ring-1 ring-white/10{% else %}text-slate-300 hover:text-white hover:bg-white/5{% endif %}">
+                    <svg class="w-5 h-5 shrink-0 {% if item.active %}text-accent{% else %}text-slate-400 group-hover:text-accent transition{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="{{ item.icon_path }}"></path>
+                    </svg>
+                    {{ item.label }}
+                    {% if item.active %}
+                        <span class="ml-auto w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true"></span>
                     {% endif %}
+                </a>
+            {% endfor %}
+
+            {% if user.is_staff or user.is_superuser %}
+                <a href="/admin/" class="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition mt-2 pt-4 border-t border-white/10">
+                    <svg class="w-5 h-5 text-slate-400 group-hover:text-accent transition shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    Administración
+                </a>
+            {% endif %}
+        </nav>
+
+        <div class="p-3 border-t border-white/10 space-y-2 shrink-0">
+            {% if caps.is_athlete and not caps.is_trainer %}
+                <a href="{% url 'users:become_trainer' %}" class="flex items-start gap-2 p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300 hover:bg-white/10 hover:text-white transition">
+                    <svg class="w-4 h-4 text-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <span>¿Entrenas a otros?<br><span class="font-bold text-white">Activa tu perfil de entrenador</span></span>
+                </a>
+            {% endif %}
+            <div class="flex items-center gap-3 p-2 min-w-0">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-secondary border border-white/15 flex items-center justify-center font-headline font-bold text-sm uppercase shrink-0">
+                    {{ user.first_name|first|default:user.email|first }}
                 </div>
+                <span class="text-xs font-medium text-slate-300 truncate min-w-0" title="{{ user.email }}">{{ user.email }}</span>
             </div>
+            <form method="post" action="{% url 'users:logout' %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="w-full flex items-center justify-center gap-2 text-sm font-semibold text-slate-300 hover:text-red-300 bg-transparent border border-white/10 hover:border-red-400/30 rounded-xl px-3 py-2 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    Cerrar sesión
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- ===== Topbar compacto (móvil) ===== -->
+    <header class="lg:hidden sticky top-0 z-40 bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white shadow-lg border-b border-sky-900/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+            <a href="/" class="flex items-center gap-2.5 group min-w-0" aria-label="Ir al resumen">
+                <div class="bg-primary/10 p-1.5 rounded-lg border border-primary/20">
+                    <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <span class="font-headline font-bold text-base tracking-tight truncate">EntrenoPro</span>
+            </a>
+            <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-2 bg-slate-800/60 border border-slate-700/60 pl-1.5 pr-3 py-1 rounded-lg max-w-[10rem]">
+                    <span class="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-headline font-bold text-[11px] uppercase shrink-0">{{ user.first_name|first|default:user.email|first }}</span>
+                    <span class="text-xs font-medium text-slate-300 truncate">{{ user.email }}</span>
+                </div>
+                <form method="post" action="{% url 'users:logout' %}" class="inline m-0">
+                    {% csrf_token %}
+                    <button type="submit" title="Cerrar sesión" aria-label="Cerrar sesión" class="p-2 rounded-lg text-slate-300 hover:text-red-300 hover:bg-white/5 transition cursor-pointer">
+                        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== Bottom navigation (móvil) ===== -->
+    <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_16px_rgba(15,23,42,0.06)]" aria-label="Navegación principal">
+        <div class="grid grid-flow-col auto-cols-fr max-w-lg mx-auto safe-bottom">
+            {% for item in caps.nav_items %}
+                <a href="{% url item.url_name %}"
+                   aria-current="{% if item.active %}page{% else %}false{% endif %}"
+                   class="flex flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] font-semibold transition
+                          {% if item.active %}text-primary{% else %}text-slate-400 active:text-primary{% endif %}">
+                    <svg class="w-5.5 h-5.5 {% if item.active %}scale-110{% endif %} transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="{% if item.active %}2.2{% else %}1.8{% endif %}" d="{{ item.icon_path }}"></path>
+                    </svg>
+                    <span class="truncate max-w-full px-1">{{ item.label }}</span>
+                </a>
+            {% endfor %}
         </div>
     </nav>
 
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-        {% if messages %}
-            <div class="mb-6 space-y-3">
-                {% for message in messages %}
-                    <div class="p-4 rounded-xl shadow-sm flex items-start gap-3 border {% if message.tags == 'error' %}bg-red-50/90 text-red-900 border-red-200/60{% else %}bg-sky-50/90 text-sky-500-900 border-sky-200/60{% endif %}">
-                        {% if message.tags == 'error' %}
-                            <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        {% else %}
-                            <svg class="w-5 h-5 text-sky-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        {% endif %}
-                        <div class="text-sm font-medium">{{ message }}</div>
+{% else %}
+    <!-- ===== Layout centrado para visitantes (login, reset, etc.) ===== -->
+    <nav class="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white shadow-lg border-b border-sky-900/20 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 gap-3">
+                <a href="/" class="flex-shrink-0 flex items-center gap-3 group">
+                    <div class="bg-primary/10 p-2 rounded-xl border border-primary/20 group-hover:border-primary/50 transition">
+                        <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </div>
-                {% endfor %}
+                    <span class="font-headline font-bold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-accent bg-clip-text text-transparent">EntrenoPro</span>
+                </a>
+                <a href="{% url 'users:login' %}" class="text-sm font-semibold bg-primary hover:bg-primary-hover px-4 py-2 rounded-lg text-white transition shadow-md shadow-primary/20">Iniciar Sesión</a>
             </div>
-        {% endif %}
+        </div>
+    </nav>
+{% endif %}
 
+<!-- Contenido principal (único bloque para ambas ramas) -->
+<main class="flex-grow w-full animate-fade-in {% if user.is_authenticated %}lg:pl-64{% endif %}">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-{% if user.is_authenticated %}10{% else %}8{% endif %} py-6 lg:py-10 {% if user.is_authenticated %}pb-28 lg:pb-12{% else %}py-8{% endif %}">
         {% block content %}{% endblock %}
-    </main>
+    </div>
+</main>
 
+{% if not user.is_authenticated %}
     <footer class="bg-white border-t border-slate-100 py-8 text-center text-slate-400 text-sm flex flex-col items-center justify-center">
-        {% if user.is_authenticated %}
-            <div class="flex items-center gap-2 mb-4">
-                <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                <span class="font-headline font-bold text-lg text-slate-800">EntrenoPro</span>
-            </div>
-        {% endif %}
+        <div class="flex items-center gap-2 mb-4">
+            <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <span class="font-headline font-bold text-lg text-slate-800">EntrenoPro</span>
+        </div>
         <p>&copy; {% now "Y" %} EntrenoPro. Todos los derechos reservados.</p>
     </footer>
+{% endif %}
 
-    {% block extra_scripts %}{% endblock %}
+<!-- ===== Avisos flotantes (toasts) ===== -->
+{% include 'partials/messages.html' %}
+
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

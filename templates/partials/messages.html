@@ -1,0 +1,49 @@
+{% comment %} Avisos flotantes reutilizables (toasts). Se autodescartan a los 5 s. {% endcomment %}
+{% if messages %}
+<div id="toast-stack" class="fixed top-16 lg:top-6 right-4 left-4 sm:left-auto z-[100] space-y-3 pointer-events-none" role="status" aria-live="polite">
+    {% for message in messages %}
+        <div data-toast class="pointer-events-auto flex items-start gap-3 p-4 rounded-xl shadow-lg border backdrop-blur-sm bg-white/95 animate-toast-in
+                {% if message.tags == 'error' %}border-red-200 text-red-900
+                {% elif message.tags == 'success' %}border-emerald-200 text-emerald-900
+                {% elif message.tags == 'warning' %}border-amber-200 text-amber-900
+                {% else %}border-sky-200 text-sky-900{% endif %}">
+            {% if message.tags == 'error' %}
+                <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            {% elif message.tags == 'success' %}
+                <svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            {% elif message.tags == 'warning' %}
+                <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            {% else %}
+                <svg class="w-5 h-5 text-sky-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            {% endif %}
+            <p class="text-sm font-medium flex-1 leading-snug">{{ message }}</p>
+            <button type="button" data-toast-close aria-label="Cerrar aviso" class="shrink-0 p-0.5 -m-0.5 text-slate-400 hover:text-slate-700 transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    {% endfor %}
+</div>
+
+<script>
+    (function() {
+        const stack = document.getElementById('toast-stack');
+        if (!stack) return;
+
+        function dismiss(toast) {
+            if (!toast || toast.dataset.dismissed) return;
+            toast.dataset.dismissed = 'true';
+            toast.style.transition = 'opacity .25s ease, transform .25s ease';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-6px)';
+            setTimeout(function() { toast.remove(); }, 260);
+        }
+
+        stack.querySelectorAll('[data-toast]').forEach(function(toast) {
+            const timer = setTimeout(function() { dismiss(toast); }, 5000);
+            toast.addEventListener('mouseenter', function() { clearTimeout(timer); });
+            const close = toast.querySelector('[data-toast-close]');
+            if (close) close.addEventListener('click', function() { dismiss(toast); });
+        });
+    })();
+</script>
+{% endif %}

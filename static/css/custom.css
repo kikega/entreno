@@ -148,7 +148,62 @@ input:focus, select:focus, textarea:focus {
 }
 
 .badge-completed {
-    background-color: rgba(41, 132, 209, 0.1);
-    color: #2984d1;
-    border: 1px solid rgba(41, 132, 209, 0.2);
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* ===== Toasts ===== */
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-toast-in {
+    animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== Accesibilidad: foco visible consistente ===== */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+}
+
+aside a:focus-visible,
+aside button:focus-visible {
+    outline-color: var(--color-accent);
+}
+
+/* ===== Skeletons para carga HTMX ===== */
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background-color: #e2e8f0;
+    border-radius: 0.75rem;
+}
+
+.skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.55) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+    100% { transform: translateX(100%); }
+}
+
+/* Espacio seguro inferior (iPhone) para la barra de navegación móvil */
+.safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }

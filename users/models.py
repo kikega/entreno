@@ -25,6 +25,26 @@ class CustomUser(AbstractUser):
         """Devuelve el correo electrónico como representación del usuario."""
         return self.email
 
+    @property
+    def is_trainer(self):
+        """Indica si el usuario dispone de perfil de entrenador (capacidad, no modo)."""
+        return hasattr(self, 'trainer_profile')
+
+    @property
+    def is_athlete(self):
+        """Indica si el usuario dispone de perfil de deportista (capacidad, no modo)."""
+        return hasattr(self, 'athlete_profile')
+
+    @property
+    def is_dual(self):
+        """Indica si el usuario combina ambas capacidades: entrenador y deportista."""
+        return self.is_trainer and self.is_athlete
+
+    @property
+    def display_name(self):
+        """Nombre visible del usuario con fallback al correo electrónico."""
+        return self.first_name or self.email.split('@')[0]
+
 
 class TrainerProfile(models.Model):
     """

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Activar perfil de entrenador - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto py-10 lg:py-20 px-4 sm:px-6 lg:px-8 animate-fade-in">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 sm:p-10 text-center">
+        <div class="mx-auto h-14 w-14 bg-sky-50 rounded-2xl flex items-center justify-center text-primary border border-sky-100 mb-6">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+        </div>
+        <h1 class="text-2xl font-headline font-extrabold text-slate-800">¿También entrenas a otros?</h1>
+        <p class="mt-3 text-base text-slate-500 leading-relaxed">
+            Al activar tu perfil de entrenador podrás diseñar planes, gestionar tu catálogo de ejercicios
+            y supervisar la carga de tus deportistas. Tu entrenamiento personal no cambia:
+            seguirá disponible en la sección «Mi entrenamiento».
+        </p>
+
+        <form method="post" action="{% url 'users:create_trainer_profile' %}" class="mt-8 space-y-3">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary w-full px-5 py-3 rounded-xl font-headline font-semibold text-sm transition hover:scale-[1.01] shadow-lg shadow-primary/20">
+                Activar perfil de entrenador
+            </button>
+            <a href="{% url 'home' %}" class="block text-sm font-semibold text-slate-400 hover:text-slate-600 transition pt-1">
+                Ahora no
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

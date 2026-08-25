@@ -1,0 +1,204 @@
+{% comment %} Scripts Chart.js del panel deportista (evolución física y 1RM) {% endcomment %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('evolutionChart').getContext('2d');
+
+        const labels = {{ chart_labels|safe }};
+        const weights = {{ chart_weights|safe }};
+        const fats = {{ chart_fats|safe }};
+        const leans = {{ chart_leans|safe }};
+        const durations = {{ chart_durations|safe }};
+
+        const hasData = labels && labels.length > 0;
+
+        // Creamos los gradientes de color de fondo para las líneas de la composición física
+        const weightGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        weightGradient.addColorStop(0, 'rgba(37, 99, 235, 0.16)');
+        weightGradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+
+        const chartData = {
+            labels: hasData ? labels : ['Sin datos registrados'],
+            datasets: [
+                {
+                    label: 'Peso (kg)',
+                    data: hasData ? weights : [0],
+                    borderColor: '#2984d1', // sky-600
+                    backgroundColor: weightGradient,
+                    type: 'line',
+                    yAxisID: 'y',
+                    tension: 0.45,
+                    fill: true,
+                    borderWidth: 3.5,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#2984d1',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2
+                },
+                {
+                    label: 'Masa Grasa (%)',
+                    data: hasData ? fats : [0],
+                    borderColor: '#ea580c', // orange-600
+                    backgroundColor: '#ea580c',
+                    type: 'line',
+                    yAxisID: 'y',
+                    tension: 0.4,
+                    fill: false,
+                    borderWidth: 2,
+                    borderDash: [5, 4],
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                },
+                {
+                    label: 'Masa Magra (%)',
+                    data: hasData ? leans : [0],
+                    borderColor: '#34a6f4', // sky-500
+                    backgroundColor: '#34a6f4',
+                    type: 'line',
+                    yAxisID: 'y',
+                    tension: 0.4,
+                    fill: false,
+                    borderWidth: 2,
+                    borderDash: [3, 3],
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                },
+                {
+                    label: 'Duración (min)',
+                    data: hasData ? durations : [0],
+                    backgroundColor: 'rgba(219, 234, 254, 0.6)', // light blue bar
+                    borderColor: '#93c5fd',
+                    type: 'bar',
+                    yAxisID: 'y1',
+                    borderWidth: 1,
+                    barThickness: 28,
+                    borderRadius: 6
+                }
+            ]
+        };
+
+        new Chart(ctx, {
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: false // Usamos nuestra propia leyenda superior estilizada en HTML
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleColor: '#ffffff',
+                        titleFont: { family: 'Montserrat', size: 13, weight: 'bold' },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        padding: 12,
+                        cornerRadius: 12,
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        boxPadding: 4,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + (context.dataset.type === 'bar' ? ' min' : (context.dataset.label.includes('%') ? '%' : ' kg'));
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: {
+                            color: '#f1f5f9'
+                        },
+                        border: {
+                            dash: [5, 5]
+                        },
+                        ticks: {
+                            font: { family: 'Inter', size: 11, weight: '500' },
+                            color: '#64748b'
+                        },
+                        suggestedMin: 50,
+                        suggestedMax: 95
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false, // Evita superposición de rejillas
+                        },
+                        ticks: {
+                            font: { family: 'Inter', size: 11, weight: '500' },
+                            color: '#64748b'
+                        },
+                        beginAtZero: true,
+                        suggestedMax: 120
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: { family: 'Inter', size: 11, weight: '500' },
+                            color: '#64748b'
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+    // ===== Gráfico de Evolución de Fuerza (1RM estimado) =====
+    (function() {
+        const rmCanvas = document.getElementById('rmChart');
+        if (!rmCanvas) return;
+
+        const names = {{ rm_chart_labels|safe }};
+        const data = {{ rm_chart_data|safe }};
+        const colorList = ['#2984d1', '#34a6f4', '#f97316', '#8b5cf6', '#ef4444', '#0891b2', '#d97706'];
+
+        const datasets = names.map(function(name, idx) {
+            return {
+                label: name,
+                data: data[name] || [],
+                borderColor: colorList[idx % colorList.length],
+                backgroundColor: colorList[idx % colorList.length],
+                fill: false,
+                tension: 0.35,
+                borderWidth: 2.5,
+                pointRadius: 3.5,
+                pointHoverRadius: 6
+            };
+        });
+
+        const ctx2 = rmCanvas.getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: { labels: names.length ? ['Sesión 1'] : [], datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 } } },
+                    tooltip: { backgroundColor: '#0f172a', titleColor: '#fff', padding: 12, cornerRadius: 12 }
+                },
+                scales: {
+                    y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#64748b' } },
+                    x: { display: false }
+                }
+            }
+        });
+    })();
+</script>

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Configura tu cuenta - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 lg:py-16 px-4 sm:px-6 lg:px-8 animate-fade-in">
+    <div class="text-center mb-12">
+        <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-sky-50 px-3 py-1 rounded-full border border-sky-100">PRIMEROS PASOS</span>
+        <h1 class="text-3xl font-headline font-extrabold text-slate-800 sm:text-4xl mt-3">¿Cómo vas a usar EntrenoPro?</h1>
+        <p class="mt-4 text-base text-slate-500 max-w-xl mx-auto">Activa tu perfil para empezar. Podrás añadir el otro perfil en cualquier momento desde tu panel, sin perder ningún dato.</p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-8 sm:grid-cols-2">
+        <!-- Tarjeta Deportista -->
+        <form method="post" action="{% url 'users:create_athlete_profile' %}" class="relative rounded-2xl border-2 border-slate-100 bg-white p-8 shadow-sm flex flex-col hover:border-accent hover:shadow-lg hover:shadow-sky-500/5 transition-all duration-300 group">
+            {% csrf_token %}
+            <div class="absolute top-0 right-0 p-6 text-slate-100 group-hover:text-sky-50 transition-colors duration-300" aria-hidden="true">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+
+            <div class="flex-1 relative z-10">
+                <div class="h-12 w-12 bg-sky-50 rounded-xl flex items-center justify-center text-accent border border-sky-100 group-hover:bg-accent group-hover:text-white transition duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <h3 class="text-xl font-headline font-extrabold text-slate-800 mt-6">Soy deportista</h3>
+                <ul class="mt-3 text-sm text-slate-500 leading-relaxed space-y-2">
+                    <li class="flex items-start gap-2"><span class="text-accent font-bold mt-0.5">✓</span> Sigue tus planes de entrenamiento día a día</li>
+                    <li class="flex items-start gap-2"><span class="text-accent font-bold mt-0.5">✓</span> Registra series, cargas y sensaciones en vivo</li>
+                    <li class="flex items-start gap-2"><span class="text-accent font-bold mt-0.5">✓</span> Analiza tu evolución física con gráficas</li>
+                </ul>
+            </div>
+
+            <button type="submit" class="btn-accent mt-8 w-full px-5 py-3 rounded-xl font-headline font-semibold text-sm transition hover:scale-[1.02] shadow-lg shadow-accent/20">
+                Empezar a entrenar
+            </button>
+        </form>
+
+        <!-- Tarjeta Entrenador -->
+        <form method="post" action="{% url 'users:create_trainer_profile' %}" class="relative rounded-2xl border-2 border-slate-100 bg-white p-8 shadow-sm flex flex-col hover:border-primary hover:shadow-lg hover:shadow-sky-500/5 transition-all duration-300 group">
+            {% csrf_token %}
+            <div class="absolute top-0 right-0 p-6 text-slate-100 group-hover:text-sky-50 transition-colors duration-300" aria-hidden="true">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            </div>
+
+            <div class="flex-1 relative z-10">
+                <div class="h-12 w-12 bg-sky-50 rounded-xl flex items-center justify-center text-primary border border-sky-100 group-hover:bg-primary group-hover:text-white transition duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                </div>
+                <h3 class="text-xl font-headline font-extrabold text-slate-800 mt-6">Entrenador</h3>
+                <ul class="mt-3 text-sm text-slate-500 leading-relaxed space-y-2">
+                    <li class="flex items-start gap-2"><span class="text-primary font-bold mt-0.5">✓</span> Diseña planes para cada deportista asignado</li>
+                    <li class="flex items-start gap-2"><span class="text-primary font-bold mt-0.5">✓</span> Genera borradores asistidos por ML según el deporte</li>
+                    <li class="flex items-start gap-2"><span class="text-primary font-bold mt-0.5">✓</span> Controla la carga y el riesgo de sobreentrenamiento</li>
+                </ul>
+            </div>
+
+            <button type="submit" class="btn-primary mt-8 w-full px-5 py-3 rounded-xl font-headline font-semibold text-sm transition hover:scale-[1.02] shadow-lg shadow-primary/20">
+                Activar perfil de entrenador
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

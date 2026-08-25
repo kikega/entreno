@@ -1,39 +1,29 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block title %}Dashboard Deportista - EntrenoPro{% endblock %}
-
-{% block content %}
-<div class="flex flex-col space-y-8 athlete-theme">
-    <!-- Encabezado de bienvenida -->
-    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-lg text-white">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_45%)]"></div>
-        <div class="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-            <div class="min-w-0">
-                <span class="text-xs font-headline font-bold tracking-widest text-accent uppercase bg-accent/10 px-3 py-1 rounded-full border border-accent/25">PANEL DEPORTISTA</span>
-                <h1 class="text-2xl sm:text-3xl md:text-4xl font-headline font-extrabold text-white mt-3">¡Hola, {{ request.user.first_name|default:request.user.email }}!</h1>
-                <p class="text-sm sm:text-base text-slate-300 mt-2 max-w-xl">Mantén el ritmo, sigue tu evolución física y completa tus planes de entrenamiento diario.</p>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto shrink-0">
-                {% if next_plan and not next_plan.is_completed %}
-                    <a href="{% url 'training:plan_detail' next_plan.id %}" class="btn-accent px-5 py-3 rounded-xl font-headline font-semibold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] shadow-lg shadow-accent/20">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        Ir a mi próxima sesión
-                    </a>
-                {% endif %}
-                <a href="{% url 'users:profile_edit' %}" class="btn-accent px-5 py-3 rounded-xl font-headline font-semibold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] shadow-lg shadow-accent/20 bg-white/10 border border-white/15">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Editar Perfil
+{% comment %} Panel de contexto deportista: se renderiza dentro del espacio unificado (home.html) {% endcomment %}
+<div class="flex flex-col space-y-8 athlete-theme animate-fade-in">
+    <!-- Acciones principales -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-headline font-extrabold text-slate-800">Tu entrenamiento</h2>
+            <p class="text-sm text-slate-500 mt-0.5">Sigue tu evolución física y completa tus planes de entrenamiento diario.</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto shrink-0">
+            {% if next_plan and not next_plan.is_completed %}
+                <a href="{% url 'training:plan_detail' next_plan.id %}" class="btn-accent px-5 py-2.5 rounded-xl font-headline font-semibold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] shadow-lg shadow-accent/20">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Ir a mi próxima sesión
                 </a>
-            </div>
+            {% endif %}
+            <a href="{% url 'users:profile_edit' %}" class="px-5 py-2.5 rounded-xl font-headline font-semibold text-sm flex items-center justify-center gap-2 transition border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm">
+                Editar perfil
+            </a>
         </div>
     </div>
 
     <!-- Módulo de Estadísticas Clave -->
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
         <div class="relative bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 transition hover:shadow-md overflow-hidden">
-            <span class="absolute top-0 left-0 right-0 h-1 bg-sky-500/70"></span>
-            <div class="p-3.5 bg-sky-50 text-accent rounded-xl border border-sky-100 flex-shrink-0">
+            <span class="absolute top-0 left-0 right-0 h-1 bg-emerald-500/70"></span>
+            <div class="p-3.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 flex-shrink-0">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <div class="min-w-0">
@@ -102,7 +92,7 @@
             </div>
         </div>
         <div class="h-72 sm:h-96 w-full relative">
-            <canvas id="evolutionChart"></canvas>
+            <canvas id="evolutionChart" aria-label="Gráfico de evolución física" role="img"></canvas>
         </div>
     </div>
 
@@ -116,7 +106,7 @@
             </div>
         </div>
         <div class="h-72 sm:h-80 w-full relative">
-            <canvas id="rmChart"></canvas>
+            <canvas id="rmChart" aria-label="Gráfico de evolución de fuerza" role="img"></canvas>
         </div>
     </div>
     {% endif %}
@@ -139,7 +129,7 @@
                         {% for plan in profile.assigned_plans.all|dictsortreversed:"target_date"|slice:":5" %}
                             <div class="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/70 transition">
                                 <div class="flex items-start gap-4 min-w-0">
-                                    <div class="p-3 rounded-xl {% if plan.is_completed %}bg-sky-50 text-accent{% else %}bg-amber-50 text-amber-500{% endif %} flex-shrink-0">
+                                    <div class="p-3 rounded-xl {% if plan.is_completed %}bg-emerald-50 text-emerald-600{% else %}bg-amber-50 text-amber-500{% endif %} flex-shrink-0">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                                     </div>
                                     <div class="min-w-0">
@@ -168,7 +158,8 @@
                 {% else %}
                     <div class="p-12 text-center text-slate-400 text-base">
                         <svg class="mx-auto h-16 w-16 text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                        Aún no tienes planes de entrenamiento asignados por tu entrenador.
+                        <p class="font-semibold text-slate-600">Aún no tienes planes asignados.</p>
+                        <p class="text-sm mt-1">{% if trainer %}Tu entrenador preparará aquí tu próxima sesión.{% else %}Cuando tengas entrenador, verás aquí tus planes.{% endif %}</p>
                     </div>
                 {% endif %}
             </div>
@@ -183,10 +174,10 @@
                         <table class="min-w-full divide-y divide-slate-100">
                             <thead class="bg-slate-50/60">
                                 <tr>
-                                    <th class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
-                                    <th class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Peso (kg)</th>
-                                    <th class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Masa Grasa (%)</th>
-                                    <th class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Masa Magra (%)</th>
+                                    <th scope="col" class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
+                                    <th scope="col" class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Peso (kg)</th>
+                                    <th scope="col" class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Masa Grasa (%)</th>
+                                    <th scope="col" class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Masa Magra (%)</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-slate-100">
@@ -250,11 +241,11 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label for="id_fat" class="block text-xs font-headline font-bold text-slate-500 mb-1">Grasa (%)</label>
+                            <label for="id_fat_percentage" class="block text-xs font-headline font-bold text-slate-500 mb-1">Grasa (%)</label>
                             {{ log_form.fat_percentage }}
                         </div>
                         <div>
-                            <label for="id_lean" class="block text-xs font-headline font-bold text-slate-500 mb-1">Masa Magra (%)</label>
+                            <label for="id_lean_mass_percentage" class="block text-xs font-headline font-bold text-slate-500 mb-1">Masa Magra (%)</label>
                             {{ log_form.lean_mass_percentage }}
                         </div>
                     </div>
@@ -267,210 +258,3 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('evolutionChart').getContext('2d');
-        
-        const labels = {{ chart_labels|safe }};
-        const weights = {{ chart_weights|safe }};
-        const fats = {{ chart_fats|safe }};
-        const leans = {{ chart_leans|safe }};
-        const durations = {{ chart_durations|safe }};
-        
-        const hasData = labels && labels.length > 0;
-        
-        // Creamos los gradientes de color de fondo para las líneas de la composición física
-        const weightGradient = ctx.createLinearGradient(0, 0, 0, 400);
-        weightGradient.addColorStop(0, 'rgba(37, 99, 235, 0.16)');
-        weightGradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
-        
-        const chartData = {
-            labels: hasData ? labels : ['Sin datos registrados'],
-            datasets: [
-                {
-                    label: 'Peso (kg)',
-                    data: hasData ? weights : [0],
-                    borderColor: '#2984d1', // sky-600
-                    backgroundColor: weightGradient,
-                    type: 'line',
-                    yAxisID: 'y',
-                    tension: 0.45,
-                    fill: true,
-                    borderWidth: 3.5,
-                    pointRadius: 4,
-                    pointHoverRadius: 7,
-                    pointBackgroundColor: '#2984d1',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2
-                },
-                {
-                    label: 'Masa Grasa (%)',
-                    data: hasData ? fats : [0],
-                    borderColor: '#ea580c', // orange-600
-                    backgroundColor: '#ea580c',
-                    type: 'line',
-                    yAxisID: 'y',
-                    tension: 0.4,
-                    fill: false,
-                    borderWidth: 2,
-                    borderDash: [5, 4],
-                    pointRadius: 3,
-                    pointHoverRadius: 5
-                },
-                {
-                    label: 'Masa Magra (%)',
-                    data: hasData ? leans : [0],
-                    borderColor: '#34a6f4', // sky-500
-                    backgroundColor: '#34a6f4',
-                    type: 'line',
-                    yAxisID: 'y',
-                    tension: 0.4,
-                    fill: false,
-                    borderWidth: 2,
-                    borderDash: [3, 3],
-                    pointRadius: 3,
-                    pointHoverRadius: 5
-                },
-                {
-                    label: 'Duración (min)',
-                    data: hasData ? durations : [0],
-                    backgroundColor: 'rgba(219, 234, 254, 0.6)', // light blue bar
-                    borderColor: '#93c5fd',
-                    type: 'bar',
-                    yAxisID: 'y1',
-                    borderWidth: 1,
-                    barThickness: 28,
-                    borderRadius: 6
-                }
-            ]
-        };
-
-        new Chart(ctx, {
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        display: false // Usamos nuestra propia leyenda superior estilizada en HTML
-                    },
-                    tooltip: {
-                        backgroundColor: '#0f172a',
-                        titleColor: '#ffffff',
-                        titleFont: { family: 'Montserrat', size: 13, weight: 'bold' },
-                        bodyFont: { family: 'Inter', size: 12 },
-                        padding: 12,
-                        cornerRadius: 12,
-                        borderColor: 'rgba(255,255,255,0.1)',
-                        borderWidth: 1,
-                        boxPadding: 4,
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += context.parsed.y + (context.dataset.type === 'bar' ? ' min' : (context.dataset.label.includes('%') ? '%' : ' kg'));
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        grid: {
-                            color: '#f1f5f9'
-                        },
-                        border: {
-                            dash: [5, 5]
-                        },
-                        ticks: {
-                            font: { family: 'Inter', size: 11, weight: '500' },
-                            color: '#64748b'
-                        },
-                        suggestedMin: 50,
-                        suggestedMax: 95
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: {
-                            drawOnChartArea: false, // Evita superposición de rejillas
-                        },
-                        ticks: {
-                            font: { family: 'Inter', size: 11, weight: '500' },
-                            color: '#64748b'
-                        },
-                        beginAtZero: true,
-                        suggestedMax: 120
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            font: { family: 'Inter', size: 11, weight: '500' },
-                            color: '#64748b'
-                        }
-                    }
-                }
-            }
-        });
-    });
-
-    // ===== Gráfico de Evolución de Fuerza (1RM estimado) =====
-    (function() {
-        const rmCanvas = document.getElementById('rmChart');
-        if (!rmCanvas) return;
-
-        const names = {{ rm_chart_labels|safe }};
-        const data = {{ rm_chart_data|safe }};
-        const colorList = ['#2984d1', '#34a6f4', '#f97316', '#8b5cf6', '#ef4444', '#0891b2', '#d97706'];
-
-        const datasets = names.map(function(name, idx) {
-            return {
-                label: name,
-                data: data[name] || [],
-                borderColor: colorList[idx % colorList.length],
-                backgroundColor: colorList[idx % colorList.length],
-                fill: false,
-                tension: 0.35,
-                borderWidth: 2.5,
-                pointRadius: 3.5,
-                pointHoverRadius: 6
-            };
-        });
-
-        const ctx2 = rmCanvas.getContext('2d');
-        new Chart(ctx2, {
-            type: 'line',
-            data: { labels: names.length ? ['Sesión 1'] : [], datasets: datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 } } },
-                    tooltip: { backgroundColor: '#0f172a', titleColor: '#fff', padding: 12, cornerRadius: 12 }
-                },
-                scales: {
-                    y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#64748b' } },
-                    x: { display: false }
-                }
-            }
-        });
-    })();
-</script>
-{% endblock %}

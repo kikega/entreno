@@ -2,7 +2,7 @@ from django.views.generic import TemplateView, CreateView, DetailView, UpdateVie
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.shortcuts import get_object_or_404, render, redirect
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, Http404
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
@@ -35,140 +35,130 @@ class TrainerRequiredMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
-        if not hasattr(request.user, 'trainer_profile'):
+        if not request.user.is_trainer:
             messages.error(request, "Acción permitida solo para entrenadores.")
-            return redirect('users:dashboard_router')
-        request.session['active_role'] = 'trainer'
+            return redirect('home')
         return super().dispatch(request, *args, **kwargs)
 
 
-class TrainerDashboardView(LoginRequiredMixin, TemplateView):
-    """
-    Vista de panel principal para entrenadores. Muestra la lista de deportistas asignados,
-    sus métricas de carga/rendimiento (ACWR, volúmenes) y resumen general de la actividad.
-    """
-    template_name = 'training/trainer_dashboard.html'
+class AthleteRequiredMixin(LoginRequiredMixin):
+    """Restringe el acceso a usuarios con perfil de deportista."""
 
     def dispatch(self, request, *args, **kwargs):
-        """Valida que el usuario tenga perfil de entrenador y establece el rol activo en la sesión."""
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
-        if not hasattr(request.user, 'trainer_profile'):
-            return redirect('users:dashboard_router')
-        request.session['active_role'] = 'trainer'
+        if not request.user.is_athlete:
+            messages.error(request, "Acción permitida solo para deportistas.")
+            return redirect('home')
         return super().dispatch(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        """Construye el contexto con los datos del entrenador, sus atletas asignados y métricas calculadas."""
-        context = super().get_context_data(**kwargs)
-        if hasattr(self.request.user, 'trainer_profile'):
-            trainer = self.request.user.trainer_profile
-            athletes = AthleteProfile.objects.filter(
-                assigned_trainer=self.request.user
-            ).select_related('user')
 
-            athletes_metrics = []
-            for athlete in athletes:
-                metrics = get_athlete_sport_metrics(athlete)
-                athletes_metrics.append({
-                    'athlete': athlete,
-                    'metrics': metrics
-                })
-
-            context['athletes'] = athletes
-            context['athletes_metrics'] = athletes_metrics
-            context['total_athletes'] = athletes.count()
-            context['total_plans'] = trainer.created_plans.count()
-            context['total_exercises'] = trainer.created_exercises.count()
-        return context
-
-
-class AthleteDashboardView(LoginRequiredMixin, TemplateView):
+def build_trainer_context(user):
     """
-    Vista de panel principal para deportistas. Muestra sus métricas personales,
-    próximos planes asignados, gráficos de peso/composición e historial reciente.
+    Construye el contexto del área de gestión: deportistas asignados,
+    métricas de carga/rendimiento (ACWR) y totales del catálogo.
     """
-    template_name = 'training/athlete_dashboard.html'
+    trainer = user.trainer_profile
+    athletes = AthleteProfile.objects.filter(
+        assigned_trainer=user
+    ).select_related('user')
 
-    def dispatch(self, request, *args, **kwargs):
-        """Valida que el usuario sea un deportista activo y establece el rol en la sesión."""
-        if not request.user.is_authenticated:
-            return super().dispatch(request, *args, **kwargs)
-        if not hasattr(request.user, 'athlete_profile'):
-            return redirect('users:dashboard_router')
-        request.session['active_role'] = 'athlete'
-        return super().dispatch(request, *args, **kwargs)
+    athletes_metrics = []
+    for athlete in athletes:
+        metrics = get_athlete_sport_metrics(athlete)
+        athletes_metrics.append({
+            'athlete': athlete,
+            'metrics': metrics
+        })
 
-    def get_context_data(self, **kwargs):
-        """Procesa y compila el historial de logs, sesiones y datos serializados para gráficos."""
-        context = super().get_context_data(**kwargs)
-        profile = self.request.user.athlete_profile
-
-        # Stats & Sport metrics
-        context['metrics'] = get_athlete_sport_metrics(profile)
-        context['total_completed_workouts'] = profile.sessions.count()
-        context['next_plan'] = profile.assigned_plans.filter(is_completed=False).order_by('target_date').first()
-        context['trainer'] = profile.assigned_trainer
-
-        # Form
-        context['log_form'] = AthleteProgressLogForm()
-
-        # Chart Data preparation
-        logs = profile.progress_logs.all().order_by('date')
-        sessions = profile.sessions.all().order_by('date_completed')
-
-        date_data = defaultdict(lambda: {'weight': None, 'fat': None, 'lean': None, 'duration': 0, 'calories': 0})
-
-        for log in logs:
-            d_str = log.date.strftime('%Y-%m-%d')
-            date_data[d_str]['weight'] = float(log.weight)
-            if log.fat_percentage is not None:
-                date_data[d_str]['fat'] = float(log.fat_percentage)
-            if log.lean_mass_percentage is not None:
-                date_data[d_str]['lean'] = float(log.lean_mass_percentage)
-
-        for session in sessions:
-            d_str = session.date_completed.date().strftime('%Y-%m-%d')
-            date_data[d_str]['duration'] += session.duration_minutes or 0
-            date_data[d_str]['calories'] += session.calories_burned or 0
-
-        sorted_dates = sorted(date_data.keys())
-
-        display_labels = []
-        months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
-        for d_str in sorted_dates:
-            dt = datetime.strptime(d_str, '%Y-%m-%d')
-            display_labels.append(f"{dt.day} {months[dt.month-1]}")
-
-        weights = [date_data[d]['weight'] for d in sorted_dates]
-        fats = [date_data[d]['fat'] for d in sorted_dates]
-        leans = [date_data[d]['lean'] for d in sorted_dates]
-        durations = [date_data[d]['duration'] for d in sorted_dates]
-        calories = [date_data[d]['calories'] for d in sorted_dates]
-
-        context['chart_labels'] = json.dumps(display_labels)
-        context['chart_weights'] = json.dumps(weights)
-        context['chart_fats'] = json.dumps(fats)
-        context['chart_leans'] = json.dumps(leans)
-        context['chart_durations'] = json.dumps(durations)
-        context['chart_calories'] = json.dumps(calories)
-
-        # Pass profile and recent logs for display
-        context['profile'] = profile
-        context['recent_logs'] = logs.order_by('-date')[:5]
-
-        # Evolución de fuerza (mejor 1RM estimado por ejercicio a lo largo del tiempo)
-        evolution = exercise_1rm_evolution(profile)
-        context['rm_evolution'] = evolution
-        context['rm_chart_labels'] = json.dumps(list(evolution.keys()))
-        context['rm_chart_data'] = json.dumps(
-            {name: [p['1rm'] for p in points] for name, points in evolution.items()}
-        )
-
-        return context
+    return {
+        'athletes': athletes,
+        'athletes_metrics': athletes_metrics,
+        'total_athletes': athletes.count(),
+        'total_plans': trainer.created_plans.count(),
+        'total_exercises': trainer.created_exercises.count(),
+    }
 
 
-class WorkoutPlanCreateView(LoginRequiredMixin, CreateView):
+def build_athlete_context(user):
+    """
+    Construye el contexto del área personal del deportista: métricas,
+    próximos planes, gráficos de peso/composición e historial reciente.
+    """
+    profile = user.athlete_profile
+
+    context = {
+        'metrics': get_athlete_sport_metrics(profile),
+        'total_completed_workouts': profile.sessions.count(),
+        'next_plan': profile.assigned_plans.filter(is_completed=False).order_by('target_date').first(),
+        'trainer': profile.assigned_trainer,
+        'log_form': AthleteProgressLogForm(),
+        'profile': profile,
+    }
+
+    # Chart Data preparation
+    logs = profile.progress_logs.all().order_by('date')
+    sessions = profile.sessions.all().order_by('date_completed')
+
+    date_data = defaultdict(lambda: {'weight': None, 'fat': None, 'lean': None, 'duration': 0, 'calories': 0})
+
+    for log in logs:
+        d_str = log.date.strftime('%Y-%m-%d')
+        date_data[d_str]['weight'] = float(log.weight)
+        if log.fat_percentage is not None:
+            date_data[d_str]['fat'] = float(log.fat_percentage)
+        if log.lean_mass_percentage is not None:
+            date_data[d_str]['lean'] = float(log.lean_mass_percentage)
+
+    for session in sessions:
+        d_str = session.date_completed.date().strftime('%Y-%m-%d')
+        date_data[d_str]['duration'] += session.duration_minutes or 0
+        date_data[d_str]['calories'] += session.calories_burned or 0
+
+    sorted_dates = sorted(date_data.keys())
+
+    display_labels = []
+    months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+    for d_str in sorted_dates:
+        dt = datetime.strptime(d_str, '%Y-%m-%d')
+        display_labels.append(f"{dt.day} {months[dt.month-1]}")
+
+    weights = [date_data[d]['weight'] for d in sorted_dates]
+    fats = [date_data[d]['fat'] for d in sorted_dates]
+    leans = [date_data[d]['lean'] for d in sorted_dates]
+    durations = [date_data[d]['duration'] for d in sorted_dates]
+    calories = [date_data[d]['calories'] for d in sorted_dates]
+
+    context['chart_labels'] = json.dumps(display_labels)
+    context['chart_weights'] = json.dumps(weights)
+    context['chart_fats'] = json.dumps(fats)
+    context['chart_leans'] = json.dumps(leans)
+    context['chart_durations'] = json.dumps(durations)
+    context['chart_calories'] = json.dumps(calories)
+
+    context['recent_logs'] = logs.order_by('-date')[:5]
+
+    # Evolución de fuerza (mejor 1RM estimado por ejercicio a lo largo del tiempo)
+    evolution = exercise_1rm_evolution(profile)
+    context['rm_evolution'] = evolution
+    context['rm_chart_labels'] = json.dumps(list(evolution.keys()))
+    context['rm_chart_data'] = json.dumps(
+        {name: [p['1rm'] for p in points] for name, points in evolution.items()}
+    )
+
+    return context
+
+
+@login_required
+def dashboard_redirect(request, tab):
+    """
+    Redirección de compatibilidad: los antiguos dashboards separados ahora viven
+    en el espacio unificado ('home') como pestañas de contexto.
+    """
+    return HttpResponseRedirect(f"{reverse('home')}?tab={tab}")
+
+
+class WorkoutPlanCreateView(TrainerRequiredMixin, CreateView):
     """
     Permite a los entrenadores crear manualmente un nuevo plan de entrenamiento para sus deportistas.
     """
@@ -179,8 +169,7 @@ class WorkoutPlanCreateView(LoginRequiredMixin, CreateView):
     def get_form_kwargs(self):
         """Pasa la instancia del entrenador al formulario para filtrar sus atletas asignados."""
         kwargs = super().get_form_kwargs()
-        if hasattr(self.request.user, 'trainer_profile'):
-            kwargs['trainer'] = self.request.user.trainer_profile
+        kwargs['trainer'] = self.request.user.trainer_profile
         return kwargs
 
     def form_valid(self, form):
@@ -198,19 +187,35 @@ class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
     """
     Vista de detalle de un plan de entrenamiento. Muestra los ejercicios prescritos,
     permitiendo al entrenador añadir ejercicios o al atleta registrar una sesión.
+    Solo acceden el entrenador que lo creó y el deportista destinatario.
     """
     model = WorkoutPlan
     template_name = 'training/workout_plan_detail.html'
     context_object_name = 'plan'
 
+    def get_object(self, queryset=None):
+        """Restringe el acceso al entrenador creador y al deportista asignado al plan."""
+        obj = super().get_object(queryset)
+        user = self.request.user
+        allowed = (
+            (user.is_trainer and obj.trainer == user.trainer_profile) or
+            (user.is_athlete and obj.athlete == user.athlete_profile)
+        )
+        if not allowed:
+            raise Http404("Plan de entrenamiento no encontrado.")
+        return obj
+
     def get_context_data(self, **kwargs):
-        """Inyecta los formularios y datos de sesión según el rol del usuario."""
+        """Inyecta los formularios y datos de sesión según la relación del usuario con el plan."""
         context = super().get_context_data(**kwargs)
         plan = self.object
+        user = self.request.user
+        is_owner = user.is_athlete and plan.athlete == user.athlete_profile
+        context['is_plan_owner'] = is_owner
         context['exercise_form'] = PlannedExerciseForm()
 
-        # Para deportistas: sesión en vivo con per-exercicio (inicio/fin y peso)
-        if hasattr(self.request.user, 'athlete_profile'):
+        # Para el deportista destinatario: sesión en vivo con per-exercicio (inicio/fin y peso)
+        if is_owner:
             session, _ = WorkoutSession.objects.get_or_create(
                 workout_plan=plan,
                 athlete=plan.athlete,
@@ -232,7 +237,7 @@ class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class LiveWorkoutView(LoginRequiredMixin, DetailView):
+class LiveWorkoutView(AthleteRequiredMixin, DetailView):
     """
     Interfaz interactiva en vivo para que el deportista ejecute y registre serie a serie un entrenamiento.
     Permite iniciar/finalizar cada ejercicio, registrar el peso (si el ejercicio tiene cargas con RM),
@@ -245,9 +250,9 @@ class LiveWorkoutView(LoginRequiredMixin, DetailView):
     def dispatch(self, request, *args, **kwargs):
         """Comprueba que el deportista autenticado sea el destinatario del plan antes de dar acceso."""
         obj = self.get_object()
-        if hasattr(request.user, 'athlete_profile') and obj.athlete != request.user.athlete_profile:
+        if obj.athlete != request.user.athlete_profile:
             messages.error(request, "No tienes acceso a este entrenamiento.")
-            return redirect('training:athlete_dashboard')
+            return redirect('home')
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -284,7 +289,7 @@ def log_set_htmx(request, planned_id):
     plan = planned_exercise.workout_plan
 
     # Validar permisos
-    if not hasattr(request.user, 'athlete_profile') or plan.athlete != request.user.athlete_profile:
+    if not request.user.is_athlete or plan.athlete != request.user.athlete_profile:
         return HttpResponse("No autorizado", status=403)
 
     try:
@@ -356,7 +361,7 @@ def start_exercise(request, planned_id):
     planned_exercise = get_object_or_404(PlannedExercise, pk=planned_id)
     plan = planned_exercise.workout_plan
 
-    if not hasattr(request.user, 'athlete_profile') or plan.athlete != request.user.athlete_profile:
+    if not request.user.is_athlete or plan.athlete != request.user.athlete_profile:
         return HttpResponse("No autorizado", status=403)
 
     session, _ = WorkoutSession.objects.get_or_create(
@@ -387,7 +392,7 @@ def finish_exercise(request, planned_id):
     planned_exercise = get_object_or_404(PlannedExercise, pk=planned_id)
     plan = planned_exercise.workout_plan
 
-    if not hasattr(request.user, 'athlete_profile') or plan.athlete != request.user.athlete_profile:
+    if not request.user.is_athlete or plan.athlete != request.user.athlete_profile:
         return HttpResponse("No autorizado", status=403)
 
     session, _ = WorkoutSession.objects.get_or_create(
@@ -432,9 +437,9 @@ def generate_smart_plan(request, athlete_id):
     Endpoint para generar un borrador de plan por deporte con sugerencias de ML.
     El entrenador lo revisa y ajusta antes de confirmarlo.
     """
-    if not hasattr(request.user, 'trainer_profile'):
+    if not request.user.is_trainer:
         messages.error(request, "Solo los entrenadores pueden generar planes asistidos.")
-        return redirect('users:dashboard_router')
+        return redirect('home')
 
     athlete = get_object_or_404(AthleteProfile, pk=athlete_id, assigned_trainer=request.user)
 
@@ -456,9 +461,9 @@ def complete_workout(request, plan_id):
     """
     plan = get_object_or_404(WorkoutPlan, pk=plan_id)
 
-    if not hasattr(request.user, 'athlete_profile') or plan.athlete != request.user.athlete_profile:
+    if not request.user.is_athlete or plan.athlete != request.user.athlete_profile:
         messages.error(request, "No tienes permiso para completar este entrenamiento.")
-        return redirect('training:athlete_dashboard')
+        return redirect('home')
 
     form = WorkoutSessionForm(request.POST)
     session_rpe = request.POST.get('session_rpe')
@@ -486,14 +491,14 @@ def complete_workout(request, plan_id):
         plan.save()
 
         messages.success(request, f"¡Entrenamiento '{plan.name}' completado con éxito! Gran trabajo.")
-
-        # El modo en vivo redirige a la vista live para no perder el contexto de ejercicios
-        if request.POST.get('session_stage') == 'live':
-            return redirect('training:live_workout', pk=plan.pk)
     else:
         messages.error(request, "Error al registrar la sesión de entrenamiento. Por favor verifica los datos.")
 
-    return redirect('training:athlete_dashboard')
+    # El modo en vivo redirige a la vista live para no perder el contexto de ejercicios
+    if request.POST.get('session_stage') == 'live':
+        return redirect('training:live_workout', pk=plan.pk)
+
+    return HttpResponseRedirect(f"{reverse('home')}?tab=athlete")
 
 
 def add_planned_exercise(request, plan_id):
@@ -513,13 +518,17 @@ def add_planned_exercise(request, plan_id):
     return HttpResponse(status=405)
 
 
-class AthleteDetailView(LoginRequiredMixin, DetailView):
+class AthleteDetailView(TrainerRequiredMixin, DetailView):
     """
     Muestra la ficha detallada de un atleta a su entrenador, incluyendo su historial de planes y métricas deportivas.
     """
     model = AthleteProfile
     template_name = 'training/athlete_detail.html'
     context_object_name = 'athlete'
+
+    def get_queryset(self):
+        """Un entrenador solo puede ver la ficha de sus deportistas asignados."""
+        return AthleteProfile.objects.filter(assigned_trainer=self.request.user)
 
     def get_context_data(self, **kwargs):
         """Carga los planes asignados ordenados por fecha y las métricas avanzadas del deportista."""
@@ -529,7 +538,7 @@ class AthleteDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class TrainerAthleteProfileUpdateView(LoginRequiredMixin, UpdateView):
+class TrainerAthleteProfileUpdateView(TrainerRequiredMixin, UpdateView):
     """
     Permite al entrenador editar el perfil deportivo y datos físicos de cualquiera de sus deportistas asignados.
     """
@@ -539,9 +548,7 @@ class TrainerAthleteProfileUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_queryset(self):
         """Garantiza que el entrenador solo pueda acceder a los atletas que tiene explícitamente asignados."""
-        if hasattr(self.request.user, 'trainer_profile'):
-            return AthleteProfile.objects.filter(assigned_trainer=self.request.user)
-        return AthleteProfile.objects.none()
+        return AthleteProfile.objects.filter(assigned_trainer=self.request.user)
 
     def get_success_url(self):
         """Informa del éxito de la operación y redirige al detalle del deportista."""

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Resumen - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="flex flex-col space-y-8">
+    <!-- Cabecera del espacio de trabajo unificado -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-lg text-white">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.14),transparent_45%)]"></div>
+        <div class="relative z-10 flex flex-col lg:flex-row justify-between lg:items-center gap-6">
+            <div class="min-w-0">
+                {% if active_tab == 'trainer' %}
+                    <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-primary/15 px-3 py-1 rounded-full border border-primary/25">Gestión de entrenadores</span>
+                {% else %}
+                    <span class="text-xs font-headline font-bold tracking-widest text-accent uppercase bg-accent/10 px-3 py-1 rounded-full border border-accent/25">Mi entrenamiento</span>
+                {% endif %}
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-headline font-extrabold text-white mt-3">¡Hola, {{ request.user.display_name }}!</h1>
+                {% if active_tab == 'trainer' %}
+                    <p class="text-sm sm:text-base text-slate-300 mt-2 max-w-xl">Todo sobre tus deportistas: carga de trabajo, planes y evolución, en un vistazo.</p>
+                {% else %}
+                    <p class="text-sm sm:text-base text-slate-300 mt-2 max-w-xl">Mantén el ritmo: tu próxima sesión, tu evolución y tus logros, en un vistazo.</p>
+                {% endif %}
+            </div>
+
+            <!-- Conmutador de contexto (solo usuarios con doble capacidad) -->
+            {% if caps.is_dual %}
+                <nav aria-label="Cambiar de contexto" class="inline-flex self-start bg-white/10 border border-white/15 rounded-xl p-1 backdrop-blur shrink-0">
+                    <a href="?tab=athlete" aria-current="{% if active_tab == 'athlete' %}page{% else %}false{% endif %}"
+                       class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition
+                              {% if active_tab == 'athlete' %}bg-white text-slate-900 shadow-md{% else %}text-slate-300 hover:text-white hover:bg-white/10{% endif %}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Entreno
+                    </a>
+                    <a href="?tab=trainer" aria-current="{% if active_tab == 'trainer' %}page{% else %}false{% endif %}"
+                       class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition
+                              {% if active_tab == 'trainer' %}bg-white text-slate-900 shadow-md{% else %}text-slate-300 hover:text-white hover:bg-white/10{% endif %}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Deportistas
+                    </a>
+                </nav>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Panel del contexto activo -->
+    {% if active_tab == 'athlete' %}
+        {% include 'training/partials/panel_athlete.html' %}
+    {% else %}
+        {% include 'training/partials/panel_trainer.html' %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+    {% if active_tab == 'athlete' %}
+        {% include 'training/partials/scripts_athlete.html' %}
+    {% endif %}
+{% endblock %}

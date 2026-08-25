@@ -17,11 +17,12 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
-from django.shortcuts import redirect
+
+from users.views import HomeView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("users/", include('users.urls')),
     path("training/", include('training.urls')),
-    path("", lambda request: redirect('users:dashboard_router'), name='home'),
+    path("", HomeView.as_view(), name='home'),
 ]

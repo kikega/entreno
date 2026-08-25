@@ -7,7 +7,10 @@ app_name = 'users'
 urlpatterns = [
     path('login/', views.CustomLoginView.as_view(), name='login'),
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
-    path('dashboard/', views.dashboard_router, name='dashboard_router'),
+    path('onboarding/', views.OnboardingView.as_view(), name='onboarding'),
+    path('become-trainer/', views.BecomeTrainerView.as_view(), name='become_trainer'),
+    path('profiles/athlete/create/', views.create_athlete_profile, name='create_athlete_profile'),
+    path('profiles/trainer/create/', views.create_trainer_profile, name='create_trainer_profile'),
     path('profile/edit/', views.AthleteProfileUpdateView.as_view(), name='profile_edit'),
     path('progress/log/', views.log_progress, name='log_progress'),
 

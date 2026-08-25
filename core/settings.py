@@ -75,6 +75,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "users.context_processors.capabilities",
             ],
         },
     },
@@ -147,7 +148,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "users.CustomUser"
 
 LOGIN_URL = 'users:login'
-LOGIN_REDIRECT_URL = 'users:dashboard_router'
+LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'users:login'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
