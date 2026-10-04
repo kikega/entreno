@@ -35,7 +35,27 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = []
+# En desarrollo permite hosts locales, LAN o definidos en .env; en producción restringir a dominios específicos
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'] if DEBUG else [])
+
+# ==============================================================================
+# AJUSTES DE SEGURIDAD / SSL (COMENTADOS - SERVIDOR DE DESARROLLO SIN CIFRADO SSL)
+# ------------------------------------------------------------------------------
+# En este servidor de desarrollo NO se dispone de certificado SSL/HTTPS.
+# Si se activan estas directivas en HTTP sin cifrar, provocarán bucles de
+# redirección infinita (301/302) y rechazo de cookies de sesión / CSRF (error 403).
+# Descomentar ÚNICAMENTE al desplegar en un servidor de producción con HTTPS válido:
+# ==============================================================================
+# SECURE_SSL_REDIRECT = True
+# SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
+# SECURE_BROWSER_XSS_FILTER = True
+# SECURE_CONTENT_TYPE_NOSNIFF = True
+# SECURE_HSTS_SECONDS = 31536000  # 1 año
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# SECURE_HSTS_PRELOAD = True
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# CSRF_TRUSTED_ORIGINS = ['https://tudominio.com']
 
 
 # Application definition
@@ -87,8 +107,14 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+default_db_url = (
+    f"postgres://{env('DB_USER', default='kike')}:{env('DB_PASSWORD', default='')}@"
+    f"{env('DB_HOST', default='127.0.0.1')}:{env('DB_PORT', default='5432')}/"
+    f"{env('DB_NAME', default='entreno')}"
+)
+
 DATABASES = {
-    'default': env.db('DATABASE_URL', default=f"postgres://{env('DB_USER')}:{env('DB_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}")
+    'default': env.db('DATABASE_URL', default=default_db_url)
 }
 
 import sys
@@ -133,11 +159,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
@@ -164,4 +190,5 @@ def _basecontext_copy_patch(self):
     duplicate.dicts = self.dicts[:]
     return duplicate
 django.template.context.BaseContext.__copy__ = _basecontext_copy_patch
+
 

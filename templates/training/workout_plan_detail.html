@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
+{% load training_extras %}
 
 {% block title %}Detalle del Plan - EntrenoPro{% endblock %}
+
 
 {% block content %}
 <div class="space-y-6">
@@ -39,6 +41,16 @@
                     Volver al Deportista
                 </a>
             {% else %}
+                {% if not plan.is_completed %}
+                    <a href="{% url 'training:live_workout' plan.id %}" class="btn-accent inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-headline font-semibold text-sm transition hover:scale-[1.02] shadow-md shadow-accent/20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                        Iniciar Modo en Vivo
+                    </a>
+                {% else %}
+                    <a href="{% url 'training:live_workout' plan.id %}" class="inline-flex items-center justify-center px-4 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                        Ver Sesión en Vivo
+                    </a>
+                {% endif %}
                 <a href="{% url 'training:athlete_dashboard' %}" class="inline-flex items-center justify-center px-4 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
                     Volver a Mi Entrenamiento
                 </a>
@@ -118,6 +130,20 @@
                             </div>
                         {% endif %}
 
+                        {% if planned.exercise.description %}
+                            <div class="pt-1">
+                                <button type="button"
+                                        onclick="toggleMobileGuide('mob-guide-{{ planned.id }}')"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-50 text-primary border border-sky-200 hover:bg-sky-100 transition shadow-sm">
+                                    <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                    <span>Guía y Técnica</span>
+                                </button>
+                                <div id="mob-guide-{{ planned.id }}" class="hidden mt-2 p-4 bg-slate-50/90 rounded-xl border border-slate-200 exercise-markdown shadow-inner animate-fade-in">
+                                    {{ planned.exercise.description|render_markdown }}
+                                </div>
+                            </div>
+                        {% endif %}
+
                         {% if planned.exercise.video_url %}
                             <a href="{{ planned.exercise.video_url }}" target="_blank" class="inline-flex items-center text-xs text-primary font-semibold hover:underline gap-1 pt-1">
                                 Ver video de ejemplo
@@ -125,6 +151,7 @@
                             </a>
                         {% endif %}
                     </div>
+
                 {% empty %}
                     <div class="p-8 text-center text-slate-400 text-sm md:hidden">
                         No hay ejercicios asignados a este plan todavía.
@@ -344,6 +371,25 @@
         el.classList.remove('hidden');
         el.classList.add('flex');
         document.body.style.overflow = 'hidden';
+    }
+
+    // ===== Desplegables de Guía Técnica y Anatomía =====
+    function toggleRowGuide(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) row.classList.toggle('hidden');
+    }
+
+    function toggleMobileGuide(guideId) {
+        const guide = document.getElementById(guideId);
+        if (guide) guide.classList.toggle('hidden');
+    }
+
+    function toggleGuide(id) {
+        const el = document.getElementById(id);
+        const arrow = document.getElementById('guide-arrow-' + id.replace('guide-', ''));
+        if (!el) return;
+        el.classList.toggle('hidden');
+        if (arrow) arrow.classList.toggle('rotate-180');
     }
 
     // Cerrar el modal tras un intercambio HTMX exitoso de la confirmación

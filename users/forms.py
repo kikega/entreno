@@ -30,6 +30,13 @@ class CustomAuthenticationForm(AuthenticationForm):
         widget=forms.PasswordInput(attrs={'autocomplete': 'current-password', 'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'placeholder': ' '})
     )
 
+    def clean_username(self):
+        """Normaliza el correo a minúsculas y elimina espacios iniciales/finales."""
+        username = self.cleaned_data.get('username')
+        if username:
+            return username.strip().lower()
+        return username
+
 class AthleteProfileForm(forms.ModelForm):
     """
     Formulario para actualizar la información antropométrica, deportiva y personal (nombre/apellidos) de un atleta.

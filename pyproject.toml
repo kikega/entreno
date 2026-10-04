@@ -10,6 +10,7 @@ dependencies = [
     "djangorestframework>=3.14.0",
     "joblib>=1.4.0",
     "lightgbm>=4.7.0",
+    "markdown>=3.11",
     "numpy>=2.5.1",
     "pandas>=3.0.5",
     "psycopg>=3.3.4",
@@ -29,5 +30,7 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "core.settings"
-testpaths = ["training/tests_ml.py", "training/tests.py", "users/tests.py"]
+testpaths = ["training/tests_ml.py", "training/tests.py", "training/tests_markdown.py", "users/tests.py"]
+
+
     

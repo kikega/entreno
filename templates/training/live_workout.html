@@ -116,6 +116,10 @@
                         {{ session_form.avg_heart_rate }}
                     </div>
                     <div>
+                        <label for="id_session_rpe" class="block text-xs font-headline font-bold text-slate-500 mb-1">RPE Global de la Sesión (Esfuerzo 1 - 10)</label>
+                        {{ session_form.session_rpe }}
+                    </div>
+                    <div>
                         <label for="id_notes" class="block text-xs font-headline font-bold text-slate-500 mb-1">Tus Comentarios / Notas</label>
                         {{ session_form.notes }}
                     </div>
@@ -261,6 +265,15 @@
         el.classList.remove('hidden');
         el.classList.add('flex');
         document.body.style.overflow = 'hidden';
+    }
+
+    // ===== Desplegable de Guía Técnica y Anatomía =====
+    function toggleGuide(id) {
+        const el = document.getElementById(id);
+        const arrow = document.getElementById('guide-arrow-' + id.replace('guide-', ''));
+        if (!el) return;
+        el.classList.toggle('hidden');
+        if (arrow) arrow.classList.toggle('rotate-180');
     }
 
     document.body.addEventListener('htmx:afterSwap', function() {

@@ -1,4 +1,6 @@
+{% load training_extras %}
 <div id="catalog-browser" class="space-y-6">
+
     <!-- Buscador + contador -->
     <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="text-sm text-slate-600">
@@ -55,10 +57,24 @@
                             </div>
                         {% endif %}
                         {% if ex.description %}
-                            <p class="text-slate-500 leading-relaxed line-clamp-2">{{ ex.description }}</p>
+                            <div class="space-y-2">
+                                <button type="button"
+                                        onclick="toggleCatalogGuide('cat-guide-{{ ex.pk }}')"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-sky-50 text-primary border border-sky-200 hover:bg-sky-100 transition shadow-sm"
+                                        title="Ver guía completa con anatomía y técnica">
+                                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                    <span>Guía y Anatomía</span>
+                                    <svg class="w-3.5 h-3.5 transition-transform" id="cat-arrow-{{ ex.pk }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                                <div id="cat-guide-{{ ex.pk }}" class="hidden p-4 bg-slate-50/90 rounded-xl border border-slate-200 exercise-markdown max-h-80 overflow-y-auto shadow-inner animate-fade-in">
+                                    {{ ex.description|render_markdown }}
+                                </div>
+                            </div>
                         {% else %}
-                            <p class="text-slate-400 italic">Sin descripción.</p>
+                            <p class="text-slate-400 italic">Sin descripción técnica.</p>
                         {% endif %}
+
+
                         {% if ex.video_url %}
                             <a href="{{ ex.video_url }}" target="_blank" class="inline-flex items-center gap-1.5 text-primary font-semibold hover:underline">
                                 Ver video
@@ -137,6 +153,17 @@
             {% else %}
                 Aún no has creado ejercicios. ¡Crea tu primer ejercicio para empezar a planificar!
             {% endif %}
-        </div>
     {% endif %}
+
+    <script>
+        function toggleCatalogGuide(id) {
+            const el = document.getElementById(id);
+            const pk = id.replace('cat-guide-', '');
+            const arrow = document.getElementById('cat-arrow-' + pk);
+            if (!el) return;
+            el.classList.toggle('hidden');
+            if (arrow) arrow.classList.toggle('rotate-180');
+        }
+    </script>
+
 </div>

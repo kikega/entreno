@@ -75,9 +75,13 @@ class ExerciseForm(forms.ModelForm):
         model = Exercise
         fields = ['name', 'category', 'movement_pattern', 'sport_tags', 'description', 'video_url']
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 3}),
+            'description': forms.Textarea(attrs={
+                'rows': 8,
+                'placeholder': '### 1. Nombre y objetivo\n### 2. Anatomía muscular\n### 3. Ejecución técnica paso a paso\n### 4. Errores más comunes y cómo evitarlos\n### 5. Claves de seguridad y variantes'
+            }),
             'video_url': forms.URLInput(attrs={'placeholder': 'https://ejemplo.com/video'}),
         }
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -97,7 +101,7 @@ class WorkoutSessionForm(forms.ModelForm):
     class Meta:
 
         model = WorkoutSession
-        fields = ['duration_minutes', 'calories_burned', 'avg_heart_rate', 'notes']
+        fields = ['duration_minutes', 'calories_burned', 'avg_heart_rate', 'session_rpe', 'notes']
         widgets = {
             'duration_minutes': forms.NumberInput(attrs={
                 'class': 'mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-accent focus:ring-accent focus:outline-none transition',
@@ -113,6 +117,13 @@ class WorkoutSessionForm(forms.ModelForm):
                 'class': 'mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-accent focus:ring-accent focus:outline-none transition',
                 'placeholder': 'Ej: 135',
                 'min': '40'
+            }),
+            'session_rpe': forms.NumberInput(attrs={
+                'class': 'mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-accent focus:ring-accent focus:outline-none transition',
+                'placeholder': 'Ej: 8.0 (Escala 1 a 10)',
+                'min': '1',
+                'max': '10',
+                'step': '0.5'
             }),
             'notes': forms.Textarea(attrs={
                 'class': 'mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-accent focus:ring-accent focus:outline-none transition',

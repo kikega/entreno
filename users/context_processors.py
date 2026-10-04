@@ -35,11 +35,13 @@ def capabilities(request):
     match = getattr(request, 'resolver_match', None)
     current_url_name = getattr(match, 'url_name', None) or ''
 
-    def _is_active(url_name):
-        return current_url_name in SECTION_MAP.get(url_name, {url_name})
-
     is_trainer = user.is_trainer
     is_athlete = user.is_athlete
+
+    def _is_active(url_name):
+        if url_name == 'training:athlete_dashboard' and current_url_name == 'plan_detail' and is_athlete and not is_trainer:
+            return True
+        return current_url_name in SECTION_MAP.get(url_name, {url_name})
 
     nav_items = [
         {

@@ -49,9 +49,15 @@ def is_rm_based_exercise(planned_exercise) -> bool:
 
 
 def estimate_1rm(weight_kg, reps) -> float:
-    """Estima el 1RM de una serie vía Brzycki."""
-    weight = float(weight_kg) if weight_kg is not None else 0.0
-    reps_i = int(reps or 0)
+    """Estima el 1RM de una serie vía Brzycki con conversión segura de tipos."""
+    try:
+        weight = float(weight_kg) if weight_kg is not None else 0.0
+    except (ValueError, TypeError):
+        weight = 0.0
+    try:
+        reps_i = int(reps or 0)
+    except (ValueError, TypeError):
+        reps_i = 0
     if weight <= 0 or reps_i <= 0:
         return 0.0
     return calculate_1rm_brzycki(weight, reps_i)
@@ -196,7 +202,12 @@ def get_athlete_sport_metrics(athlete_profile) -> Dict[str, Any]:
     completed_sessions = WorkoutSession.objects.filter(athlete=athlete_profile).count()
 
     # Cálculo de Volumen Total acumulado (series * reps * weight)
-    sets = LoggedSet.objects.filter(logged_exercise__workout_session__athlete=athlete_profile)
+    # select_related evita el problema de N+1 queries al iterar por cientos de series
+    sets = (
+        LoggedSet.objects
+        .filter(logged_exercise__workout_session__athlete=athlete_profile)
+        .select_related('logged_exercise__planned_exercise__exercise')
+    )
     total_volume_kg = 0.0
     max_1rm_records = {}
 

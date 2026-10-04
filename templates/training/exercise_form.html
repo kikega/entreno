@@ -65,8 +65,11 @@
                 </div>
 
                 <div>
-                    <label for="id_description" class="block text-xs font-headline font-bold text-slate-500 mb-1">Descripción / Indicaciones</label>
+                    <label for="id_description" class="block text-xs font-headline font-bold text-slate-500 mb-1">
+                        Descripción y Guía Técnica (Markdown)
+                    </label>
                     {{ form.description }}
+                    <p class="mt-1 text-xs text-slate-400">Pega aquí la guía generada desde el chat (5 puntos: <strong>### 1. Nombre y objetivo</strong>, <strong>### 2. Anatomía muscular</strong>, <strong>### 3. Ejecución técnica</strong>, <strong>### 4. Errores</strong>, <strong>### 5. Seguridad</strong>).</p>
                     {% if form.description.errors %}<p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>{% endif %}
                 </div>
 

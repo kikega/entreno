@@ -30,4 +30,6 @@ urlpatterns = [
     path('exercises/new/', views.ExerciseCreateView.as_view(), name='exercise_create'),
     path('exercises/<int:pk>/edit/', views.ExerciseUpdateView.as_view(), name='exercise_edit'),
     path('exercises/<int:pk>/delete/', views.ExerciseDeleteView.as_view(), name='exercise_delete'),
+    path('exercises/<int:pk>/detail-modal/', views.exercise_detail_modal_view, name='exercise_detail_modal'),
 ]
+

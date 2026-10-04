@@ -207,3 +207,59 @@ aside button:focus-visible {
 .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* ===== Formato Markdown Enriquecido para Ejercicios (Gemini AI) ===== */
+.exercise-markdown {
+    color: #334155; /* slate-700 */
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.65;
+}
+
+.exercise-markdown h3 {
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 700;
+    color: #0f172a; /* slate-900 */
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    padding: 0.35rem 0.65rem;
+    background: #f1f5f9; /* slate-100 */
+    border-left: 3px solid var(--color-primary);
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.exercise-markdown h3:first-child {
+    margin-top: 0;
+}
+
+.exercise-markdown p {
+    margin-bottom: 0.5rem;
+}
+
+.exercise-markdown ul {
+    list-style-type: disc;
+    padding-left: 1.25rem;
+    margin-bottom: 0.75rem;
+    space-y: 0.25rem;
+}
+
+.exercise-markdown ol {
+    list-style-type: decimal;
+    padding-left: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.exercise-markdown li {
+    margin-bottom: 0.35rem;
+}
+
+.exercise-markdown strong {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.exercise-markdown em {
+    color: #475569;
+}

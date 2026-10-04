@@ -183,10 +183,21 @@
             };
         });
 
+        let maxPoints = 0;
+        names.forEach(function(name) {
+            if (data[name] && data[name].length > maxPoints) {
+                maxPoints = data[name].length;
+            }
+        });
+        const xLabels = [];
+        for (let i = 1; i <= maxPoints; i++) {
+            xLabels.push('Sesión ' + i);
+        }
+
         const ctx2 = rmCanvas.getContext('2d');
         new Chart(ctx2, {
             type: 'line',
-            data: { labels: names.length ? ['Sesión 1'] : [], datasets: datasets },
+            data: { labels: xLabels, datasets: datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,

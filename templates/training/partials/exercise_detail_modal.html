@@ -1,0 +1,37 @@
+{% load training_extras %}
+<div class="space-y-4">
+    <!-- Encabezado del modal -->
+    <div class="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+        <div>
+            <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-sky-50 text-primary border border-sky-100">{{ exercise.get_category_display }}</span>
+                <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">{{ exercise.get_movement_pattern_display }}</span>
+                {% for tag in exercise.sport_tags %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            <h3 class="text-xl font-headline font-bold text-slate-800">{{ exercise.name }}</h3>
+        </div>
+        {% if exercise.video_url %}
+            <a href="{{ exercise.video_url }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-primary rounded-xl text-xs font-semibold border border-sky-200 transition shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                Ver Video
+            </a>
+        {% endif %}
+    </div>
+
+    <!-- Contenido Markdown generado por Gemini -->
+    <div class="max-h-[68vh] overflow-y-auto pr-1">
+        {% if exercise.description %}
+            <div class="exercise-markdown p-4 bg-slate-50/70 rounded-xl border border-slate-200/80">
+                {{ exercise.description|render_markdown }}
+            </div>
+        {% else %}
+            <div class="p-8 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <svg class="mx-auto h-12 w-12 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                <p class="font-semibold text-slate-600">Este ejercicio aún no tiene guía técnica registrada.</p>
+                <p class="text-xs text-slate-400 mt-1">El entrenador puede generarla con Gemini AI desde la edición del ejercicio.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>

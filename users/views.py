@@ -9,10 +9,9 @@ from django.views.decorators.http import require_POST
 from django.http import HttpResponse
 from django.utils import timezone
 
-from training.models import TrainerProfile
 from training.views import build_athlete_context, build_trainer_context
 
-from .models import AthleteProfile, AthleteProgressLog
+from .models import CustomUser, TrainerProfile, AthleteProfile, AthleteProgressLog
 from .forms import CustomAuthenticationForm, AthleteProfileForm, AthleteProgressLogForm
 
 

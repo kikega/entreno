@@ -17,6 +17,8 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 from users.views import HomeView
 
@@ -26,3 +28,7 @@ urlpatterns = [
     path("training/", include('training.urls')),
     path("", HomeView.as_view(), name='home'),
 ]
+
+# Servir archivos estáticos y media durante desarrollo
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

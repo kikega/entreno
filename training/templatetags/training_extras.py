@@ -33,3 +33,20 @@ def extract_number(value, default=''):
     if match:
         return match.group(0)
     return default
+
+
+@register.filter
+def render_markdown(value):
+    """
+    Convierte contenido en formato Markdown a HTML seguro para la visualización del atleta.
+    """
+    if not value:
+        return ""
+    import markdown
+    from django.utils.safestring import mark_safe
+    html = markdown.markdown(
+        str(value),
+        extensions=['extra', 'nl2br', 'sane_lists']
+    )
+    return mark_safe(html)
+

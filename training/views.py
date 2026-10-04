@@ -74,7 +74,7 @@ def build_trainer_context(user):
     return {
         'athletes': athletes,
         'athletes_metrics': athletes_metrics,
-        'total_athletes': athletes.count(),
+        'total_athletes': len(athletes),
         'total_plans': trainer.created_plans.count(),
         'total_exercises': trainer.created_exercises.count(),
     }
@@ -443,14 +443,20 @@ def generate_smart_plan(request, athlete_id):
 
     athlete = get_object_or_404(AthleteProfile, pk=athlete_id, assigned_trainer=request.user)
 
-    plan = SmartPlanGenerator.generate_plan_for_athlete(
-        trainer_profile=request.user.trainer_profile,
-        athlete_profile=athlete
-    )
-
-    messages.success(request, f"✨ ¡Borrador de plan '{plan.name}' generado con el asistente ML para {athlete.get_sport_display()}!"
-                              " Revísalo y ajústalo antes de confirmarlo.")
-    return redirect('training:plan_detail', pk=plan.pk)
+    try:
+        plan = SmartPlanGenerator.generate_plan_for_athlete(
+            trainer_profile=request.user.trainer_profile,
+            athlete_profile=athlete
+        )
+        messages.success(
+            request,
+            f"✨ ¡Borrador de plan '{plan.name}' generado con el asistente ML para {athlete.get_sport_display()}! "
+            "Revísalo y ajústalo antes de confirmarlo."
+        )
+        return redirect('training:plan_detail', pk=plan.pk)
+    except ValueError as e:
+        messages.error(request, f"No se pudo generar el plan asistido: {e}")
+        return redirect('training:athlete_detail', pk=athlete_id)
 
 
 @login_required
@@ -466,7 +472,6 @@ def complete_workout(request, plan_id):
         return redirect('home')
 
     form = WorkoutSessionForm(request.POST)
-    session_rpe = request.POST.get('session_rpe')
 
     if form.is_valid():
         session, _ = WorkoutSession.objects.get_or_create(
@@ -476,9 +481,20 @@ def complete_workout(request, plan_id):
         session.duration_minutes = form.cleaned_data.get('duration_minutes')
         session.calories_burned = form.cleaned_data.get('calories_burned')
         session.avg_heart_rate = form.cleaned_data.get('avg_heart_rate')
-        if session_rpe:
-            session.session_rpe = float(session_rpe)
         session.notes = form.cleaned_data.get('notes')
+
+        # Asignar RPE global de la sesión (desde formulario o POST con conversión segura)
+        session_rpe = form.cleaned_data.get('session_rpe')
+        if session_rpe is None and request.POST.get('session_rpe'):
+            try:
+                raw_rpe = float(str(request.POST.get('session_rpe')).replace(',', '.'))
+                if 1.0 <= raw_rpe <= 10.0:
+                    session_rpe = raw_rpe
+            except (ValueError, TypeError):
+                session_rpe = None
+
+        if session_rpe is not None:
+            session.session_rpe = session_rpe
 
         # Si venimos del modo en vivo y no se indicó duración, la calculamos desde el inicio
         if not session.duration_minutes and session.started_at:
@@ -501,21 +517,24 @@ def complete_workout(request, plan_id):
     return HttpResponseRedirect(f"{reverse('home')}?tab=athlete")
 
 
+@login_required
+@require_POST
 def add_planned_exercise(request, plan_id):
     """
     Vista diseñada para manejar peticiones POST de HTMX para añadir ejercicios a un plan.
+    Restringida al entrenador propietario del plan.
     """
-    if request.method == 'POST':
-        plan = get_object_or_404(WorkoutPlan, pk=plan_id)
-        form = PlannedExerciseForm(request.POST)
-        if form.is_valid():
-            planned_exercise = form.save(commit=False)
-            planned_exercise.workout_plan = plan
-            planned_exercise.save()
-            return render(request, 'training/partials/exercise_row.html', {'exercise': planned_exercise})
-        else:
-            return HttpResponse("Error en formulario", status=400)
-    return HttpResponse(status=405)
+    plan = get_object_or_404(WorkoutPlan, pk=plan_id)
+    if not request.user.is_trainer or plan.trainer != request.user.trainer_profile:
+        return HttpResponse("No autorizado", status=403)
+
+    form = PlannedExerciseForm(request.POST)
+    if form.is_valid():
+        planned_exercise = form.save(commit=False)
+        planned_exercise.workout_plan = plan
+        planned_exercise.save()
+        return render(request, 'training/partials/exercise_row.html', {'exercise': planned_exercise})
+    return HttpResponse("Error en formulario", status=400)
 
 
 class AthleteDetailView(TrainerRequiredMixin, DetailView):
@@ -663,5 +682,16 @@ class ExerciseDeleteView(TrainerRequiredMixin, DeleteView):
 
     def get_success_url(self):
         return reverse('training:exercise_list')
+
+
+@login_required
+def exercise_detail_modal_view(request, pk):
+    """
+    Devuelve un fragmento HTML con la ficha técnica completa del ejercicio renderizada en Markdown
+    para visualización rápida en modal o panel desplegable.
+    """
+    exercise = get_object_or_404(Exercise, pk=pk)
+    return render(request, 'training/partials/exercise_detail_modal.html', {'exercise': exercise})
+
 
 
