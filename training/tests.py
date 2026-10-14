@@ -208,3 +208,190 @@ class TrainingWorkflowAndSecurityTests(TestCase):
         res = self.client.post(reverse('training:exercise_delete', kwargs={'pk': unused.pk}))
         self.assertEqual(res.status_code, 302)
         self.assertFalse(Exercise.objects.filter(pk=unused.pk).exists())
+
+    def test_exercise_catalog_visible_to_all_trainers_and_dual_users(self):
+        """Todos los entrenadores y usuarios duales pueden ver todos los ejercicios independientemente del creador."""
+        # 1. Ejercicio del entrenador principal (self.exercise ya existe)
+        # 2. Ejercicio creado por otro entrenador
+        ex_other = Exercise.objects.create(
+            name='Sentadilla Frontal',
+            category='fuerza',
+            movement_pattern='dominante_rodilla',
+            created_by=self.other_trainer,
+        )
+        # 3. Ejercicio global del sistema (sin creador)
+        ex_system = Exercise.objects.create(
+            name='Remo con Barra Global',
+            category='fuerza',
+            movement_pattern='traccion_horizontal',
+            created_by=None,
+        )
+
+        # 4. Usuario dual (deportista y entrenador)
+        dual_user = User.objects.create_user(
+            email='dual.user@test.com', password='Password123!',
+            first_name='Dual', last_name='User',
+        )
+        TrainerProfile.objects.create(user=dual_user)
+        AthleteProfile.objects.create(user=dual_user, sport='mma')
+
+        # Comprobar acceso del entrenador principal
+        self.client.force_login(self.trainer_user)
+        res_trainer = self.client.get(reverse('training:exercise_list'))
+        self.assertEqual(res_trainer.status_code, 200)
+        self.assertEqual(res_trainer.context['total_exercises'], Exercise.objects.count())
+
+        # Búsqueda específica: el entrenador principal ve el ejercicio creado por otro entrenador
+        res_search_other = self.client.get(reverse('training:exercise_list') + f'?q={ex_other.name}')
+        self.assertContains(res_search_other, ex_other.name)
+        # Y también el ejercicio global del sistema
+        res_search_sys = self.client.get(reverse('training:exercise_list') + f'?q={ex_system.name}')
+        self.assertContains(res_search_sys, ex_system.name)
+
+        # Comprobar acceso del otro entrenador: ve el ejercicio del entrenador principal y el del sistema
+        self.client.force_login(self.other_trainer_user)
+        res_other = self.client.get(reverse('training:exercise_list'))
+        self.assertEqual(res_other.status_code, 200)
+        self.assertEqual(res_other.context['total_exercises'], Exercise.objects.count())
+
+        res_search_trainer1 = self.client.get(reverse('training:exercise_list') + f'?q={self.exercise.name}')
+        self.assertContains(res_search_trainer1, self.exercise.name)
+        self.assertContains(res_search_trainer1, 'Disponible en tus planes')
+
+        # Comprobar acceso del usuario dual: ve todos los ejercicios
+        self.client.force_login(dual_user)
+        res_dual = self.client.get(reverse('training:exercise_list'))
+        self.assertEqual(res_dual.status_code, 200)
+        self.assertEqual(res_dual.context['total_exercises'], Exercise.objects.count())
+
+        res_dual_search = self.client.get(reverse('training:exercise_list') + f'?q={self.exercise.name}')
+        self.assertContains(res_dual_search, self.exercise.name)
+
+        # Un usuario únicamente deportista no puede acceder al catálogo
+        self.client.force_login(self.athlete_user)
+        res_athlete = self.client.get(reverse('training:exercise_list'))
+        self.assertEqual(res_athlete.status_code, 302)
+
+    def test_exercise_can_only_be_modified_or_deleted_by_creator(self):
+        """Un ejercicio solo puede ser modificado o eliminado por el entrenador que lo creó."""
+        ex_trainer1 = self.exercise  # Creado por self.trainer
+        ex_trainer2 = Exercise.objects.create(
+            name='Peso Muerto Rumano',
+            category='fuerza',
+            movement_pattern='dominante_cadera',
+            created_by=self.other_trainer,
+        )
+        ex_system = Exercise.objects.create(
+            name='Fondos en Paralelas',
+            category='fuerza',
+            movement_pattern='empuje_vertical',
+            created_by=None,
+        )
+
+        # Entrenador 2 intenta editar el ejercicio de Entrenador 1 -> 404
+        self.client.force_login(self.other_trainer_user)
+        res_edit = self.client.get(reverse('training:exercise_edit', kwargs={'pk': ex_trainer1.pk}))
+        self.assertEqual(res_edit.status_code, 404)
+
+        # Entrenador 2 intenta eliminar el ejercicio de Entrenador 1 -> 404
+        res_del = self.client.post(reverse('training:exercise_delete', kwargs={'pk': ex_trainer1.pk}))
+        self.assertEqual(res_del.status_code, 404)
+
+        # Entrenador 1 intenta editar el ejercicio de Entrenador 2 -> 404
+        self.client.force_login(self.trainer_user)
+        res_edit2 = self.client.get(reverse('training:exercise_edit', kwargs={'pk': ex_trainer2.pk}))
+        self.assertEqual(res_edit2.status_code, 404)
+
+        # Ningún entrenador puede modificar el ejercicio global del sistema -> 404
+        res_edit_sys = self.client.get(reverse('training:exercise_edit', kwargs={'pk': ex_system.pk}))
+        self.assertEqual(res_edit_sys.status_code, 404)
+
+        # Entrenador 2 sí puede editar su propio ejercicio
+        self.client.force_login(self.other_trainer_user)
+        res_edit_own = self.client.get(reverse('training:exercise_edit', kwargs={'pk': ex_trainer2.pk}))
+        self.assertEqual(res_edit_own.status_code, 200)
+
+    def test_any_trainer_and_dual_user_can_use_any_exercise_in_plan(self):
+        """Cualquier entrenador o usuario dual puede incluir cualquier ejercicio (propio, ajeno o del sistema) en sus planes."""
+        ex_trainer1 = self.exercise  # Creado por trainer 1
+        ex_system = Exercise.objects.create(
+            name='Kettlebell Swing',
+            category='potencia',
+            movement_pattern='dominante_cadera',
+            created_by=None,
+        )
+
+        # Plan del entrenador 2 para other_athlete
+        plan_trainer2 = WorkoutPlan.objects.create(
+            name='Plan Entrenador 2',
+            trainer=self.other_trainer,
+            athlete=self.other_athlete,
+            sport='crossfit',
+            target_date=date.today() + timedelta(days=2),
+        )
+
+        self.client.force_login(self.other_trainer_user)
+
+        # Añadir ejercicio creado por entrenador 1 al plan de entrenador 2
+        url = reverse('training:add_exercise', kwargs={'plan_id': plan_trainer2.pk})
+        res1 = self.client.post(url, {
+            'exercise': ex_trainer1.pk,
+            'order': 1,
+            'sets': '4',
+            'reps': '10',
+            'load': '70 kg',
+        })
+        self.assertEqual(res1.status_code, 200)
+        self.assertTrue(plan_trainer2.planned_exercises.filter(exercise=ex_trainer1).exists())
+
+        # Añadir ejercicio del sistema al plan de entrenador 2
+        res2 = self.client.post(url, {
+            'exercise': ex_system.pk,
+            'order': 2,
+            'sets': '3',
+            'reps': '15',
+            'load': '24 kg',
+        })
+        self.assertEqual(res2.status_code, 200)
+        self.assertTrue(plan_trainer2.planned_exercises.filter(exercise=ex_system).exists())
+
+    def test_dual_user_planning_for_self_has_full_exercise_access(self):
+        """Un usuario dual puede planificar para sí mismo y tiene acceso completo para añadir ejercicios al plan."""
+        dual_user = User.objects.create_user(
+            email='mario.dual@test.com', password='Password123!',
+            first_name='Mario', last_name='Dual',
+        )
+        dual_trainer = TrainerProfile.objects.create(user=dual_user)
+        dual_athlete = AthleteProfile.objects.create(user=dual_user, sport='bjj')
+
+        # Plan de entrenamiento del usuario dual para sí mismo
+        dual_plan = WorkoutPlan.objects.create(
+            name='Mi Autoplanificación BJJ',
+            trainer=dual_trainer,
+            athlete=dual_athlete,
+            sport='bjj',
+            target_date=date.today() + timedelta(days=1),
+        )
+
+        self.client.force_login(dual_user)
+
+        # Acceso a la vista de detalle del plan: can_manage_plan es True y el botón/modal de añadir ejercicio está activo
+        detail_res = self.client.get(reverse('training:plan_detail', kwargs={'pk': dual_plan.pk}))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertTrue(detail_res.context['can_manage_plan'])
+        self.assertTrue(detail_res.context['is_plan_owner'])
+        self.assertContains(detail_res, 'Añadir Ejercicio')
+        self.assertContains(detail_res, 'addExerciseModal')
+
+        # Añadir al plan un ejercicio creado por otro entrenador
+        add_url = reverse('training:add_exercise', kwargs={'plan_id': dual_plan.pk})
+        add_res = self.client.post(add_url, {
+            'exercise': self.exercise.pk,  # Creado por self.trainer
+            'order': 1,
+            'sets': '3',
+            'reps': '8',
+            'load': '50 kg',
+        })
+        self.assertEqual(add_res.status_code, 200)
+        self.assertTrue(dual_plan.planned_exercises.filter(exercise=self.exercise).exists())
+

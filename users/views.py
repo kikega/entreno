@@ -1,9 +1,9 @@
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render, get_object_or_404
-from django.views.generic import UpdateView, TemplateView
+from django.views.generic import UpdateView, TemplateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.http import HttpResponse
@@ -12,7 +12,7 @@ from django.utils import timezone
 from training.views import build_athlete_context, build_trainer_context
 
 from .models import CustomUser, TrainerProfile, AthleteProfile, AthleteProgressLog
-from .forms import CustomAuthenticationForm, AthleteProfileForm, AthleteProgressLogForm
+from .forms import CustomAuthenticationForm, AthleteProfileForm, AthleteProgressLogForm, TrainerUserForm
 
 
 class CustomLoginView(LoginView):
@@ -94,6 +94,25 @@ class BecomeTrainerView(LoginRequiredMixin, TemplateView):
             return redirect(f"{reverse_lazy('home')}?tab=trainer")
         return super().dispatch(request, *args, **kwargs)
 
+    def post(self, request, *args, **kwargs):
+        return create_trainer_profile(request)
+
+
+class BecomeAthleteView(LoginRequiredMixin, TemplateView):
+    """
+    Confirmación para que un entrenador active su perfil de deportista
+    y gestione también sus entrenamientos personales.
+    """
+    template_name = 'users/become_athlete.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and request.user.is_athlete:
+            return redirect(f"{reverse_lazy('home')}?tab=athlete")
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return create_athlete_profile(request)
+
 
 @login_required
 @require_POST
@@ -101,7 +120,7 @@ def create_athlete_profile(request):
     """Activa el perfil de deportista del usuario actual."""
     if not request.user.is_athlete:
         AthleteProfile.objects.create(user=request.user)
-        messages.success(request, "Perfil de deportista creado. Completa tus datos físicos para empezar.")
+        messages.success(request, "Perfil de deportista activado. Completa tus datos físicos para empezar.")
     return redirect('users:profile_edit')
 
 
@@ -115,36 +134,106 @@ def create_trainer_profile(request):
     return redirect(f"{reverse_lazy('home')}?tab=trainer")
 
 
-class AthleteProfileUpdateView(LoginRequiredMixin, UpdateView):
+@login_required
+@require_POST
+def create_dual_profile(request):
+    """Activa simultáneamente el perfil de deportista y de entrenador (perfil dual completo)."""
+    if not request.user.is_trainer:
+        TrainerProfile.objects.create(user=request.user)
+    if not request.user.is_athlete:
+        AthleteProfile.objects.create(user=request.user)
+    messages.success(
+        request,
+        "¡Perfil Dual activado! Ahora tienes acceso completo como Entrenador y como Deportista."
+    )
+    return redirect('home')
+
+
+@login_required
+@require_POST
+def remove_trainer_profile(request):
+    """Permite a un usuario con perfil dual desactivar su faceta de entrenador."""
+    if not request.user.is_trainer:
+        messages.info(request, "No dispones de perfil de entrenador activo.")
+        return redirect('users:profile_edit')
+    if not request.user.is_athlete:
+        messages.error(request, "No puedes desactivar el rol de entrenador sin tener activo el de deportista.")
+        return redirect('users:profile_edit')
+
+    request.user.trainer_profile.delete()
+    messages.success(request, "Perfil de entrenador desactivado. Tu cuenta ahora opera exclusivamente en modo Deportista.")
+    return redirect(f"{reverse_lazy('home')}?tab=athlete")
+
+
+@login_required
+@require_POST
+def remove_athlete_profile(request):
+    """Permite a un usuario con perfil dual desactivar su faceta de deportista."""
+    if not request.user.is_athlete:
+        messages.info(request, "No dispones de perfil de deportista activo.")
+        return redirect('users:profile_edit')
+    if not request.user.is_trainer:
+        messages.error(request, "No puedes desactivar el rol de deportista sin tener activo el de entrenador.")
+        return redirect('users:profile_edit')
+
+    request.user.athlete_profile.delete()
+    messages.success(request, "Perfil de deportista desactivado. Tu cuenta ahora opera exclusivamente en modo Entrenador.")
+    return redirect(f"{reverse_lazy('home')}?tab=trainer")
+
+
+class ProfileEditView(LoginRequiredMixin, View):
     """
-    Vista para que los deportistas editen su perfil personal, datos antropométricos y objetivos de entrenamiento.
+    Vista unificada de gestión de perfil y roles. Permite actualizar datos personales,
+    composición física (si dispone de perfil deportista) y activar/desactivar roles.
     """
-    model = AthleteProfile
-    form_class = AthleteProfileForm
     template_name = 'users/athlete_profile_form.html'
-    success_url = reverse_lazy('home')
 
-    def get_object(self, queryset=None):
-        """Retorna el perfil de atleta perteneciente al usuario actualmente autenticado."""
-        return self.request.user.athlete_profile
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_athlete:
+            form = AthleteProfileForm(instance=user.athlete_profile)
+        else:
+            form = TrainerUserForm(instance=user)
+        return render(request, self.template_name, {
+            'form': form,
+            'is_athlete_profile': user.is_athlete,
+        })
 
-    def form_valid(self, form):
-        """Guarda los cambios del perfil y genera o actualiza un registro de progreso para el día de hoy."""
-        response = super().form_valid(form)
-        profile = self.object
-        today = timezone.now().date()
-        if profile.weight is not None:
-            AthleteProgressLog.objects.update_or_create(
-                athlete=profile,
-                date=today,
-                defaults={
-                    'weight': profile.weight,
-                    'fat_percentage': profile.fat_percentage,
-                    'lean_mass_percentage': profile.lean_mass_percentage
-                }
-            )
-        messages.success(self.request, "Perfil y datos físicos actualizados con éxito.")
-        return response
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_athlete:
+            form = AthleteProfileForm(request.POST, instance=user.athlete_profile)
+            if form.is_valid():
+                form.save()
+                profile = user.athlete_profile
+                today = timezone.now().date()
+                if profile.weight is not None:
+                    AthleteProgressLog.objects.update_or_create(
+                        athlete=profile,
+                        date=today,
+                        defaults={
+                            'weight': profile.weight,
+                            'fat_percentage': profile.fat_percentage,
+                            'lean_mass_percentage': profile.lean_mass_percentage
+                        }
+                    )
+                messages.success(request, "Perfil y datos físicos actualizados con éxito.")
+                return redirect('users:profile_edit')
+        else:
+            form = TrainerUserForm(request.POST, instance=user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Datos personales actualizados con éxito.")
+                return redirect('users:profile_edit')
+
+        return render(request, self.template_name, {
+            'form': form,
+            'is_athlete_profile': user.is_athlete,
+        })
+
+
+# Alias de retrocompatibilidad
+AthleteProfileUpdateView = ProfileEditView
 
 
 @login_required

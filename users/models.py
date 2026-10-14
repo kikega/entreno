@@ -45,6 +45,37 @@ class CustomUser(AbstractUser):
         """Nombre visible del usuario con fallback al correo electrónico."""
         return self.first_name or self.email.split('@')[0]
 
+    @property
+    def role_label(self):
+        """Devuelve una etiqueta legible del rol o combinación de roles."""
+        if self.is_dual:
+            return "Entrenador y Deportista"
+        if self.is_trainer:
+            return "Entrenador"
+        if self.is_athlete:
+            return "Deportista"
+        return "Sin perfil"
+
+    @property
+    def role_description(self):
+        """Devuelve una explicación detallada del rol o combinación de roles activos."""
+        if self.is_dual:
+            return (
+                "Perfil Dual: Cuentas con ambas facetas activas. Puedes diseñar planes para tus deportistas, "
+                "usar todo el catálogo para autoplanificarte entrenamientos y ejecutarlos en vivo con cronómetro y registro de marcas."
+            )
+        if self.is_trainer:
+            return (
+                "Perfil Entrenador: Diseñas y asignas planes a tus deportistas, gestionas el catálogo de ejercicios "
+                "y analizas las métricas de carga y riesgo (ACWR)."
+            )
+        if self.is_athlete:
+            return (
+                "Perfil Deportista: Sigues tu programación de entrenamiento personal, registras series y pesos en vivo "
+                "y monitoreas tu progreso morfológico y de fuerza."
+            )
+        return "Sin perfil activo. Configura tu cuenta para empezar."
+
 
 class TrainerProfile(models.Model):
     """

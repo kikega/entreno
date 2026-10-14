@@ -76,7 +76,7 @@ def build_trainer_context(user):
         'athletes_metrics': athletes_metrics,
         'total_athletes': len(athletes),
         'total_plans': trainer.created_plans.count(),
-        'total_exercises': trainer.created_exercises.count(),
+        'total_exercises': Exercise.objects.count(),
     }
 
 
@@ -211,7 +211,9 @@ class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
         plan = self.object
         user = self.request.user
         is_owner = user.is_athlete and plan.athlete == user.athlete_profile
+        can_manage = user.is_trainer and plan.trainer == user.trainer_profile
         context['is_plan_owner'] = is_owner
+        context['can_manage_plan'] = can_manage
         context['exercise_form'] = PlannedExerciseForm()
 
         # Para el deportista destinatario: sesión en vivo con per-exercicio (inicio/fin y peso)
@@ -441,7 +443,11 @@ def generate_smart_plan(request, athlete_id):
         messages.error(request, "Solo los entrenadores pueden generar planes asistidos.")
         return redirect('home')
 
-    athlete = get_object_or_404(AthleteProfile, pk=athlete_id, assigned_trainer=request.user)
+    athlete = get_object_or_404(
+        AthleteProfile,
+        Q(assigned_trainer=request.user) | Q(user=request.user),
+        pk=athlete_id
+    )
 
     try:
         plan = SmartPlanGenerator.generate_plan_for_athlete(
@@ -546,8 +552,10 @@ class AthleteDetailView(TrainerRequiredMixin, DetailView):
     context_object_name = 'athlete'
 
     def get_queryset(self):
-        """Un entrenador solo puede ver la ficha de sus deportistas asignados."""
-        return AthleteProfile.objects.filter(assigned_trainer=self.request.user)
+        """Un entrenador solo puede ver la ficha de sus deportistas asignados o la suya propia si es deportista."""
+        return AthleteProfile.objects.filter(
+            Q(assigned_trainer=self.request.user) | Q(user=self.request.user)
+        )
 
     def get_context_data(self, **kwargs):
         """Carga los planes asignados ordenados por fecha y las métricas avanzadas del deportista."""
@@ -559,15 +567,17 @@ class AthleteDetailView(TrainerRequiredMixin, DetailView):
 
 class TrainerAthleteProfileUpdateView(TrainerRequiredMixin, UpdateView):
     """
-    Permite al entrenador editar el perfil deportivo y datos físicos de cualquiera de sus deportistas asignados.
+    Permite al entrenador editar el perfil deportivo y datos físicos de cualquiera de sus deportistas asignados o de sí mismo.
     """
     model = AthleteProfile
     form_class = AthleteProfileForm
     template_name = 'users/athlete_profile_form.html'
 
     def get_queryset(self):
-        """Garantiza que el entrenador solo pueda acceder a los atletas que tiene explícitamente asignados."""
-        return AthleteProfile.objects.filter(assigned_trainer=self.request.user)
+        """Garantiza que el entrenador solo pueda acceder a los atletas que tiene asignados o a sí mismo."""
+        return AthleteProfile.objects.filter(
+            Q(assigned_trainer=self.request.user) | Q(user=self.request.user)
+        )
 
     def get_success_url(self):
         """Informa del éxito de la operación y redirige al detalle del deportista."""
@@ -577,8 +587,9 @@ class TrainerAthleteProfileUpdateView(TrainerRequiredMixin, UpdateView):
 
 class ExerciseListView(TrainerRequiredMixin, ListView):
     """
-    Catálogo de ejercicios del entrenador: lista por categorías (pestañas),
-    buscador por nombre y paginación numerada con edición (añadir/modificar/eliminar).
+    Catálogo de ejercicios general: accesible para todos los entrenadores independientemente
+    de quién haya creado el ejercicio en la base de datos.
+    Lista por categorías (pestañas), buscador por nombre y paginación numerada.
     """
     model = Exercise
     template_name = 'training/exercise_list.html'
@@ -586,9 +597,7 @@ class ExerciseListView(TrainerRequiredMixin, ListView):
     paginate_by = 12
 
     def get_queryset(self):
-        self.base_qs = Exercise.objects.filter(
-            created_by=self.request.user.trainer_profile
-        )
+        self.base_qs = Exercise.objects.all()
         qs = self.base_qs.order_by('name')
         q = self.request.GET.get('q', '').strip()
         if q:

@@ -10,34 +10,43 @@
         <div class="relative z-10 flex flex-col lg:flex-row justify-between lg:items-center gap-6">
             <div class="min-w-0">
                 {% if active_tab == 'trainer' %}
-                    <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-primary/15 px-3 py-1 rounded-full border border-primary/25">Gestión de entrenadores</span>
+                    <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-primary/15 px-3 py-1 rounded-full border border-primary/25">Espacio Entrenador: Gestión y Alumnos</span>
                 {% else %}
-                    <span class="text-xs font-headline font-bold tracking-widest text-accent uppercase bg-accent/10 px-3 py-1 rounded-full border border-accent/25">Mi entrenamiento</span>
+                    <span class="text-xs font-headline font-bold tracking-widest text-accent uppercase bg-accent/10 px-3 py-1 rounded-full border border-accent/25">Espacio Deportista: Mi Entrenamiento</span>
                 {% endif %}
                 <h1 class="text-2xl sm:text-3xl md:text-4xl font-headline font-extrabold text-white mt-3">¡Hola, {{ request.user.display_name }}!</h1>
                 {% if active_tab == 'trainer' %}
-                    <p class="text-sm sm:text-base text-slate-300 mt-2 max-w-xl">Todo sobre tus deportistas: carga de trabajo, planes y evolución, en un vistazo.</p>
+                    <p class="text-sm sm:text-base text-slate-300 mt-2 max-w-xl">Supervisión de deportistas asignados, asignación de planes y biblioteca de ejercicios.</p>
                 {% else %}
-                    <p class="text-sm sm:text-base text-slate-300 mt-2 max-w-xl">Mantén el ritmo: tu próxima sesión, tu evolución y tus logros, en un vistazo.</p>
+                    <p class="text-sm sm:text-base text-slate-300 mt-2 max-w-xl">Tus sesiones personales en curso, registro en vivo de series y evolución física.</p>
                 {% endif %}
             </div>
 
             <!-- Conmutador de contexto (solo usuarios con doble capacidad) -->
             {% if caps.is_dual %}
-                <nav aria-label="Cambiar de contexto" class="inline-flex self-start bg-white/10 border border-white/15 rounded-xl p-1 backdrop-blur shrink-0">
-                    <a href="?tab=athlete" aria-current="{% if active_tab == 'athlete' %}page{% else %}false{% endif %}"
-                       class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition
-                              {% if active_tab == 'athlete' %}bg-white text-slate-900 shadow-md{% else %}text-slate-300 hover:text-white hover:bg-white/10{% endif %}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                        Entreno
-                    </a>
-                    <a href="?tab=trainer" aria-current="{% if active_tab == 'trainer' %}page{% else %}false{% endif %}"
-                       class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition
-                              {% if active_tab == 'trainer' %}bg-white text-slate-900 shadow-md{% else %}text-slate-300 hover:text-white hover:bg-white/10{% endif %}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                        Deportistas
-                    </a>
-                </nav>
+                <div class="flex flex-col items-start lg:items-end gap-2 shrink-0">
+                    <nav aria-label="Cambiar de contexto" class="inline-flex bg-white/10 border border-white/15 rounded-xl p-1 backdrop-blur shrink-0 shadow-sm">
+                        <a href="?tab=athlete" aria-current="{% if active_tab == 'athlete' %}page{% else %}false{% endif %}"
+                           class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition
+                                  {% if active_tab == 'athlete' %}bg-white text-slate-900 shadow-md font-bold{% else %}text-slate-300 hover:text-white hover:bg-white/10{% endif %}">
+                            <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <span>Mi Entreno</span>
+                        </a>
+                        <a href="?tab=trainer" aria-current="{% if active_tab == 'trainer' %}page{% else %}false{% endif %}"
+                           class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition
+                                  {% if active_tab == 'trainer' %}bg-white text-slate-900 shadow-md font-bold{% else %}text-slate-300 hover:text-white hover:bg-white/10{% endif %}">
+                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            <span>Deportistas</span>
+                        </a>
+                    </nav>
+                    <span class="text-[11px] text-slate-300/80">
+                        {% if active_tab == 'athlete' %}
+                            Vista activa: Rutina personal y seguimiento físico
+                        {% else %}
+                            Vista activa: Gestión de alumnos y catálogo
+                        {% endif %}
+                    </span>
+                </div>
             {% endif %}
         </div>
     </div>

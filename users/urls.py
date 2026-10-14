@@ -9,9 +9,13 @@ urlpatterns = [
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
     path('onboarding/', views.OnboardingView.as_view(), name='onboarding'),
     path('become-trainer/', views.BecomeTrainerView.as_view(), name='become_trainer'),
+    path('become-athlete/', views.BecomeAthleteView.as_view(), name='become_athlete'),
     path('profiles/athlete/create/', views.create_athlete_profile, name='create_athlete_profile'),
     path('profiles/trainer/create/', views.create_trainer_profile, name='create_trainer_profile'),
-    path('profile/edit/', views.AthleteProfileUpdateView.as_view(), name='profile_edit'),
+    path('profiles/dual/create/', views.create_dual_profile, name='create_dual_profile'),
+    path('profiles/athlete/remove/', views.remove_athlete_profile, name='remove_athlete_profile'),
+    path('profiles/trainer/remove/', views.remove_trainer_profile, name='remove_trainer_profile'),
+    path('profile/edit/', views.ProfileEditView.as_view(), name='profile_edit'),
     path('progress/log/', views.log_progress, name='log_progress'),
 
     # Password Reset URLs

@@ -87,6 +87,28 @@ class AthleteProfileForm(forms.ModelForm):
             user.save()
         return athlete
 
+
+class TrainerUserForm(forms.ModelForm):
+    """
+    Formulario para actualizar datos personales básicos (nombre y apellidos)
+    para usuarios con rol de entrenador que no disponen de perfil de deportista.
+    """
+    first_name = forms.CharField(
+        label=_("Nombre"),
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'})
+    )
+    last_name = forms.CharField(
+        label=_("Apellidos"),
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'})
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ['first_name', 'last_name']
+
+
 class AthleteProgressLogForm(forms.ModelForm):
     """
     Formulario para el registro de mediciones de peso y composición corporal en una fecha determinada.

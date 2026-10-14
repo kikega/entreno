@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from django.utils.html import format_html
 from users.models import AthleteProfile
 from .models import WorkoutPlan, PlannedExercise, WorkoutSession, Exercise
@@ -25,15 +26,17 @@ class WorkoutPlanForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """
         Inicializa el formulario personalizando los widgets y filtrando el queryset de deportistas
-        para incluir únicamente a los asignados al entrenador actual.
+        para incluir tanto a los asignados al entrenador como a sí mismo si dispone de perfil dual.
         """
         trainer = kwargs.pop('trainer', None)
 
         super().__init__(*args, **kwargs)
         
-        # Filtrar deportistas para que solo aparezcan los asignados a este entrenador
+        # Filtrar deportistas: los asignados al entrenador o a sí mismo si es deportista
         if trainer:
-            self.fields['athlete'].queryset = self.fields['athlete'].queryset.filter(assigned_trainer=trainer.user)
+            self.fields['athlete'].queryset = self.fields['athlete'].queryset.filter(
+                Q(assigned_trainer=trainer.user) | Q(user=trainer.user)
+            )
             
         for field in self.fields.values():
             field.widget.attrs.update({'class': GENERIC_INPUT_CLASS})
@@ -42,6 +45,7 @@ class WorkoutPlanForm(forms.ModelForm):
 class PlannedExerciseForm(forms.ModelForm):
     """
     Formulario para prescribir un ejercicio individual dentro de un plan de entrenamiento.
+    Permite acceder a todos los ejercicios del catálogo del sistema independientemente del creador.
     """
     class Meta:
 
@@ -52,8 +56,9 @@ class PlannedExerciseForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Inicializa el formulario aplicando estilos CSS unificados a los widgets."""
+        """Inicializa el formulario aplicando estilos CSS y cargando todos los ejercicios ordenados."""
         super().__init__(*args, **kwargs)
+        self.fields['exercise'].queryset = Exercise.objects.all().order_by('name')
 
         for field in self.fields.values():
             field.widget.attrs.update({'class': GENERIC_INPUT_CLASS})
