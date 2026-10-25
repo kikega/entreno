@@ -8,31 +8,50 @@
 
     <!-- Encabezado Principal y Rol Actual -->
     <div class="bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg border border-slate-800 relative overflow-hidden">
-        <div class="absolute top-0 right-0 p-6 opacity-10 pointer-events-none" aria-hidden="true">
-            <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-        </div>
-
-        <div class="relative z-10">
-            <div class="flex flex-wrap items-center gap-2 mb-3">
-                <span class="text-xs font-headline font-bold text-accent uppercase tracking-widest bg-accent/15 px-3 py-1 rounded-full border border-accent/25">
-                    MI CUENTA
-                </span>
-                <span class="text-xs font-headline font-bold uppercase tracking-wider px-3 py-1 rounded-full border
-                    {% if user.is_dual %}
-                        bg-sky-500/20 text-sky-200 border-sky-400/30
-                    {% elif user.is_trainer %}
-                        bg-primary/20 text-primary-200 border-primary/30
+        <div class="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div class="flex items-center gap-4 sm:gap-5 min-w-0">
+                <div class="shrink-0 relative">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="{{ user.display_name }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-white/20 shadow-md">
                     {% else %}
-                        bg-emerald-500/20 text-emerald-200 border-emerald-400/30
-                    {% endif %}">
-                    Rol actual: {{ user.role_label }}
-                </span>
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center text-slate-300 shadow-md">
+                            <svg class="w-9 h-9 sm:w-11 sm:h-11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2 mb-2 sm:mb-3">
+                        <span class="text-xs font-headline font-bold text-accent uppercase tracking-widest bg-accent/15 px-3 py-1 rounded-full border border-accent/25">
+                            MI CUENTA
+                        </span>
+                        <span class="text-xs font-headline font-bold uppercase tracking-wider px-3 py-1 rounded-full border
+                            {% if user.is_dual %}
+                                bg-sky-500/20 text-sky-200 border-sky-400/30
+                            {% elif user.is_trainer %}
+                                bg-primary/20 text-primary-200 border-primary/30
+                            {% else %}
+                                bg-emerald-500/20 text-emerald-200 border-emerald-400/30
+                            {% endif %}">
+                            Rol actual: {{ user.role_label }}
+                        </span>
+                    </div>
+
+                    <h1 class="text-2xl sm:text-3xl font-headline font-black text-white">Mi Perfil y Gestión de Roles</h1>
+                    <p class="text-sm text-slate-300 mt-1 sm:mt-2 max-w-2xl leading-relaxed">
+                        {{ user.role_description }}
+                    </p>
+                </div>
             </div>
 
-            <h1 class="text-2xl sm:text-3xl font-headline font-black text-white">Mi Perfil y Gestión de Roles</h1>
-            <p class="text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
-                {{ user.role_description }}
-            </p>
+            <div class="shrink-0">
+                <a href="{% url 'users:password_change' %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-headline font-bold transition shadow-sm hover:scale-[1.02] cursor-pointer">
+                    <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                    <span>Cambiar contraseña</span>
+                </a>
+            </div>
         </div>
     </div>
 
@@ -190,7 +209,7 @@
             </div>
         </div>
 
-        <form method="POST" class="p-6 md:p-8 space-y-8">
+        <form method="POST" enctype="multipart/form-data" class="p-6 md:p-8 space-y-8">
             {% csrf_token %}
 
             {% if form.errors %}
@@ -213,6 +232,67 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Sección Fotografía de Perfil (Siempre visible) -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h4 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Fotografía de Perfil</h4>
+                    <span class="text-[11px] text-slate-400 font-medium">Formatos: JPG, PNG o WEBP</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-5 rounded-2xl bg-slate-50/70 border border-slate-200/80">
+                    <!-- Vista previa de foto o icono de usuario -->
+                    <div class="relative shrink-0">
+                        <div id="avatar-container" class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-slate-100 border-2 border-white shadow-md ring-2 ring-slate-200/80 flex items-center justify-center">
+                            <img id="avatar-preview-img"
+                                 src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% endif %}"
+                                 alt="{{ user.display_name }}"
+                                 class="w-full h-full object-cover {% if not user.profile_picture %}hidden{% endif %}">
+                            <div id="avatar-placeholder" class="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100/90 {% if user.profile_picture %}hidden{% endif %}">
+                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                <span class="text-[10px] font-semibold text-slate-400 mt-0.5">Sin foto</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controles de subida y eliminación -->
+                    <div class="flex-1 space-y-3 text-center sm:text-left min-w-0">
+                        <div>
+                            <h5 class="text-sm font-headline font-bold text-slate-800">Foto personalizada</h5>
+                            <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                                Sube una imagen para personalizar tu cuenta en EntrenoPro. Si no dispones de foto, se mostrará el icono representativo de usuario por defecto.
+                            </p>
+                        </div>
+
+                        {{ form.profile_picture }}
+                        {{ form.delete_profile_picture }}
+
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
+                            <button type="button"
+                                    id="btn-upload-photo"
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-headline font-bold transition shadow-sm hover:scale-[1.01] cursor-pointer">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                <span id="btn-upload-text">{% if user.profile_picture %}Cambiar fotografía{% else %}Subir fotografía{% endif %}</span>
+                            </button>
+
+                            <button type="button"
+                                    id="btn-remove-photo"
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-headline font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 transition cursor-pointer {% if not user.profile_picture %}hidden{% endif %}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                <span>Eliminar foto</span>
+                            </button>
+
+                            <span id="photo-filename" class="text-xs font-medium text-slate-500 italic hidden truncate max-w-xs"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Sección Datos Personales (Siempre visible) -->
             <div class="space-y-4">
@@ -301,5 +381,116 @@
             </div>
         </form>
     </div>
+
+    <!-- Panel de Seguridad de la Cuenta -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-sky-100/70 text-primary flex items-center justify-center border border-sky-200/50">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="font-headline font-bold text-slate-800 text-lg">Seguridad y Acceso</h3>
+                    <p class="text-xs text-slate-500">Gestiona tus credenciales de inicio de sesión y la clave de tu cuenta.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 md:p-8 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Tarjeta Email -->
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider block">Correo Electrónico</span>
+                        <span class="text-sm font-semibold text-slate-800 mt-1 block truncate max-w-xs">{{ user.email }}</span>
+                    </div>
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
+                        <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                        Identificador
+                    </span>
+                </div>
+
+                <!-- Tarjeta Contraseña -->
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider block">Contraseña</span>
+                        <span class="text-sm font-mono tracking-widest text-slate-600 mt-1 block">••••••••••••</span>
+                    </div>
+                    <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activa
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                <div class="text-xs text-slate-500 leading-relaxed max-w-xl">
+                    <strong class="text-slate-700 font-headline block mb-0.5">¿Deseas cambiar tu contraseña?</strong>
+                    Por motivos de seguridad, te solicitaremos tu contraseña actual antes de establecer la nueva.
+                </div>
+                <a href="{% url 'users:password_change' %}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-headline font-bold text-xs sm:text-sm transition shadow-sm hover:shadow hover:scale-[1.01] shrink-0 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                    Cambiar contraseña
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.getElementById('profile_picture_input');
+    const deleteInput = document.getElementById('id_delete_profile_picture') || document.querySelector('input[name="delete_profile_picture"]');
+    const btnUpload = document.getElementById('btn-upload-photo');
+    const btnRemove = document.getElementById('btn-remove-photo');
+    const previewImg = document.getElementById('avatar-preview-img');
+    const placeholder = document.getElementById('avatar-placeholder');
+    const btnUploadText = document.getElementById('btn-upload-text');
+    const filenameLabel = document.getElementById('photo-filename');
+
+    if (btnUpload && fileInput) {
+        btnUpload.addEventListener('click', function () {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function (e) {
+            const file = e.target.files && e.target.files[0];
+            if (file) {
+                if (deleteInput) deleteInput.value = '0';
+                if (filenameLabel) {
+                    filenameLabel.textContent = file.name;
+                    filenameLabel.classList.remove('hidden');
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    previewImg.src = event.target.result;
+                    previewImg.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    if (btnRemove) btnRemove.classList.remove('hidden');
+                    if (btnUploadText) btnUploadText.textContent = 'Cambiar fotografía';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (btnRemove) {
+        btnRemove.addEventListener('click', function () {
+            if (fileInput) fileInput.value = '';
+            if (deleteInput) deleteInput.value = '1';
+            previewImg.src = '';
+            previewImg.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            btnRemove.classList.add('hidden');
+            if (filenameLabel) {
+                filenameLabel.textContent = '';
+                filenameLabel.classList.add('hidden');
+            }
+            if (btnUploadText) btnUploadText.textContent = 'Subir fotografía';
+        });
+    }
+});
+</script>
 {% endblock %}

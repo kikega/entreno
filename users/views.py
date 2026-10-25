@@ -1,5 +1,6 @@
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
 from django.contrib.auth.decorators import login_required
+from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import redirect, render, get_object_or_404
 from django.views.generic import UpdateView, TemplateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -12,7 +13,13 @@ from django.utils import timezone
 from training.views import build_athlete_context, build_trainer_context
 
 from .models import CustomUser, TrainerProfile, AthleteProfile, AthleteProgressLog
-from .forms import CustomAuthenticationForm, AthleteProfileForm, AthleteProgressLogForm, TrainerUserForm
+from .forms import (
+    CustomAuthenticationForm,
+    AthleteProfileForm,
+    AthleteProgressLogForm,
+    TrainerUserForm,
+    CustomPasswordChangeForm,
+)
 
 
 class CustomLoginView(LoginView):
@@ -202,7 +209,7 @@ class ProfileEditView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         user = request.user
         if user.is_athlete:
-            form = AthleteProfileForm(request.POST, instance=user.athlete_profile)
+            form = AthleteProfileForm(request.POST, request.FILES, instance=user.athlete_profile)
             if form.is_valid():
                 form.save()
                 profile = user.athlete_profile
@@ -220,7 +227,7 @@ class ProfileEditView(LoginRequiredMixin, View):
                 messages.success(request, "Perfil y datos físicos actualizados con éxito.")
                 return redirect('users:profile_edit')
         else:
-            form = TrainerUserForm(request.POST, instance=user)
+            form = TrainerUserForm(request.POST, request.FILES, instance=user)
             if form.is_valid():
                 form.save()
                 messages.success(request, "Datos personales actualizados con éxito.")
@@ -234,6 +241,24 @@ class ProfileEditView(LoginRequiredMixin, View):
 
 # Alias de retrocompatibilidad
 AthleteProfileUpdateView = ProfileEditView
+
+
+class CustomPasswordChangeView(LoginRequiredMixin, SuccessMessageMixin, PasswordChangeView):
+    """
+    Vista personalizada para el cambio de contraseña de usuarios autenticados.
+    Mantiene la sesión activa tras el cambio y redirige al perfil con un mensaje de confirmación.
+    """
+    form_class = CustomPasswordChangeForm
+    template_name = 'users/password_change.html'
+    success_url = reverse_lazy('users:profile_edit')
+    success_message = "Tu contraseña ha sido actualizada con éxito."
+
+
+class CustomPasswordChangeDoneView(LoginRequiredMixin, TemplateView):
+    """
+    Vista de confirmación de cambio de contraseña completado.
+    """
+    template_name = 'users/password_change_done.html'
 
 
 @login_required

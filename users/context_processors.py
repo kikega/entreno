@@ -12,7 +12,7 @@ SECTION_MAP = {
         'athlete_detail', 'trainer_athlete_edit', 'generate_smart_plan',
         'exercise_list', 'exercise_create', 'exercise_edit', 'exercise_delete',
     },
-    'users:profile_edit': {'profile_edit'},
+    'users:profile_edit': {'profile_edit', 'password_change', 'password_change_done'},
 }
 
 
@@ -42,7 +42,7 @@ def capabilities(request):
     is_athlete = user.is_athlete
 
     def _is_active(url_name):
-        if url_name == 'users:profile_edit' and current_url_name == 'profile_edit':
+        if url_name == 'users:profile_edit' and current_url_name in {'profile_edit', 'password_change', 'password_change_done'}:
             return True
         if url_name == 'training:athlete_dashboard' and current_url_name == 'plan_detail' and is_athlete and not is_trainer:
             return True

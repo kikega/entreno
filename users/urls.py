@@ -16,6 +16,8 @@ urlpatterns = [
     path('profiles/athlete/remove/', views.remove_athlete_profile, name='remove_athlete_profile'),
     path('profiles/trainer/remove/', views.remove_trainer_profile, name='remove_trainer_profile'),
     path('profile/edit/', views.ProfileEditView.as_view(), name='profile_edit'),
+    path('password_change/', views.CustomPasswordChangeView.as_view(), name='password_change'),
+    path('password_change/done/', views.CustomPasswordChangeDoneView.as_view(), name='password_change_done'),
     path('progress/log/', views.log_progress, name='log_progress'),
 
     # Password Reset URLs

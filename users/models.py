@@ -11,6 +11,12 @@ class CustomUser(AbstractUser):
     username = None
 
     email = models.EmailField(_('correo electrónico'), unique=True)
+    profile_picture = models.ImageField(
+        _('fotografía de perfil'),
+        upload_to='profile_pics/',
+        blank=True,
+        null=True
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -24,6 +30,11 @@ class CustomUser(AbstractUser):
     def __str__(self):
         """Devuelve el correo electrónico como representación del usuario."""
         return self.email
+
+    @property
+    def has_profile_picture(self):
+        """Indica si el usuario cuenta con una foto de perfil asignada."""
+        return bool(self.profile_picture and hasattr(self.profile_picture, 'url'))
 
     @property
     def is_trainer(self):
