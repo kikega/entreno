@@ -25,14 +25,19 @@
                 </div>
             </div>
         </div>
-        <div class="flex items-center gap-3 w-full md:w-auto">
-            <a href="{% url 'training:trainer_dashboard' %}" class="w-full md:w-auto text-center px-4 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <a href="{% url 'training:trainer_dashboard' %}" class="w-full sm:w-auto text-center px-4 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
                 Volver
             </a>
-            <a href="{% url 'training:trainer_athlete_edit' athlete.id %}" class="w-full md:w-auto text-center px-4 py-2.5 bg-sky-50 border border-sky-200 text-sm font-bold rounded-xl text-sky-700 hover:bg-sky-100 transition shadow-sm flex items-center justify-center gap-1">
+            <a href="{% url 'training:trainer_athlete_edit' athlete.id %}" class="w-full sm:w-auto text-center px-4 py-2.5 bg-sky-50 border border-sky-200 text-sm font-bold rounded-xl text-sky-700 hover:bg-sky-100 transition shadow-sm flex items-center justify-center gap-1">
                 ✏️ Editar Perfil Deportivo
             </a>
-            <a href="{% url 'training:plan_create' %}" class="btn-primary w-full md:w-auto px-4 py-2.5 rounded-xl font-headline font-semibold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] shadow-md shadow-primary/20">
+            {% if athlete.assigned_trainer_id == request.user.id %}
+            <a href="{% url 'training:trainer_athlete_delete' athlete.id %}" class="w-full sm:w-auto text-center px-4 py-2.5 bg-red-50 border border-red-200 text-sm font-bold rounded-xl text-red-600 hover:bg-red-100 transition shadow-sm flex items-center justify-center gap-1">
+                🗑️ Eliminar Deportista
+            </a>
+            {% endif %}
+            <a href="{% url 'training:plan_create' %}" class="btn-primary w-full sm:w-auto px-4 py-2.5 rounded-xl font-headline font-semibold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] shadow-md shadow-primary/20">
                 <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                 Asignar Plan
             </a>

@@ -24,6 +24,7 @@ urlpatterns = [
     # Athlete Profile
     path('athlete/<int:pk>/', views.AthleteDetailView.as_view(), name='athlete_detail'),
     path('athlete/<int:pk>/edit/', views.TrainerAthleteProfileUpdateView.as_view(), name='trainer_athlete_edit'),
+    path('athlete/<int:pk>/delete/', views.TrainerAthleteDeleteView.as_view(), name='trainer_athlete_delete'),
 
     # Exercise Catalog (CRUD entrenador)
     path('exercises/', views.ExerciseListView.as_view(), name='exercise_list'),

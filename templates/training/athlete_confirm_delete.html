@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Deportista - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto py-8 trainer-theme">
+    <div class="bg-white shadow-md rounded-2xl border border-slate-150 overflow-hidden animate-fade-in">
+        <div class="px-6 py-6 border-b border-slate-100 bg-red-50/70">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-red-100 text-red-600 rounded-xl border border-red-200 flex-shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-headline font-bold text-red-700">Eliminar Deportista</h3>
+                    <p class="text-xs text-red-500 mt-0.5">Esta acción eliminará al deportista y sus registros asociados.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 md:p-8 space-y-5">
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                {% if athlete.user.profile_picture %}
+                    <img src="{{ athlete.user.profile_picture.url }}" alt="{{ athlete.user.display_name }}" class="h-14 w-14 rounded-xl object-cover border border-sky-200 shrink-0 shadow-sm">
+                {% else %}
+                    <div class="h-14 w-14 bg-sky-100 text-sky-600 rounded-xl flex items-center justify-center border border-sky-200 shrink-0">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                {% endif %}
+                <div class="min-w-0">
+                    <h4 class="text-base font-headline font-bold text-slate-800 truncate">{{ athlete.user.first_name }} {{ athlete.user.last_name }}</h4>
+                    <p class="text-xs text-slate-500 truncate">{{ athlete.user.email }} · {{ athlete.get_sport_display }}</p>
+                </div>
+            </div>
+
+            <p class="text-sm text-slate-600">
+                ¿Seguro que deseas eliminar al deportista
+                <span class="font-headline font-bold text-slate-900">"{{ athlete.user.first_name }} {{ athlete.user.last_name }}"</span> ({{ athlete.user.email }})?
+            </p>
+
+            {% if plans_count > 0 %}
+                <div class="rounded-xl bg-amber-50 border border-amber-200/60 p-4 text-xs text-amber-800">
+                    ⚠️ Este deportista cuenta con <strong>{{ plans_count }}</strong> plan(es) de entrenamiento asignados que también serán eliminados.
+                </div>
+            {% endif %}
+
+            <div class="mt-8 flex flex-col-reverse sm:flex-row items-center justify-end gap-3 border-t border-slate-100 pt-6">
+                <a href="{% url 'training:trainer_dashboard' %}" class="w-full sm:w-auto text-center px-5 py-3 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                    Cancelar
+                </a>
+                <form method="post" class="m-0 w-full sm:w-auto">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full sm:w-auto px-5 py-3 rounded-xl text-sm font-headline font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-md shadow-red-600/20 cursor-pointer">
+                        Sí, eliminar deportista
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

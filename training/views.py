@@ -14,7 +14,7 @@ from datetime import datetime
 from django.db.models import Q, Count
 from django.utils import timezone
 
-from users.models import AthleteProfile
+from users.models import AthleteProfile, AthleteProgressLog
 from users.forms import AthleteProgressLogForm, AthleteProfileForm
 from .models import WorkoutPlan, PlannedExercise, WorkoutSession, LoggedExercise, LoggedSet, Exercise
 from .forms import WorkoutPlanForm, PlannedExerciseForm, WorkoutSessionForm, ExerciseForm
@@ -567,22 +567,78 @@ class AthleteDetailView(TrainerRequiredMixin, DetailView):
 
 class TrainerAthleteProfileUpdateView(TrainerRequiredMixin, UpdateView):
     """
-    Permite al entrenador editar el perfil deportivo y datos físicos de cualquiera de sus deportistas asignados o de sí mismo.
+    Permite al entrenador editar el perfil deportivo, composición física y datos personales
+    de cualquiera de sus deportistas asignados de manera aislada a su propia cuenta de entrenador.
     """
     model = AthleteProfile
     form_class = AthleteProfileForm
-    template_name = 'users/athlete_profile_form.html'
+    template_name = 'training/trainer_athlete_form.html'
+    context_object_name = 'athlete'
 
     def get_queryset(self):
         """Garantiza que el entrenador solo pueda acceder a los atletas que tiene asignados o a sí mismo."""
         return AthleteProfile.objects.filter(
             Q(assigned_trainer=self.request.user) | Q(user=self.request.user)
-        )
+        ).select_related('user')
+
+    def form_valid(self, form):
+        """Guarda los datos del deportista y actualiza su registro de progreso diario si dispone de peso."""
+        response = super().form_valid(form)
+        profile = self.object
+        if profile.weight is not None:
+            AthleteProgressLog.objects.update_or_create(
+                athlete=profile,
+                date=timezone.now().date(),
+                defaults={
+                    'weight': profile.weight,
+                    'fat_percentage': profile.fat_percentage,
+                    'lean_mass_percentage': profile.lean_mass_percentage,
+                }
+            )
+        return response
 
     def get_success_url(self):
         """Informa del éxito de la operación y redirige al detalle del deportista."""
         messages.success(self.request, f"Perfil deportivo de {self.object.user.first_name or self.object.user.email} actualizado con éxito.")
         return reverse('training:athlete_detail', kwargs={'pk': self.object.pk})
+
+
+class TrainerAthleteDeleteView(TrainerRequiredMixin, DeleteView):
+    """
+    Permite al entrenador eliminar un deportista asignado a su gestión desde «Mis deportistas» o su expediente.
+    """
+    model = AthleteProfile
+    template_name = 'training/athlete_confirm_delete.html'
+    context_object_name = 'athlete'
+
+    def get_queryset(self):
+        """Solo permite eliminar deportistas asignados al entrenador actual."""
+        return AthleteProfile.objects.filter(
+            assigned_trainer=self.request.user
+        ).select_related('user')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['plans_count'] = self.object.assigned_plans.count()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        athlete_user = self.object.user
+        display_name = f"{athlete_user.first_name} {athlete_user.last_name}".strip() or athlete_user.email
+
+        if athlete_user != request.user and not athlete_user.is_trainer and not athlete_user.is_staff and not athlete_user.is_superuser:
+            if athlete_user.profile_picture:
+                athlete_user.profile_picture.delete(save=False)
+            athlete_user.delete()
+        else:
+            self.object.delete()
+
+        messages.success(request, f"Deportista '{display_name}' eliminado con éxito.")
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('training:trainer_dashboard')
 
 
 class ExerciseListView(TrainerRequiredMixin, ListView):

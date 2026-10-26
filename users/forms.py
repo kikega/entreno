@@ -37,7 +37,7 @@ class CustomAuthenticationForm(AuthenticationForm):
 
 class AthleteProfileForm(forms.ModelForm):
     """
-    Formulario para actualizar la información antropométrica, deportiva y personal (nombre/apellidos/foto) de un atleta.
+    Formulario para actualizar la información antropométrica, deportiva y personal (nombre/apellidos/correo/foto) de un atleta.
     """
     first_name = forms.CharField(
         label=_("Nombre"),
@@ -48,6 +48,11 @@ class AthleteProfileForm(forms.ModelForm):
         label=_("Apellidos"),
         required=True,
         widget=forms.TextInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'})
+    )
+    email = forms.EmailField(
+        label=_("Correo electrónico"),
+        required=False,
+        widget=forms.EmailInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'})
     )
     profile_picture = forms.ImageField(
         label=_("Fotografía de perfil"),
@@ -77,23 +82,40 @@ class AthleteProfileForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Inicializa el formulario cargando el nombre y apellidos actuales desde el modelo CustomUser."""
+        """Inicializa el formulario cargando el nombre, apellidos y correo actuales desde el modelo CustomUser del deportista."""
         super().__init__(*args, **kwargs)
 
-        if self.instance and self.instance.user:
+        if self.instance and self.instance.pk and self.instance.user:
             self.fields['first_name'].initial = self.instance.user.first_name
             self.fields['last_name'].initial = self.instance.user.last_name
+            self.fields['email'].initial = self.instance.user.email
+
+    def clean_email(self):
+        """Valida y normaliza el correo electrónico del deportista, conservando el actual si no se envía."""
+        email = self.cleaned_data.get('email')
+        user = getattr(self.instance, 'user', None)
+        if not email:
+            return user.email if user else ''
+        email = email.strip().lower()
+        qs = CustomUser.objects.filter(email__iexact=email)
+        if user and user.pk:
+            qs = qs.exclude(pk=user.pk)
+        if qs.exists():
+            raise forms.ValidationError(_("Ya existe otro usuario registrado con este correo electrónico."))
+        return email
 
     def save(self, commit=True):
-        """Guarda el perfil de deportista y actualiza simultáneamente los datos personales en la entidad CustomUser."""
+        """Guarda el perfil de deportista y actualiza simultáneamente los datos personales en la entidad CustomUser del deportista."""
         athlete = super().save(commit=False)
 
         if commit:
             athlete.save()
-            # Also save user fields
+            # Actualizar exclusivamente el usuario asociado al perfil del deportista
             user = athlete.user
             user.first_name = self.cleaned_data['first_name']
             user.last_name = self.cleaned_data['last_name']
+            if self.cleaned_data.get('email'):
+                user.email = self.cleaned_data['email']
             if self.cleaned_data.get('delete_profile_picture'):
                 if user.profile_picture:
                     user.profile_picture.delete(save=False)

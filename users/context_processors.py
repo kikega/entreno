@@ -9,7 +9,8 @@ SECTION_MAP = {
     },
     'training:trainer_dashboard': {
         'trainer_dashboard', 'plan_create', 'plan_detail',
-        'athlete_detail', 'trainer_athlete_edit', 'generate_smart_plan',
+        'athlete_detail', 'trainer_athlete_edit', 'trainer_athlete_delete',
+        'generate_smart_plan',
         'exercise_list', 'exercise_create', 'exercise_edit', 'exercise_delete',
     },
     'users:profile_edit': {'profile_edit', 'password_change', 'password_change_done'},

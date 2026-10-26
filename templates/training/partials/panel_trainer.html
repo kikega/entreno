@@ -97,16 +97,26 @@
                                 </div>
                             </div>
 
-                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                            <div class="flex flex-wrap items-center gap-2 shrink-0">
                                 <form action="{% url 'training:generate_smart_plan' athlete.id %}" method="POST" class="m-0">
                                     {% csrf_token %}
-                                    <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-sky-600 to-primary text-white text-xs font-bold rounded-xl hover:opacity-90 transition shadow-sm">
+                                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-sky-600 to-primary text-white text-xs font-bold rounded-xl hover:opacity-90 transition shadow-sm cursor-pointer">
                                         <span aria-hidden="true">✨</span> Borrador ML {{ athlete.get_sport_display }}
                                     </button>
                                 </form>
 
                                 <a href="{% url 'training:athlete_detail' athlete.id %}" class="inline-flex items-center justify-center px-3.5 py-2 border border-slate-200 text-xs font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
                                     Expediente
+                                </a>
+
+                                <a href="{% url 'training:trainer_athlete_edit' athlete.id %}" class="inline-flex items-center justify-center gap-1 px-3.5 py-2 bg-sky-50 border border-sky-200 text-xs font-bold rounded-xl text-sky-700 hover:bg-sky-100 transition shadow-sm" title="Editar deportista">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    Editar
+                                </a>
+
+                                <a href="{% url 'training:trainer_athlete_delete' athlete.id %}" class="inline-flex items-center justify-center gap-1 px-3 py-2 bg-red-50 border border-red-200 text-xs font-bold rounded-xl text-red-600 hover:bg-red-100 transition shadow-sm" title="Eliminar deportista">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    Eliminar
                                 </a>
                             </div>
                         </li>

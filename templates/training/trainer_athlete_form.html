@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Editar Deportista - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-6 sm:py-10 px-4 sm:px-6 lg:px-8 space-y-8 trainer-theme animate-fade-in">
+
+    <!-- Encabezado Aislado de la Ficha del Deportista -->
+    <div class="bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg border border-slate-800 relative overflow-hidden">
+        <div class="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div class="flex items-center gap-4 sm:gap-5 min-w-0">
+                <div class="shrink-0 relative">
+                    {% if athlete.user.profile_picture %}
+                        <img src="{{ athlete.user.profile_picture.url }}" alt="{{ athlete.user.display_name }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-white/20 shadow-md">
+                    {% else %}
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center text-slate-300 shadow-md" title="Deportista sin foto">
+                            <svg class="w-9 h-9 sm:w-11 sm:h-11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2 mb-2 sm:mb-3">
+                        <span class="text-xs font-headline font-bold text-accent uppercase tracking-widest bg-accent/15 px-3 py-1 rounded-full border border-accent/25">
+                            FICHA DE DEPORTISTA
+                        </span>
+                        <span class="text-xs font-headline font-bold uppercase tracking-wider px-3 py-1 rounded-full border bg-emerald-500/20 text-emerald-200 border-emerald-400/30">
+                            {{ athlete.get_sport_display }}
+                        </span>
+                    </div>
+
+                    <h1 class="text-2xl sm:text-3xl font-headline font-black text-white truncate">
+                        {{ athlete.user.first_name }} {{ athlete.user.last_name }}
+                    </h1>
+                    <p class="text-sm text-slate-300 mt-1 sm:mt-1.5 max-w-2xl leading-relaxed truncate">
+                        {{ athlete.user.email }} · Edita cualquier dato personal, deportivo o antropométrico del deportista.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                <a href="{% url 'training:athlete_detail' athlete.id %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-headline font-bold transition shadow-sm">
+                    Ver expediente
+                </a>
+                {% if athlete.assigned_trainer_id == request.user.id %}
+                    <a href="{% url 'training:trainer_athlete_delete' athlete.id %}" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 text-red-200 text-xs font-headline font-bold transition shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Eliminar deportista</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de Edición del Deportista -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+            <div>
+                <h2 class="font-headline font-bold text-slate-800 text-lg">Datos del Deportista</h2>
+                <p class="text-xs text-slate-500">Modifica la fotografía, identificación personal, disciplina y parámetros físicos de este deportista.</p>
+            </div>
+            <span class="text-xs text-slate-400 font-medium hidden sm:block">
+                ID #{{ athlete.id }}
+            </span>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="p-6 md:p-8 space-y-8">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="rounded-xl bg-red-50 p-4 border border-red-200/60 animate-fade-in">
+                <div class="flex items-start gap-2.5">
+                    <svg class="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <h3 class="text-sm font-bold text-red-800">Por favor, corrige los siguientes errores:</h3>
+                        <ul class="mt-2 list-disc list-inside text-xs text-red-700 font-medium space-y-1">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Sección Fotografía del Deportista (Aislada del entrenador) -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Fotografía del Deportista</h3>
+                    <span class="text-[11px] text-slate-400 font-medium">Formatos: JPG, PNG o WEBP</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-5 rounded-2xl bg-slate-50/70 border border-slate-200/80">
+                    <!-- Vista previa exclusiva de la foto del deportista -->
+                    <div class="relative shrink-0">
+                        <div id="avatar-container" class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-slate-100 border-2 border-white shadow-md ring-2 ring-slate-200/80 flex items-center justify-center">
+                            <img id="avatar-preview-img"
+                                 src="{% if athlete.user.profile_picture %}{{ athlete.user.profile_picture.url }}{% endif %}"
+                                 alt="{{ athlete.user.display_name }}"
+                                 class="w-full h-full object-cover {% if not athlete.user.profile_picture %}hidden{% endif %}">
+                            <div id="avatar-placeholder" class="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100/90 {% if athlete.user.profile_picture %}hidden{% endif %}">
+                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                <span class="text-[10px] font-semibold text-slate-400 mt-0.5">Sin foto</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controles de subida y eliminación de la foto del deportista -->
+                    <div class="flex-1 space-y-3 text-center sm:text-left min-w-0">
+                        <div>
+                            <h4 class="text-sm font-headline font-bold text-slate-800">Foto del perfil deportivo</h4>
+                            <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                                Esta imagen corresponde únicamente a la ficha de <strong>{{ athlete.user.first_name|default:athlete.user.email }}</strong> y es independiente de tu cuenta de entrenador.
+                            </p>
+                        </div>
+
+                        {{ form.profile_picture }}
+                        {{ form.delete_profile_picture }}
+
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
+                            <button type="button"
+                                    id="btn-upload-photo"
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-headline font-bold transition shadow-sm hover:scale-[1.01] cursor-pointer">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                <span id="btn-upload-text">{% if athlete.user.profile_picture %}Cambiar fotografía{% else %}Subir fotografía{% endif %}</span>
+                            </button>
+
+                            <button type="button"
+                                    id="btn-remove-photo"
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-headline font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 transition cursor-pointer {% if not athlete.user.profile_picture %}hidden{% endif %}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                <span>Eliminar foto</span>
+                            </button>
+
+                            <span id="photo-filename" class="text-xs font-medium text-slate-500 italic hidden truncate max-w-xs"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección Identificación Personal del Deportista -->
+            <div class="space-y-4">
+                <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Identificación Personal</h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Nombre</label>
+                        {{ form.first_name }}
+                    </div>
+                    <div>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Apellidos</label>
+                        {{ form.last_name }}
+                    </div>
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Correo electrónico</label>
+                        {{ form.email }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección Perfil Deportivo & Objetivos -->
+            <div class="space-y-4 pt-4 border-t border-slate-150">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Perfil Deportivo y Objetivos</h3>
+                    <span class="text-[11px] font-bold text-accent bg-sky-50 px-2 py-0.5 rounded border border-sky-150">Parámetros de Entreno</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div>
+                        <label for="{{ form.sport.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Deporte Principal</label>
+                        {{ form.sport }}
+                    </div>
+                    <div>
+                        <label for="{{ form.experience_level.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Nivel de Experiencia</label>
+                        {{ form.experience_level }}
+                    </div>
+                    <div>
+                        <label for="{{ form.training_goal.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Objetivo Principal</label>
+                        {{ form.training_goal }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección Composición Corporal -->
+            <div class="space-y-4 pt-4 border-t border-slate-150">
+                <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Composición Física Actual</h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label for="{{ form.weight.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Peso corporal (kg)</label>
+                        {{ form.weight }}
+                    </div>
+                    <div>
+                        <label for="{{ form.height.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Altura (cm)</label>
+                        {{ form.height }}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label for="{{ form.fat_percentage.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Porcentaje de Grasa (%)</label>
+                        {{ form.fat_percentage }}
+                    </div>
+                    <div>
+                        <label for="{{ form.lean_mass_percentage.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Porcentaje de Masa Magra (%)</label>
+                        {{ form.lean_mass_percentage }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-6 border-t border-slate-100">
+                <a href="{% url 'training:trainer_dashboard' %}" class="w-full sm:w-auto text-center px-5 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                    Volver a Mis deportistas
+                </a>
+                <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                    <a href="{% url 'training:athlete_detail' athlete.id %}" class="w-full sm:w-auto text-center px-5 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="w-full sm:w-auto btn-primary px-6 py-2.5 rounded-xl font-headline font-bold text-sm transition hover:scale-[1.01] shadow-md shadow-primary/20 cursor-pointer">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.getElementById('profile_picture_input');
+    const deleteInput = document.getElementById('id_delete_profile_picture') || document.querySelector('input[name="delete_profile_picture"]');
+    const btnUpload = document.getElementById('btn-upload-photo');
+    const btnRemove = document.getElementById('btn-remove-photo');
+    const previewImg = document.getElementById('avatar-preview-img');
+    const placeholder = document.getElementById('avatar-placeholder');
+    const btnUploadText = document.getElementById('btn-upload-text');
+    const filenameLabel = document.getElementById('photo-filename');
+
+    if (btnUpload && fileInput) {
+        btnUpload.addEventListener('click', function () {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function (e) {
+            const file = e.target.files && e.target.files[0];
+            if (file) {
+                if (deleteInput) deleteInput.value = '0';
+                if (filenameLabel) {
+                    filenameLabel.textContent = file.name;
+                    filenameLabel.classList.remove('hidden');
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    previewImg.src = event.target.result;
+                    previewImg.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    if (btnRemove) btnRemove.classList.remove('hidden');
+                    if (btnUploadText) btnUploadText.textContent = 'Cambiar fotografía';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (btnRemove) {
+        btnRemove.addEventListener('click', function () {
+            if (fileInput) fileInput.value = '';
+            if (deleteInput) deleteInput.value = '1';
+            previewImg.src = '';
+            previewImg.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            btnRemove.classList.add('hidden');
+            if (filenameLabel) {
+                filenameLabel.textContent = '';
+                filenameLabel.classList.add('hidden');
+            }
+            if (btnUploadText) btnUploadText.textContent = 'Subir fotografía';
+        });
+    }
+});
+</script>
+{% endblock %}

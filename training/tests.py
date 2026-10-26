@@ -1,5 +1,10 @@
 from datetime import date, timedelta
-from django.test import TestCase
+import io
+import shutil
+import tempfile
+from PIL import Image
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
@@ -9,6 +14,7 @@ from training.models import (
 )
 
 User = get_user_model()
+TEMP_MEDIA_ROOT = tempfile.mkdtemp()
 
 
 class TrainingWorkflowAndSecurityTests(TestCase):
@@ -394,4 +400,170 @@ class TrainingWorkflowAndSecurityTests(TestCase):
         })
         self.assertEqual(add_res.status_code, 200)
         self.assertTrue(dual_plan.planned_exercises.filter(exercise=self.exercise).exists())
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+class TrainerAthleteManagementIsolationTests(TestCase):
+    """
+    Verifica que el entrenador desde «Mis deportistas» pueda editar cualquier dato de un deportista
+    y eliminarlo, manteniendo la foto y el perfil del entrenador completamente aislados de los del deportista.
+    """
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
+    def _create_image(self, name='foto.jpg', color=(37, 99, 235)):
+        file = io.BytesIO()
+        img = Image.new('RGB', (80, 80), color=color)
+        img.save(file, 'jpeg')
+        file.seek(0)
+        return SimpleUploadedFile(name, file.read(), content_type='image/jpeg')
+
+    def setUp(self):
+        self.trainer_user = User.objects.create_user(
+            email='coach.isolated@test.com',
+            password='Password123!',
+            first_name='Entrenador',
+            last_name='Principal',
+            profile_picture=self._create_image('trainer_secret_photo.jpg'),
+        )
+        self.trainer = TrainerProfile.objects.create(user=self.trainer_user)
+
+        self.other_trainer_user = User.objects.create_user(
+            email='other.coach@test.com',
+            password='Password123!',
+            first_name='Otro',
+            last_name='Coach',
+        )
+        self.other_trainer = TrainerProfile.objects.create(user=self.other_trainer_user)
+
+        self.athlete_user = User.objects.create_user(
+            email='deportista.alumno@test.com',
+            password='Password123!',
+            first_name='Lucía',
+            last_name='Gómez',
+        )
+        self.athlete = AthleteProfile.objects.create(
+            user=self.athlete_user,
+            sport='mma',
+            experience_level='principiante',
+            training_goal='potencia_explosiva',
+            weight=62.0,
+            height=168.0,
+            fat_percentage=18.5,
+            lean_mass_percentage=76.0,
+            assigned_trainer=self.trainer_user,
+            trainer_confirmed=True,
+        )
+
+    def test_mis_deportistas_shows_edit_and_delete_actions(self):
+        """En «Mis deportistas» se muestran los botones directos para editar y eliminar cada deportista."""
+        self.client.force_login(self.trainer_user)
+        res = self.client.get(reverse('home') + '?tab=trainer')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, reverse('training:trainer_athlete_edit', kwargs={'pk': self.athlete.pk}))
+        self.assertContains(res, reverse('training:trainer_athlete_delete', kwargs={'pk': self.athlete.pk}))
+
+    def test_trainer_photo_is_isolated_from_athlete_edit_view(self):
+        """La vista de edición del deportista NO mezcla la foto del entrenador en el formulario del deportista."""
+        self.client.force_login(self.trainer_user)
+        edit_url = reverse('training:trainer_athlete_edit', kwargs={'pk': self.athlete.pk})
+        res = self.client.get(edit_url)
+        self.assertEqual(res.status_code, 200)
+
+        # El formulario de edición del deportista debe mostrar 'Sin foto' (porque el deportista no tiene foto)
+        # y el preview #avatar-preview-img debe tener src="" vacío, nunca la foto del entrenador
+        self.assertContains(res, 'id="avatar-preview-img"\n                                 src=""')
+        self.assertContains(res, 'Subir fotografía')
+        # Y debe mostrar todos los campos deportivos aunque el entrenador NO sea deportista (is_athlete=False)
+        self.assertContains(res, 'name="sport"')
+        self.assertContains(res, 'name="experience_level"')
+        self.assertContains(res, 'name="training_goal"')
+        self.assertContains(res, 'name="weight"')
+        self.assertContains(res, 'name="height"')
+        self.assertContains(res, 'name="email"')
+
+    def test_trainer_can_edit_any_athlete_data_and_photo_isolated(self):
+        """El entrenador puede cambiar cualquier dato del deportista (incluidos correo y foto) sin alterar su propia cuenta."""
+        self.client.force_login(self.trainer_user)
+        edit_url = reverse('training:trainer_athlete_edit', kwargs={'pk': self.athlete.pk})
+        athlete_photo = self._create_image('lucia_avatar.jpg', color=(16, 185, 129))
+        trainer_original_photo = self.trainer_user.profile_picture.name
+
+        res = self.client.post(edit_url, {
+            'first_name': 'Lucía María',
+            'last_name': 'Gómez Pérez',
+            'email': 'lucia.nueva@test.com',
+            'sport': 'hyrox',
+            'experience_level': 'avanzado',
+            'training_goal': 'resistencia_muscular',
+            'weight': '64.50',
+            'height': '169.00',
+            'fat_percentage': '16.20',
+            'lean_mass_percentage': '78.40',
+            'profile_picture': athlete_photo,
+        })
+        self.assertRedirects(res, reverse('training:athlete_detail', kwargs={'pk': self.athlete.pk}))
+
+        self.athlete.refresh_from_db()
+        self.athlete_user.refresh_from_db()
+        self.trainer_user.refresh_from_db()
+
+        self.assertEqual(self.athlete_user.first_name, 'Lucía María')
+        self.assertEqual(self.athlete_user.last_name, 'Gómez Pérez')
+        self.assertEqual(self.athlete_user.email, 'lucia.nueva@test.com')
+        self.assertEqual(self.athlete.sport, 'hyrox')
+        self.assertEqual(self.athlete.experience_level, 'avanzado')
+        self.assertEqual(self.athlete.training_goal, 'resistencia_muscular')
+        self.assertEqual(float(self.athlete.weight), 64.5)
+        self.assertEqual(float(self.athlete.height), 169.0)
+        self.assertEqual(float(self.athlete.fat_percentage), 16.2)
+        self.assertEqual(float(self.athlete.lean_mass_percentage), 78.4)
+        self.assertTrue(self.athlete_user.has_profile_picture)
+        self.assertIn('lucia_avatar', self.athlete_user.profile_picture.name)
+
+        # La foto y datos del entrenador permanecen intactos
+        self.assertEqual(self.trainer_user.profile_picture.name, trainer_original_photo)
+        self.assertEqual(self.trainer_user.first_name, 'Entrenador')
+
+        # Si el entrenador borra la foto del deportista, solo se borra la del deportista
+        self.client.post(edit_url, {
+            'first_name': 'Lucía María',
+            'last_name': 'Gómez Pérez',
+            'email': 'lucia.nueva@test.com',
+            'sport': 'hyrox',
+            'experience_level': 'avanzado',
+            'training_goal': 'resistencia_muscular',
+            'weight': '64.50',
+            'height': '169.00',
+            'delete_profile_picture': '1',
+        })
+        self.athlete_user.refresh_from_db()
+        self.trainer_user.refresh_from_db()
+        self.assertFalse(self.athlete_user.has_profile_picture)
+        self.assertTrue(self.trainer_user.has_profile_picture)
+
+    def test_trainer_can_delete_assigned_athlete_and_other_trainer_cannot(self):
+        """El entrenador puede eliminar a un deportista asignado; otro entrenador recibe 404."""
+        delete_url = reverse('training:trainer_athlete_delete', kwargs={'pk': self.athlete.pk})
+
+        # Otro entrenador no puede ver ni eliminar al deportista
+        self.client.force_login(self.other_trainer_user)
+        self.assertEqual(self.client.get(delete_url).status_code, 404)
+        self.assertEqual(self.client.post(delete_url).status_code, 404)
+        self.assertTrue(AthleteProfile.objects.filter(pk=self.athlete.pk).exists())
+
+        # El entrenador asignado ve la confirmación y puede eliminarlo
+        self.client.force_login(self.trainer_user)
+        confirm_res = self.client.get(delete_url)
+        self.assertEqual(confirm_res.status_code, 200)
+        self.assertContains(confirm_res, 'Lucía Gómez')
+
+        del_res = self.client.post(delete_url)
+        self.assertRedirects(del_res, reverse('training:trainer_dashboard'), fetch_redirect_response=False)
+        self.assertFalse(AthleteProfile.objects.filter(pk=self.athlete.pk).exists())
+        self.assertFalse(User.objects.filter(pk=self.athlete_user.pk).exists())
+
 
