@@ -605,14 +605,17 @@ class TrainerAthleteProfileUpdateView(TrainerRequiredMixin, UpdateView):
 
 class TrainerAthleteDeleteView(TrainerRequiredMixin, DeleteView):
     """
-    Permite al entrenador eliminar un deportista asignado a su gestión desde «Mis deportistas» o su expediente.
+    Permite al entrenador desasignar un deportista de su gestión («Mis deportistas»).
+    No elimina al usuario ni su perfil de deportista de la base de datos (responsabilidad
+    exclusiva del administrador), permitiendo que el deportista siga existiendo para
+    asignarse a otro entrenador o asumir el rol dual de entrenador y deportista.
     """
     model = AthleteProfile
     template_name = 'training/athlete_confirm_delete.html'
     context_object_name = 'athlete'
 
     def get_queryset(self):
-        """Solo permite eliminar deportistas asignados al entrenador actual."""
+        """Solo permite desasignar deportistas asignados al entrenador actual."""
         return AthleteProfile.objects.filter(
             assigned_trainer=self.request.user
         ).select_related('user')
@@ -627,14 +630,14 @@ class TrainerAthleteDeleteView(TrainerRequiredMixin, DeleteView):
         athlete_user = self.object.user
         display_name = f"{athlete_user.first_name} {athlete_user.last_name}".strip() or athlete_user.email
 
-        if athlete_user != request.user and not athlete_user.is_trainer and not athlete_user.is_staff and not athlete_user.is_superuser:
-            if athlete_user.profile_picture:
-                athlete_user.profile_picture.delete(save=False)
-            athlete_user.delete()
-        else:
-            self.object.delete()
+        self.object.assigned_trainer = None
+        self.object.trainer_confirmed = False
+        self.object.save(update_fields=['assigned_trainer', 'trainer_confirmed', 'updated_at'])
 
-        messages.success(request, f"Deportista '{display_name}' eliminado con éxito.")
+        messages.success(
+            request,
+            f"Deportista '{display_name}' desasignado de tu lista de deportistas. Su cuenta sigue activa en la plataforma."
+        )
         return redirect(self.get_success_url())
 
     def get_success_url(self):

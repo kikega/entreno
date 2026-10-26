@@ -1,18 +1,18 @@
 {% extends 'base.html' %}
 
-{% block title %}Eliminar Deportista - EntrenoPro{% endblock %}
+{% block title %}Desasignar Deportista - EntrenoPro{% endblock %}
 
 {% block content %}
 <div class="max-w-xl mx-auto py-8 trainer-theme">
     <div class="bg-white shadow-md rounded-2xl border border-slate-150 overflow-hidden animate-fade-in">
-        <div class="px-6 py-6 border-b border-slate-100 bg-red-50/70">
+        <div class="px-6 py-6 border-b border-slate-100 bg-amber-50/70">
             <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-red-100 text-red-600 rounded-xl border border-red-200 flex-shrink-0">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <div class="p-2.5 bg-amber-100 text-amber-600 rounded-xl border border-amber-200 flex-shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"></path></svg>
                 </div>
                 <div>
-                    <h3 class="text-lg font-headline font-bold text-red-700">Eliminar Deportista</h3>
-                    <p class="text-xs text-red-500 mt-0.5">Esta acción eliminará al deportista y sus registros asociados.</p>
+                    <h3 class="text-lg font-headline font-bold text-amber-800">Desasignar Deportista</h3>
+                    <p class="text-xs text-amber-600 mt-0.5">El deportista dejará de figurar en tu lista de «Mis deportistas», pero su cuenta seguirá activa.</p>
                 </div>
             </div>
         </div>
@@ -35,15 +35,16 @@
             </div>
 
             <p class="text-sm text-slate-600">
-                ¿Seguro que deseas eliminar al deportista
-                <span class="font-headline font-bold text-slate-900">"{{ athlete.user.first_name }} {{ athlete.user.last_name }}"</span> ({{ athlete.user.email }})?
+                ¿Seguro que deseas desasignar al deportista
+                <span class="font-headline font-bold text-slate-900">"{{ athlete.user.first_name }} {{ athlete.user.last_name }}"</span> ({{ athlete.user.email }}) de tu gestión?
             </p>
 
-            {% if plans_count > 0 %}
-                <div class="rounded-xl bg-amber-50 border border-amber-200/60 p-4 text-xs text-amber-800">
-                    ⚠️ Este deportista cuenta con <strong>{{ plans_count }}</strong> plan(es) de entrenamiento asignados que también serán eliminados.
-                </div>
-            {% endif %}
+            <div class="rounded-xl bg-sky-50 border border-sky-200/70 p-4 text-xs text-slate-700 space-y-1">
+                <p class="font-bold text-sky-800">ℹ️ El usuario y su historial NO se eliminan de la base de datos</p>
+                <p>
+                    Solo el administrador puede eliminar cuentas de usuario. Al desasignarlo, el deportista conservará su perfil y entrenamientos, quedando libre para ser asignado a otro entrenador o para activar el rol de entrenador y deportista.
+                </p>
+            </div>
 
             <div class="mt-8 flex flex-col-reverse sm:flex-row items-center justify-end gap-3 border-t border-slate-100 pt-6">
                 <a href="{% url 'training:trainer_dashboard' %}" class="w-full sm:w-auto text-center px-5 py-3 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
@@ -51,8 +52,8 @@
                 </a>
                 <form method="post" class="m-0 w-full sm:w-auto">
                     {% csrf_token %}
-                    <button type="submit" class="w-full sm:w-auto px-5 py-3 rounded-xl text-sm font-headline font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-md shadow-red-600/20 cursor-pointer">
-                        Sí, eliminar deportista
+                    <button type="submit" class="w-full sm:w-auto px-5 py-3 rounded-xl text-sm font-headline font-bold text-white bg-amber-600 hover:bg-amber-700 transition shadow-md shadow-amber-600/20 cursor-pointer">
+                        Sí, desasignar deportista
                     </button>
                 </form>
             </div>

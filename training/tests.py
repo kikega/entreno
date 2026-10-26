@@ -545,25 +545,60 @@ class TrainerAthleteManagementIsolationTests(TestCase):
         self.assertFalse(self.athlete_user.has_profile_picture)
         self.assertTrue(self.trainer_user.has_profile_picture)
 
-    def test_trainer_can_delete_assigned_athlete_and_other_trainer_cannot(self):
-        """El entrenador puede eliminar a un deportista asignado; otro entrenador recibe 404."""
-        delete_url = reverse('training:trainer_athlete_delete', kwargs={'pk': self.athlete.pk})
+    def test_trainer_unassigns_athlete_without_deleting_from_db(self):
+        """
+        El entrenador desasigna al deportista de su gestión sin eliminarlo de la base de datos.
+        El usuario y su perfil deportivo siguen existiendo y pueden asignarse a otro entrenador
+        o activar el rol dual de entrenador y deportista.
+        """
+        unassign_url = reverse('training:trainer_athlete_delete', kwargs={'pk': self.athlete.pk})
 
-        # Otro entrenador no puede ver ni eliminar al deportista
+        # Otro entrenador no puede ver ni desasignar al deportista ajeno
         self.client.force_login(self.other_trainer_user)
-        self.assertEqual(self.client.get(delete_url).status_code, 404)
-        self.assertEqual(self.client.post(delete_url).status_code, 404)
-        self.assertTrue(AthleteProfile.objects.filter(pk=self.athlete.pk).exists())
+        self.assertEqual(self.client.get(unassign_url).status_code, 404)
+        self.assertEqual(self.client.post(unassign_url).status_code, 404)
+        self.athlete.refresh_from_db()
+        self.assertEqual(self.athlete.assigned_trainer, self.trainer_user)
 
-        # El entrenador asignado ve la confirmación y puede eliminarlo
+        # El entrenador asignado ve la pantalla de confirmación y desasigna al deportista
         self.client.force_login(self.trainer_user)
-        confirm_res = self.client.get(delete_url)
+        confirm_res = self.client.get(unassign_url)
         self.assertEqual(confirm_res.status_code, 200)
         self.assertContains(confirm_res, 'Lucía Gómez')
+        self.assertContains(confirm_res, 'Desasignar Deportista')
 
-        del_res = self.client.post(delete_url)
-        self.assertRedirects(del_res, reverse('training:trainer_dashboard'), fetch_redirect_response=False)
-        self.assertFalse(AthleteProfile.objects.filter(pk=self.athlete.pk).exists())
-        self.assertFalse(User.objects.filter(pk=self.athlete_user.pk).exists())
+        post_res = self.client.post(unassign_url)
+        self.assertRedirects(post_res, reverse('training:trainer_dashboard'), fetch_redirect_response=False)
+
+        # El deportista y su usuario SIGUEN existiendo en la base de datos, pero sin entrenador asignado
+        self.assertTrue(AthleteProfile.objects.filter(pk=self.athlete.pk).exists())
+        self.assertTrue(User.objects.filter(pk=self.athlete_user.pk).exists())
+        self.athlete.refresh_from_db()
+        self.assertIsNone(self.athlete.assigned_trainer)
+        self.assertFalse(self.athlete.trainer_confirmed)
+
+        # El deportista ya no aparece en «Mis deportistas» del primer entrenador
+        trainer_home = self.client.get(reverse('home') + '?tab=trainer')
+        self.assertEqual(trainer_home.context['total_athletes'], 0)
+
+        # Caso A: El deportista puede asignarse a otro entrenador desde su propio perfil
+        self.client.force_login(self.athlete_user)
+        assign_res = self.client.post(reverse('users:profile_edit'), {
+            'first_name': 'Lucía',
+            'last_name': 'Gómez',
+            'sport': 'mma',
+            'experience_level': 'principiante',
+            'training_goal': 'potencia_explosiva',
+            'assigned_trainer': self.other_trainer_user.pk,
+        })
+        self.assertEqual(assign_res.status_code, 302)
+        self.athlete.refresh_from_db()
+        self.assertEqual(self.athlete.assigned_trainer, self.other_trainer_user)
+
+        # Caso B: El deportista también puede asumir el rol de entrenador y deportista (perfil dual)
+        become_res = self.client.post(reverse('users:create_trainer_profile'))
+        self.assertEqual(become_res.status_code, 302)
+        self.athlete_user.refresh_from_db()
+        self.assertTrue(self.athlete_user.is_dual)
 
 

@@ -70,7 +70,7 @@ class AthleteProfileForm(forms.ModelForm):
 
     class Meta:
         model = AthleteProfile
-        fields = ['weight', 'height', 'fat_percentage', 'lean_mass_percentage', 'sport', 'experience_level', 'training_goal']
+        fields = ['weight', 'height', 'fat_percentage', 'lean_mass_percentage', 'sport', 'experience_level', 'training_goal', 'assigned_trainer']
         widgets = {
             'weight': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'step': '0.01'}),
             'height': forms.NumberInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'step': '0.01'}),
@@ -79,16 +79,33 @@ class AthleteProfileForm(forms.ModelForm):
             'sport': forms.Select(attrs={'class': 'peer block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'}),
             'experience_level': forms.Select(attrs={'class': 'peer block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'}),
             'training_goal': forms.Select(attrs={'class': 'peer block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'}),
+            'assigned_trainer': forms.Select(attrs={'class': 'peer block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'}),
         }
 
     def __init__(self, *args, **kwargs):
         """Inicializa el formulario cargando el nombre, apellidos y correo actuales desde el modelo CustomUser del deportista."""
         super().__init__(*args, **kwargs)
 
+        self.fields['assigned_trainer'].required = False
+        self.fields['assigned_trainer'].empty_label = "Sin entrenador asignado"
+        self.fields['assigned_trainer'].queryset = CustomUser.objects.filter(
+            trainer_profile__isnull=False
+        ).order_by('first_name', 'email')
+        self.fields['assigned_trainer'].label_from_instance = (
+            lambda obj: f"{obj.first_name} {obj.last_name}".strip() + f" ({obj.email})"
+            if (obj.first_name or obj.last_name) else obj.email
+        )
+
         if self.instance and self.instance.pk and self.instance.user:
             self.fields['first_name'].initial = self.instance.user.first_name
             self.fields['last_name'].initial = self.instance.user.last_name
             self.fields['email'].initial = self.instance.user.email
+
+    def clean_assigned_trainer(self):
+        """Si el campo assigned_trainer no fue enviado en el POST, conserva el entrenador actual de la instancia."""
+        if 'assigned_trainer' not in self.data and self.instance and self.instance.pk:
+            return self.instance.assigned_trainer
+        return self.cleaned_data.get('assigned_trainer')
 
     def clean_email(self):
         """Valida y normaliza el correo electrónico del deportista, conservando el actual si no se envía."""

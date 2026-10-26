@@ -332,6 +332,12 @@
                             {{ form.training_goal }}
                         </div>
                     </div>
+
+                    <div class="pt-2">
+                        <label for="{{ form.assigned_trainer.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">Entrenador Asignado</label>
+                        {{ form.assigned_trainer }}
+                        <p class="text-[11px] text-slate-400 mt-1">Selecciona al entrenador que supervisará tu planificación o déjalo sin asignar.</p>
+                    </div>
                 </div>
 
                 <!-- Sección Composición Corporal (Solo deportistas) -->
