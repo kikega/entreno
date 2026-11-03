@@ -24,10 +24,18 @@
                         sans: ['Inter', 'sans-serif'],
                         headline: ['Montserrat', 'sans-serif'],
                     },
+                    spacing: {
+                        '4.5': '1.125rem',
+                        '5.5': '1.375rem',
+                    },
+                    fontSize: {
+                        'xxs': ['0.6875rem', { lineHeight: '1rem' }],
+                    },
                     colors: {
                         sky: {
                             50: '#F0F9FF',
                             100: '#DFF2FE',
+                            150: '#CBE8FD',
                             200: '#B8E6FE',
                             300: '#74D4FF',
                             400: '#21BCFF',
@@ -38,9 +46,16 @@
                             900: '#024A70',
                             950: '#052F4A',
                         },
+                        slate: {
+                            150: '#EEF2F6',
+                            350: '#B0BECF',
+                            450: '#7C8BA1',
+                        },
                         primary: {
                             DEFAULT: '#2984D1', // sky-600
                             hover: '#1C69A8',
+                            100: '#DFF2FE',
+                            200: '#B8E6FE',
                         },
                         secondary: '#052F4A', // sky-950
                         accent: {
@@ -80,7 +95,7 @@
 
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col antialiased overflow-x-hidden">
+<body class="bg-[#f8fafc] text-slate-900 min-h-[100dvh] flex flex-col antialiased overflow-x-clip">
 
 {% if user.is_authenticated %}
     <!-- ===== Sidebar (desktop) ===== -->
@@ -137,7 +152,7 @@
                         <img src="{{ user.profile_picture.url }}" alt="{{ user.display_name }}" class="w-8 h-8 rounded-lg object-cover border border-white/20 shrink-0">
                     {% else %}
                         <div class="w-8 h-8 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center text-slate-300 shrink-0" title="Usuario">
-                            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                         </div>
@@ -145,7 +160,7 @@
                     <div class="min-w-0 flex-1">
                         <p class="text-xs font-semibold text-white truncate" title="{{ user.email }}">{{ user.email }}</p>
                         <div class="flex items-center gap-1.5 mt-0.5">
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded {% if user.is_dual %}bg-sky-500/20 text-sky-200 border border-sky-400/30{% elif user.is_trainer %}bg-primary/20 text-primary-200 border border-primary/30{% else %}bg-emerald-500/20 text-emerald-200 border border-emerald-400/30{% endif %}">
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded {% if user.is_dual %}bg-sky-500/20 text-sky-200 border border-sky-400/30{% elif user.is_trainer %}bg-primary/20 text-sky-200 border border-primary/30{% else %}bg-emerald-500/20 text-emerald-200 border border-emerald-400/30{% endif %}">
                                 {{ user.role_label }}
                             </span>
                         </div>
@@ -155,8 +170,8 @@
 
             <form method="post" action="{% url 'users:logout' %}" class="m-0">
                 {% csrf_token %}
-                <button type="submit" class="w-full flex items-center justify-center gap-2 text-sm font-semibold text-slate-300 hover:text-red-300 bg-transparent border border-white/10 hover:border-red-400/30 rounded-xl px-3 py-2 transition cursor-pointer">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                <button type="submit" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 text-sm font-semibold text-slate-300 hover:text-red-300 bg-transparent border border-white/10 hover:border-red-400/30 rounded-xl px-3 py-2 transition cursor-pointer">
+                    <svg class="w-4 h-4 shrink-0 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     Cerrar sesión
                 </button>
             </form>
@@ -189,10 +204,10 @@
                         <span class="text-[9px] font-bold text-accent truncate">{{ user.role_label }}</span>
                     </div>
                 </div>
-                <form method="post" action="{% url 'users:logout' %}" class="inline m-0">
+                <form method="post" action="{% url 'users:logout' %}" class="inline-flex m-0">
                     {% csrf_token %}
-                    <button type="submit" title="Cerrar sesión" aria-label="Cerrar sesión" class="p-2 rounded-lg text-slate-300 hover:text-red-300 hover:bg-white/5 transition cursor-pointer">
-                        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <button type="submit" title="Cerrar sesión" aria-label="Cerrar sesión" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-300 hover:text-red-300 hover:bg-white/10 transition cursor-pointer">
+                        <svg class="w-5 h-5 block shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     </button>
                 </form>
             </div>
@@ -205,12 +220,12 @@
             {% for item in caps.nav_items %}
                 <a href="{% url item.url_name %}"
                    aria-current="{% if item.active %}page{% else %}false{% endif %}"
-                   class="flex flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] font-semibold transition
-                          {% if item.active %}text-primary{% else %}text-slate-400 active:text-primary{% endif %}">
-                    <svg class="w-5.5 h-5.5 {% if item.active %}scale-110{% endif %} transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                   class="flex flex-col items-center justify-center gap-1 py-2.5 min-h-[56px] text-[11px] font-semibold transition
+                          {% if item.active %}text-primary{% else %}text-slate-400 hover:text-slate-600 active:text-primary{% endif %}">
+                    <svg class="w-5 h-5 block shrink-0 {% if item.active %}scale-110{% endif %} transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="{% if item.active %}2.2{% else %}1.8{% endif %}" d="{{ item.icon_path }}"></path>
                     </svg>
-                    <span class="truncate max-w-full px-1">{{ item.label }}</span>
+                    <span class="truncate max-w-full px-1 leading-tight">{{ item.label }}</span>
                 </a>
             {% endfor %}
         </div>
@@ -228,7 +243,7 @@
                     </div>
                     <span class="font-headline font-bold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-accent bg-clip-text text-transparent">EntrenoPro</span>
                 </a>
-                <a href="{% url 'users:login' %}" class="text-sm font-semibold bg-primary hover:bg-primary-hover px-4 py-2 rounded-lg text-white transition shadow-md shadow-primary/20">Iniciar Sesión</a>
+                <a href="{% url 'users:login' %}" class="btn-primary text-sm px-4 py-2 rounded-xl">Iniciar Sesión</a>
             </div>
         </div>
     </nav>

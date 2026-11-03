@@ -7,11 +7,18 @@
 {% block content %}
 <div class="space-y-6">
     <!-- Encabezado del Plan de Entrenamiento -->
-    <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-5 sm:p-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
+    <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 sm:p-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
         <div class="min-w-0">
-            <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-sky-50 px-3 py-1 rounded-full border border-sky-100">
-                PLAN DE ENTRENAMIENTO
-            </span>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-sky-50 px-3 py-1 rounded-full border border-sky-100">
+                    PLAN DE ENTRENAMIENTO
+                </span>
+                {% if plan.macrocycle_block %}
+                    <span class="text-xs font-headline font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                        {{ plan.macrocycle_block.title }}{% if plan.week_number %} · Sem {{ plan.week_number }}{% endif %}{% if plan.day_number %} · Día {{ plan.day_number }}{% endif %}
+                    </span>
+                {% endif %}
+            </div>
             <h2 class="text-2xl font-headline font-extrabold text-slate-800 mt-3 break-words">{{ plan.name|default:"Sesión de Entrenamiento" }}</h2>
             <div class="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500">
                 <div class="flex items-center gap-1.5">
@@ -31,9 +38,9 @@
                 </div>
             </div>
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto shrink-0">
+        <div class="action-toolbar w-full lg:w-auto lg:justify-end shrink-0">
             {% if can_manage_plan %}
-                <button type="button" onclick="openModal('addExerciseModal')" class="btn-primary inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-headline font-semibold text-sm transition hover:scale-[1.02] shadow-md shadow-primary/15">
+                <button type="button" onclick="openModal('addExerciseModal')" class="btn-primary w-full sm:w-auto min-h-[42px] px-4 py-2.5 rounded-xl font-headline font-semibold text-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                     Añadir Ejercicio
                 </button>
@@ -41,20 +48,30 @@
 
             {% if is_plan_owner %}
                 {% if not plan.is_completed %}
-                    <a href="{% url 'training:live_workout' plan.id %}" class="btn-accent inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-headline font-semibold text-sm transition hover:scale-[1.02] shadow-md shadow-accent/20">
+                    <a href="{% url 'training:live_workout' plan.id %}" class="btn-accent w-full sm:w-auto min-h-[42px] px-4 py-2.5 rounded-xl font-headline font-semibold text-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
                         Iniciar Modo en Vivo
                     </a>
                 {% else %}
-                    <a href="{% url 'training:live_workout' plan.id %}" class="inline-flex items-center justify-center px-4 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                    <a href="{% url 'training:live_workout' plan.id %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
                         Ver Sesión en Vivo
                     </a>
                 {% endif %}
-                <a href="{% url 'training:athlete_dashboard' %}" class="inline-flex items-center justify-center px-4 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                {% if plan.macrocycle_block %}
+                    <a href="{% url 'training:athlete_active_block' %}?block={{ plan.macrocycle_block.id }}{% if plan.day_number %}&day={{ plan.day_number }}{% endif %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
+                        Matriz 4 Semanas
+                    </a>
+                {% endif %}
+                <a href="{% url 'training:athlete_dashboard' %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
                     Volver a Mi Entrenamiento
                 </a>
             {% else %}
-                <a href="{% url 'training:athlete_detail' plan.athlete.id %}" class="inline-flex items-center justify-center px-4 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                {% if plan.macrocycle_block %}
+                    <a href="{% url 'training:macrocycle_control' plan.macrocycle_block.macrocycle_id %}?block={{ plan.macrocycle_block.block_number }}{% if plan.day_number %}&day={{ plan.day_number }}{% endif %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
+                        Volver al Macrociclo
+                    </a>
+                {% endif %}
+                <a href="{% url 'training:athlete_detail' plan.athlete.id %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
                     Volver al Deportista
                 </a>
             {% endif %}
@@ -62,7 +79,7 @@
     </div>
 
     <!-- Lista de Ejercicios Programados (ancho completo) -->
-    <div class="bg-white shadow-sm rounded-2xl border border-slate-150 overflow-hidden">
+    <div class="bg-white shadow-sm rounded-2xl border border-slate-200 overflow-hidden">
         <div class="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
             <h3 class="text-lg font-headline font-bold text-slate-800">Ejercicios Programados</h3>
             <span class="text-xs font-semibold text-slate-500">{{ plan.planned_exercises.count }} ejercicio{{ plan.planned_exercises.count|pluralize }}</span>
@@ -110,11 +127,11 @@
                         <div class="grid grid-cols-2 gap-3 pt-2 text-sm text-slate-600">
                             <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                                 <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Series x Reps</span>
-                                <span class="font-bold text-slate-800">{{ planned.sets }} x {{ planned.reps }}</span>
+                                <span class="font-bold text-slate-800">{% if planned.am_reps_fraction %}{{ planned.sets }} x {{ planned.am_reps_fraction }}{% else %}{{ planned.sets }} x {{ planned.reps }}{% endif %}</span>
                             </div>
                             <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                                 <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Carga / Intensidad</span>
-                                <span class="font-bold text-slate-800">{{ planned.load }} {% if planned.rpe %}@ RPE {{ planned.rpe }}{% endif %}</span>
+                                <span class="font-bold text-slate-800">{% if planned.am_fractional_intensity %}{% if planned.load %}{{ planned.load }} · {% endif %}{{ planned.am_fractional_intensity }}{% else %}{{ planned.load }} {% if planned.rpe %}@ RPE {{ planned.rpe }}{% endif %}{% endif %}</span>
                             </div>
                             <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                                 <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Descanso</span>
@@ -177,7 +194,7 @@
 
             {% if session.started_at %}
                 <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
-                    <p class="text-sm text-slate-500">Tiempo total de la sesión: <strong class="text-slate-800" id="sessionTimer" data-started="{{ session.started_at|date:'c' }}">00:00</strong></p>
+                    <p class="text-sm text-slate-500">Tiempo total de la sesión: <strong class="text-slate-800 mono-timer" id="sessionTimer" data-started="{{ session.started_at|date:'c' }}">00:00</strong></p>
                     <a href="{% url 'training:plan_detail' plan.id %}" class="text-sm font-semibold text-primary hover:underline">Refrescar</a>
                 </div>
             {% endif %}
@@ -186,7 +203,7 @@
 
     {% if is_plan_owner and plan.is_completed and workout_session %}
         <!-- Resumen de Sesión Registrada (ancho completo) -->
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-6">
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-6">
             <h3 class="text-lg font-headline font-bold text-slate-800 border-b border-slate-100 pb-3 mb-5 flex items-center gap-1.5 text-accent">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Sesión Completada
@@ -220,11 +237,11 @@
 {% if can_manage_plan %}
 <div id="addExerciseModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('addExerciseModal')"></div>
-    <div class="relative min-h-full flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="relative min-h-full w-full flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="relative bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto animate-fade-in">
-            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 sticky top-0 rounded-t-2xl">
+            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 sticky top-0 z-10 rounded-t-2xl">
                 <h3 class="text-lg font-headline font-bold text-slate-800">Añadir Ejercicio al Plan</h3>
-                <button type="button" onclick="closeModal('addExerciseModal')" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition">
+                <button type="button" onclick="closeModal('addExerciseModal')" aria-label="Cerrar" class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -239,13 +256,13 @@
                             </div>
                         {% endfor %}
                     </div>
-                    <div class="mt-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2">
-                        <button type="button" onclick="closeModal('addExerciseModal')" class="w-full sm:w-auto px-5 py-3 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                    <div class="mt-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-4 border-t border-slate-100">
+                        <button type="button" onclick="closeModal('addExerciseModal')" class="btn-secondary w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-semibold rounded-xl">
                             Cancelar
                         </button>
-                        <button type="submit" class="w-full sm:w-auto btn-primary inline-flex items-center justify-center py-3 px-5 rounded-xl text-base font-headline font-bold transition shadow-md shadow-primary/15">
-                            <span class="htmx-indicator mr-2">
-                                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <button type="submit" class="btn-primary w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-headline font-bold">
+                            <span class="htmx-indicator mr-1">
+                                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                             </span>
                             Añadir al Plan
                         </button>
@@ -260,7 +277,7 @@
 <!-- ===== Modal: Confirmar Finalización de Ejercicio ===== -->
 <div id="finishExerciseModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeFinishModal()"></div>
-    <div class="relative min-h-full flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="relative min-h-full w-full flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="relative bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
             <div class="px-6 py-6 text-center">
                 <div class="mx-auto inline-flex p-3.5 rounded-2xl bg-amber-50 border border-amber-200 mb-4">
@@ -276,11 +293,11 @@
 
                 <p class="text-xs text-slate-400 mt-4">Al terminar se detendrá el cronómetro y se guardará el tiempo de este ejercicio.</p>
             </div>
-            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/40">
-                <button type="button" onclick="closeModal('finishExerciseModal')" class="px-5 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+            <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 px-6 py-4 border-t border-slate-100 bg-slate-50/40">
+                <button type="button" onclick="closeModal('finishExerciseModal')" class="btn-secondary w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-semibold rounded-xl">
                     Cancelar
                 </button>
-                <button type="button" id="finishExerciseConfirm" class="btn-primary px-5 py-2.5 rounded-xl text-base font-headline font-bold transition hover:scale-[1.02] shadow-md shadow-primary/15">
+                <button type="button" id="finishExerciseConfirm" class="btn-accent w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-headline font-bold">
                     Terminar Ejercicio
                 </button>
             </div>

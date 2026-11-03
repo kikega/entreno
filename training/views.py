@@ -1,4 +1,4 @@
-from django.views.generic import TemplateView, CreateView, DetailView, UpdateView, DeleteView, ListView
+from django.views.generic import View, TemplateView, CreateView, DetailView, UpdateView, DeleteView, ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -9,15 +9,23 @@ from django.contrib.auth.decorators import login_required
 
 import json
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.db.models import Q, Count
 from django.utils import timezone
 
 from users.models import AthleteProfile, AthleteProgressLog
 from users.forms import AthleteProgressLogForm, AthleteProfileForm
-from .models import WorkoutPlan, PlannedExercise, WorkoutSession, LoggedExercise, LoggedSet, Exercise
-from .forms import WorkoutPlanForm, PlannedExerciseForm, WorkoutSessionForm, ExerciseForm
+from .models import (
+    WorkoutPlan, PlannedExercise, WorkoutSession, LoggedExercise, LoggedSet,
+    Exercise, MMATriageProfile, TrainerNotification, Macrocycle, MacrocycleBlock,
+)
+from .forms import (
+    WorkoutPlanForm, PlannedExerciseForm, WorkoutSessionForm, ExerciseForm,
+    AthleteMMATriageForm, TrainerMMATriageClinicalForm,
+    MacrocycleBlockConfigForm, BlockProgressionPrescribeForm,
+)
+from .am_macrocycle import build_mesocycle_matrix
 from .analytics import (
     calculate_acwr,
     get_athlete_sport_metrics,
@@ -56,20 +64,39 @@ class AthleteRequiredMixin(LoginRequiredMixin):
 def build_trainer_context(user):
     """
     Construye el contexto del área de gestión: deportistas asignados,
-    métricas de carga/rendimiento (ACWR) y totales del catálogo.
+    métricas de carga/rendimiento (ACWR), estado de triage MMA y alertas activas.
     """
     trainer = user.trainer_profile
-    athletes = AthleteProfile.objects.filter(
-        assigned_trainer=user
-    ).select_related('user')
+    athletes = list(
+        AthleteProfile.objects.filter(assigned_trainer=user)
+        .select_related('user', 'mma_triage')
+    )
+    active_macrocycles_by_athlete = {}
+    for mc in (
+        Macrocycle.objects.filter(athlete__in=athletes, is_active=True)
+        .prefetch_related('blocks')
+        .order_by('-created_at')
+    ):
+        active_macrocycles_by_athlete.setdefault(mc.athlete_id, mc)
 
     athletes_metrics = []
+    pending_triage_count = 0
     for athlete in athletes:
         metrics = get_athlete_sport_metrics(athlete)
+        triage = getattr(athlete, 'mma_triage', None)
+        if triage and triage.review_status == 'pendiente_revision':
+            pending_triage_count += 1
         athletes_metrics.append({
             'athlete': athlete,
-            'metrics': metrics
+            'metrics': metrics,
+            'mma_triage': triage,
+            'active_macrocycle': active_macrocycles_by_athlete.get(athlete.id),
         })
+
+    unread_notifications = list(
+        trainer.notifications.filter(is_read=False)
+        .select_related('athlete__user')[:10]
+    )
 
     return {
         'athletes': athletes,
@@ -77,23 +104,55 @@ def build_trainer_context(user):
         'total_athletes': len(athletes),
         'total_plans': trainer.created_plans.count(),
         'total_exercises': Exercise.objects.count(),
+        'unread_notifications': unread_notifications,
+        'pending_triage_count': pending_triage_count,
     }
 
 
 def build_athlete_context(user):
     """
     Construye el contexto del área personal del deportista: métricas,
-    próximos planes, gráficos de peso/composición e historial reciente.
+    próximos planes (aislando bloques no publicados), bloque activo del Sistema AM,
+    gráficos de peso/composición, historial reciente y ficha de Triage MMA.
     """
     profile = user.athlete_profile
+    mma_triage = MMATriageProfile.objects.filter(athlete=profile).first()
+
+    visible_plans_qs = (
+        profile.assigned_plans
+        .filter(WorkoutPlan.visible_to_athlete_q())
+        .select_related('macrocycle_block')
+    )
+    active_macrocycle = (
+        Macrocycle.objects.filter(athlete=profile, is_active=True)
+        .order_by('-created_at')
+        .first()
+    )
+    active_block = active_macrocycle.active_published_block if active_macrocycle else None
+    active_block_summary = None
+    if active_block is not None:
+        block_plans = list(
+            active_block.workout_plans.order_by('week_number', 'day_number', 'target_date')
+        )
+        completed_block_plans = sum(1 for p in block_plans if p.is_completed)
+        active_block_summary = {
+            'block': active_block,
+            'plans': block_plans,
+            'total_sessions': len(block_plans),
+            'completed_sessions': completed_block_plans,
+            'next_block_plan': next((p for p in block_plans if not p.is_completed), None),
+        }
 
     context = {
         'metrics': get_athlete_sport_metrics(profile),
         'total_completed_workouts': profile.sessions.count(),
-        'next_plan': profile.assigned_plans.filter(is_completed=False).order_by('target_date').first(),
+        'next_plan': visible_plans_qs.filter(is_completed=False).order_by('target_date').first(),
+        'visible_plans': list(visible_plans_qs.order_by('-target_date')[:5]),
+        'active_block_summary': active_block_summary,
         'trainer': profile.assigned_trainer,
         'log_form': AthleteProgressLogForm(),
         'profile': profile,
+        'mma_triage': mma_triage,
     }
 
     # Chart Data preparation
@@ -166,6 +225,27 @@ class WorkoutPlanCreateView(TrainerRequiredMixin, CreateView):
     form_class = WorkoutPlanForm
     template_name = 'training/workout_plan_form.html'
 
+    def _get_preselected_athlete(self):
+        athlete_id = self.request.GET.get('athlete') or self.request.POST.get('preselected_athlete')
+        if not athlete_id or not str(athlete_id).isdigit():
+            return None
+        return AthleteProfile.objects.filter(
+            Q(assigned_trainer=self.request.user) | Q(user=self.request.user),
+            pk=int(athlete_id),
+        ).first()
+
+    def get_initial(self):
+        initial = super().get_initial()
+        athlete = self._get_preselected_athlete()
+        if athlete:
+            initial['athlete'] = athlete.pk
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['preselected_athlete'] = self._get_preselected_athlete()
+        return context
+
     def get_form_kwargs(self):
         """Pasa la instancia del entrenador al formulario para filtrar sus atletas asignados."""
         kwargs = super().get_form_kwargs()
@@ -194,14 +274,16 @@ class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'plan'
 
     def get_object(self, queryset=None):
-        """Restringe el acceso al entrenador creador y al deportista asignado al plan."""
+        """Restringe el acceso al entrenador creador y al deportista asignado (solo si el bloque está publicado)."""
         obj = super().get_object(queryset)
         user = self.request.user
-        allowed = (
-            (user.is_trainer and obj.trainer == user.trainer_profile) or
-            (user.is_athlete and obj.athlete == user.athlete_profile)
+        can_manage = user.is_trainer and obj.trainer == user.trainer_profile
+        is_athlete_allowed = (
+            user.is_athlete
+            and obj.athlete == user.athlete_profile
+            and obj.is_visible_to_athlete
         )
-        if not allowed:
+        if not (can_manage or is_athlete_allowed):
             raise Http404("Plan de entrenamiento no encontrado.")
         return obj
 
@@ -250,11 +332,15 @@ class LiveWorkoutView(AthleteRequiredMixin, DetailView):
     context_object_name = 'plan'
 
     def dispatch(self, request, *args, **kwargs):
-        """Comprueba que el deportista autenticado sea el destinatario del plan antes de dar acceso."""
+        """Comprueba que el deportista autenticado sea el destinatario y que el bloque esté publicado."""
+        if not request.user.is_authenticated or not request.user.is_athlete:
+            return super().dispatch(request, *args, **kwargs)
         obj = self.get_object()
         if obj.athlete != request.user.athlete_profile:
             messages.error(request, "No tienes acceso a este entrenamiento.")
             return redirect('home')
+        if not obj.is_visible_to_athlete:
+            raise Http404("Este bloque de entrenamiento aún no ha sido publicado.")
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -290,8 +376,12 @@ def log_set_htmx(request, planned_id):
     planned_exercise = get_object_or_404(PlannedExercise, pk=planned_id)
     plan = planned_exercise.workout_plan
 
-    # Validar permisos
-    if not request.user.is_athlete or plan.athlete != request.user.athlete_profile:
+    # Validar permisos y visibilidad del bloque
+    if (
+        not request.user.is_athlete
+        or plan.athlete != request.user.athlete_profile
+        or not plan.is_visible_to_athlete
+    ):
         return HttpResponse("No autorizado", status=403)
 
     try:
@@ -338,15 +428,15 @@ def log_set_htmx(request, planned_id):
     logged_ex.save()
 
     html = f"""
-    <div class="flex justify-between items-center bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 animate-fade-in">
+    <div class="flex flex-wrap justify-between items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 animate-fade-in">
         <div class="flex items-center gap-2">
-            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md font-bold">Serie {logged_set.set_number}</span>
+            <span class="px-2 py-0.5 bg-sky-100 text-sky-800 rounded-md font-bold">Serie {logged_set.set_number}</span>
             <span>{logged_set.weight_kg} kg × {logged_set.reps} reps</span>
         </div>
         <div class="flex items-center gap-3 text-slate-500">
-            {"<span class='text-indigo-600 font-bold'>1RM~" + str(logged_set.est_1rm) + "kg</span> · <span class='text-primary font-bold'>" + str(logged_set.pct_1rm) + "% 1RM</span>" if logged_set.pct_1rm else ""}
+            {"<span class='text-sky-600 font-bold'>1RM~" + str(logged_set.est_1rm) + " kg</span> · <span class='text-primary font-bold'>" + str(logged_set.pct_1rm) + "% 1RM</span>" if logged_set.pct_1rm else ""}
             <span>RPE {logged_set.rpe}</span>
-            <span class="text-emerald-500 font-bold">✓</span>
+            <span class="text-emerald-600 font-bold">✓</span>
         </div>
     </div>
     """
@@ -363,7 +453,11 @@ def start_exercise(request, planned_id):
     planned_exercise = get_object_or_404(PlannedExercise, pk=planned_id)
     plan = planned_exercise.workout_plan
 
-    if not request.user.is_athlete or plan.athlete != request.user.athlete_profile:
+    if (
+        not request.user.is_athlete
+        or plan.athlete != request.user.athlete_profile
+        or not plan.is_visible_to_athlete
+    ):
         return HttpResponse("No autorizado", status=403)
 
     session, _ = WorkoutSession.objects.get_or_create(
@@ -394,7 +488,11 @@ def finish_exercise(request, planned_id):
     planned_exercise = get_object_or_404(PlannedExercise, pk=planned_id)
     plan = planned_exercise.workout_plan
 
-    if not request.user.is_athlete or plan.athlete != request.user.athlete_profile:
+    if (
+        not request.user.is_athlete
+        or plan.athlete != request.user.athlete_profile
+        or not plan.is_visible_to_athlete
+    ):
         return HttpResponse("No autorizado", status=403)
 
     session, _ = WorkoutSession.objects.get_or_create(
@@ -476,6 +574,8 @@ def complete_workout(request, plan_id):
     if not request.user.is_athlete or plan.athlete != request.user.athlete_profile:
         messages.error(request, "No tienes permiso para completar este entrenamiento.")
         return redirect('home')
+    if not plan.is_visible_to_athlete:
+        return HttpResponse("Este bloque aún no ha sido publicado.", status=403)
 
     form = WorkoutSessionForm(request.POST)
 
@@ -558,10 +658,17 @@ class AthleteDetailView(TrainerRequiredMixin, DetailView):
         )
 
     def get_context_data(self, **kwargs):
-        """Carga los planes asignados ordenados por fecha y las métricas avanzadas del deportista."""
+        """Carga los planes asignados ordenados por fecha, ficha de Triage MMA, macrociclo activo y métricas del deportista."""
         context = super().get_context_data(**kwargs)
         context['plans'] = self.object.assigned_plans.all().order_by('-target_date')
         context['metrics'] = get_athlete_sport_metrics(self.object)
+        context['mma_triage'] = MMATriageProfile.objects.filter(athlete=self.object).first()
+        context['active_macrocycle'] = (
+            Macrocycle.objects.filter(athlete=self.object, is_active=True)
+            .prefetch_related('blocks')
+            .order_by('-created_at')
+            .first()
+        )
         return context
 
 
@@ -660,7 +767,7 @@ class ExerciseListView(TrainerRequiredMixin, ListView):
         qs = self.base_qs.order_by('name')
         q = self.request.GET.get('q', '').strip()
         if q:
-            qs = qs.filter(name__icontains=q)
+            qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q))
         self.current_category = self.request.GET.get('cat', '').strip()
         if self.current_category in dict(Exercise.CATEGORY_CHOICES):
             qs = qs.filter(category=self.current_category)
@@ -760,6 +867,480 @@ def exercise_detail_modal_view(request, pk):
     """
     exercise = get_object_or_404(Exercise, pk=pk)
     return render(request, 'training/partials/exercise_detail_modal.html', {'exercise': exercise})
+
+
+class AthleteMMATriageView(AthleteRequiredMixin, View):
+    """
+    Ficha Única Editable del Atleta para el Sistema AM (Flujos A y B).
+    Permite al luchador completar su ingesta inicial o actualizar en cualquier momento su fecha de
+    combate, peso o marcas (RM / Wingate) sobre el mismo expediente único, activando automáticamente
+    el protocolo 'Reset on Submit' sin exponer jamás las columnas privadas del entrenador.
+    """
+    template_name = 'training/mma_triage_athlete_form.html'
+
+    def _get_or_init_triage(self, athlete: AthleteProfile) -> MMATriageProfile:
+        triage, created = MMATriageProfile.objects.get_or_create(
+            athlete=athlete,
+            defaults={
+                'fasting_weight_kg': athlete.weight,
+            },
+        )
+        return triage
+
+    def get(self, request, *args, **kwargs):
+        triage = self._get_or_init_triage(request.user.athlete_profile)
+        form = AthleteMMATriageForm(instance=triage)
+        return render(request, self.template_name, {
+            'form': form,
+            'triage': triage,
+        })
+
+    def post(self, request, *args, **kwargs):
+        triage = self._get_or_init_triage(request.user.athlete_profile)
+        form = AthleteMMATriageForm(request.POST, instance=triage)
+        if form.is_valid():
+            updated_triage = form.save(commit=False)
+            updated_triage.submit_by_athlete()
+            messages.success(
+                request,
+                "Tu Ficha Única MMA se ha actualizado correctamente. "
+                "Tu entrenador ha recibido una alerta para revisar los cambios."
+            )
+            return redirect('training:athlete_mma_triage')
+
+        messages.error(
+            request,
+            "Revisa los campos marcados en rojo antes de guardar tu ficha."
+        )
+        return render(request, self.template_name, {
+            'form': form,
+            'triage': triage,
+        })
+
+
+class TrainerMMATriageReviewView(TrainerRequiredMixin, View):
+    """
+    Panel Clínico Privado y Cerrojo Manual del Entrenador para el Sistema AM (Flujo A pasos 3-4 y Flujo B).
+    Permite al entrenador asignado completar pruebas durante la entrevista (Ángulo ISA, Wingate, RM),
+    configurar Hard Overrides de candados, Vetos Biomecánicos, Directrices Clínicas Privadas
+    (`Prompt_Override`) y activar/desactivar el Cerrojo Manual (`approved_for_generation`).
+    """
+    template_name = 'training/mma_triage_trainer_clinical.html'
+
+    def _get_authorized_athlete(self, request, pk: int) -> AthleteProfile:
+        return get_object_or_404(
+            AthleteProfile.objects.select_related('user').filter(
+                Q(assigned_trainer=request.user) | Q(user=request.user)
+            ),
+            pk=pk,
+        )
+
+    def get(self, request, pk: int, *args, **kwargs):
+        athlete = self._get_authorized_athlete(request, pk)
+        triage, _ = MMATriageProfile.objects.get_or_create(
+            athlete=athlete,
+            defaults={'fasting_weight_kg': athlete.weight},
+        )
+        form = TrainerMMATriageClinicalForm(instance=triage)
+        return render(request, self.template_name, {
+            'athlete': athlete,
+            'triage': triage,
+            'form': form,
+        })
+
+    def post(self, request, pk: int, *args, **kwargs):
+        athlete = self._get_authorized_athlete(request, pk)
+        triage, _ = MMATriageProfile.objects.get_or_create(
+            athlete=athlete,
+            defaults={'fasting_weight_kg': athlete.weight},
+        )
+        form = TrainerMMATriageClinicalForm(request.POST, instance=triage)
+        if form.is_valid():
+            updated_triage = form.save(commit=False)
+            updated_triage.review_by_trainer(request.user.trainer_profile)
+            if updated_triage.approved_for_generation:
+                messages.success(
+                    request,
+                    f"Expediente clínico de {athlete.user.display_name} auditado y APROBADO (Cerrojo Manual activo)."
+                )
+            else:
+                messages.info(
+                    request,
+                    f"Cambios clínicos guardados para {athlete.user.display_name}. "
+                    "El expediente permanece en estado PENDIENTE DE REVISIÓN (Cerrojo desactivado)."
+                )
+            return redirect('training:trainer_mma_triage', pk=athlete.pk)
+
+        messages.error(
+            request,
+            "No se pudo guardar la auditoría clínica. Revisa los errores indicados abajo."
+        )
+        return render(request, self.template_name, {
+            'athlete': athlete,
+            'triage': triage,
+            'form': form,
+        })
+
+
+@login_required
+@require_POST
+def mark_notification_read(request, notification_id: int):
+    """Marca como leída una alerta operativa del panel del entrenador."""
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+    notif = get_object_or_404(
+        TrainerNotification,
+        pk=notification_id,
+        trainer=request.user.trainer_profile,
+    )
+    notif.is_read = True
+    notif.save(update_fields=['is_read'])
+    if request.headers.get('HX-Request'):
+        return HttpResponse("")
+    return redirect(f"{reverse('home')}?tab=trainer")
+
+
+# ==============================================================================
+# FASE 3: MACROCICLOS DE 4 BLOQUES, PUBLICACIÓN PROGRESIVA Y MATRIZ DE MESOCICLO
+# ==============================================================================
+
+@login_required
+@require_POST
+def macrocycle_init(request, athlete_id: int):
+    """
+    Inicializa (o abre si ya existe uno activo) el Macrociclo Sistema AM de 4 bloques
+    (Off-Season, Pre-Training Camp, Training Camp y Fight Week) para un deportista asignado.
+    Todos los bloques nacen con `is_published=False` (invisibles al atleta hasta publicación).
+    """
+    if not request.user.is_trainer:
+        messages.error(request, "Solo los entrenadores pueden gestionar macrociclos.")
+        return redirect('home')
+
+    athlete = get_object_or_404(
+        AthleteProfile.objects.select_related('user').filter(
+            Q(assigned_trainer=request.user) | Q(user=request.user)
+        ),
+        pk=athlete_id,
+    )
+    triage = MMATriageProfile.objects.filter(athlete=athlete).first()
+    sessions_per_week = triage.available_days_per_week if triage else 3
+    fight_date = triage.next_fight_date if triage else None
+
+    macrocycle = (
+        Macrocycle.objects.filter(
+            athlete=athlete,
+            trainer=request.user.trainer_profile,
+            is_active=True,
+        )
+        .order_by('-created_at')
+        .first()
+    )
+    created = False
+    if macrocycle is None:
+        macrocycle = Macrocycle.objects.create(
+            name=f"Macrociclo Sistema AM — {athlete.user.display_name}",
+            trainer=request.user.trainer_profile,
+            athlete=athlete,
+            target_fight_date=fight_date,
+            is_active=True,
+        )
+        created = True
+
+    macrocycle.initialize_four_blocks(
+        weeks_per_block=4,
+        sessions_per_week=sessions_per_week,
+    )
+
+    if created:
+        messages.success(
+            request,
+            "Macrociclo de 4 bloques (Off-Season, Pre-Training Camp, Training Camp y Fight Week) "
+            "inicializado en modo borrador privado."
+        )
+    return redirect('training:macrocycle_control', pk=macrocycle.pk)
+
+
+class TrainerMacrocycleControlView(TrainerRequiredMixin, View):
+    """
+    Panel de Control (`Panel_Control`) del Entrenador para el Macrociclo Sistema AM.
+    Permite auditar los 4 bloques progresivos (`Bloque 1` a `Bloque 4`), activar/desactivar
+    su publicación progresiva (`[ ] Publicar Bloque 1..4`) y editar/visualizar la Matriz
+    de Mesociclo de 4 semanas por día de entrenamiento.
+    """
+    template_name = 'training/macrocycle_control.html'
+
+    def get(self, request, pk: int, *args, **kwargs):
+        macrocycle = get_object_or_404(
+            Macrocycle.objects.select_related('athlete__user', 'trainer__user'),
+            pk=pk,
+            trainer=request.user.trainer_profile,
+        )
+        macrocycle.initialize_four_blocks()
+        blocks = list(
+            macrocycle.blocks.prefetch_related('workout_plans').order_by('block_number')
+        )
+
+        raw_block_num = request.GET.get('block', '1')
+        selected_block_num = int(raw_block_num) if str(raw_block_num).isdigit() else 1
+        selected_block = next(
+            (b for b in blocks if b.block_number == selected_block_num),
+            blocks[0],
+        )
+
+        raw_day_num = request.GET.get('day', '1')
+        selected_day = int(raw_day_num) if str(raw_day_num).isdigit() else 1
+        selected_day = max(1, min(selected_day, selected_block.sessions_per_week or 3))
+
+        matrix = build_mesocycle_matrix(selected_block, day_number=selected_day)
+        mma_triage = MMATriageProfile.objects.filter(athlete=macrocycle.athlete).first()
+
+        blocks_info = []
+        for b in blocks:
+            b_plans = list(b.workout_plans.all())
+            blocks_info.append({
+                'block': b,
+                'total_plans': len(b_plans),
+                'completed_plans': sum(1 for p in b_plans if p.is_completed),
+            })
+
+        return render(request, self.template_name, {
+            'macrocycle': macrocycle,
+            'blocks_info': blocks_info,
+            'selected_block': selected_block,
+            'selected_day': selected_day,
+            'matrix': matrix,
+            'mma_triage': mma_triage,
+            'block_config_form': MacrocycleBlockConfigForm(instance=selected_block),
+            'prescribe_form': BlockProgressionPrescribeForm(initial={
+                'day_number': selected_day,
+                'order': len(matrix['rows']) + 1,
+            }),
+        })
+
+
+@login_required
+@require_POST
+def toggle_block_publication(request, block_id: int):
+    """
+    Control de Publicación Progresiva (`[ ] Publicar Bloque 1..4`) en `Panel_Control`.
+    Solo el entrenador propietario del macrociclo puede proyectar u ocultar un bloque
+    en la vista `Entrenamiento_Activo` del deportista.
+    """
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+
+    block = get_object_or_404(
+        MacrocycleBlock.objects.select_related('macrocycle__athlete__user'),
+        pk=block_id,
+        macrocycle__trainer=request.user.trainer_profile,
+    )
+
+    action = request.POST.get('action', '').strip().lower()
+    if action == 'publish':
+        new_state = True
+    elif action == 'unpublish':
+        new_state = False
+    elif request.POST.get('mode') == 'checkbox':
+        new_state = 'is_published' in request.POST
+    else:
+        new_state = not block.is_published
+
+    block.set_published(new_state)
+
+    if new_state:
+        messages.success(
+            request,
+            f"✅ '{block.title}' publicado y proyectado en el Entrenamiento Activo de {block.macrocycle.athlete.user.display_name}."
+        )
+    else:
+        messages.info(
+            request,
+            f"🔒 '{block.title}' ocultado para el deportista (modo borrador privado)."
+        )
+
+    day_param = request.POST.get('day') or request.GET.get('day') or '1'
+    target_url = f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}&day={day_param}"
+    return redirect(target_url)
+
+
+@login_required
+@require_POST
+def update_macrocycle_block(request, block_id: int):
+    """Actualiza la configuración estructural (subfase, semanas, días, fechas y notas privadas) de un bloque."""
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+
+    block = get_object_or_404(
+        MacrocycleBlock.objects.select_related('macrocycle'),
+        pk=block_id,
+        macrocycle__trainer=request.user.trainer_profile,
+    )
+    form = MacrocycleBlockConfigForm(request.POST, instance=block)
+    if form.is_valid():
+        form.save()
+        messages.success(request, f"Configuración de '{block.title}' actualizada.")
+    else:
+        messages.error(request, "No se pudo actualizar el bloque. Revisa los valores introducidos.")
+
+    return redirect(
+        f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}"
+    )
+
+
+@login_required
+@require_POST
+def prescribe_block_exercise(request, block_id: int):
+    """
+    Prescribe un ejercicio y su progresión en las 4 semanas (o `weeks_count` semanas) de un bloque
+    para un día de sesión concreto, aplicando dos garantías clave del Sistema AM:
+      1. Recálculo No Destructivo: jamás altera semanas ya completadas o con series reales (`LoggedSet`).
+      2. Nomenclatura Fraccionada y Regla de Accesorios: fuerza RIR 3-4 automáticamente en `B4_Accesorio`
+         si el atleta está en mantenimiento o corte de peso.
+    """
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+
+    block = get_object_or_404(
+        MacrocycleBlock.objects.select_related('macrocycle__athlete', 'macrocycle__trainer'),
+        pk=block_id,
+        macrocycle__trainer=request.user.trainer_profile,
+    )
+    form = BlockProgressionPrescribeForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Datos de prescripción inválidos. Revisa el formulario.")
+        return redirect(
+            f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}"
+        )
+
+    exercise = form.cleaned_data['exercise']
+    session_block = form.cleaned_data['session_block'] or exercise.session_block or ''
+    day_num = min(form.cleaned_data['day_number'], block.sessions_per_week or 6)
+    order = form.cleaned_data['order']
+    tempo = form.cleaned_data['tempo']
+    rest = form.cleaned_data['rest']
+    focus = form.cleaned_data['focus']
+    notes = form.cleaned_data['notes']
+
+    base_date = block.start_date or timezone.now().date()
+    athlete = block.macrocycle.athlete
+    trainer = block.macrocycle.trainer
+
+    updated_weeks = 0
+    preserved_weeks = 0
+
+    for week_num in block.week_numbers:
+        plan_date = base_date + timedelta(days=(week_num - 1) * 7 + (day_num - 1) * 2)
+        plan = (
+            WorkoutPlan.objects.filter(
+                macrocycle_block=block,
+                week_number=week_num,
+                day_number=day_num,
+            )
+            .order_by('id')
+            .first()
+        )
+        if plan is None:
+            plan = WorkoutPlan.objects.create(
+                name=f"{block.title} · Semana {week_num} · Día {day_num}",
+                trainer=trainer,
+                athlete=athlete,
+                macrocycle_block=block,
+                week_number=week_num,
+                day_number=day_num,
+                sport=athlete.sport or 'mma',
+                target_date=plan_date,
+            )
+
+        # Salvaguarda no destructiva: nunca sobrescribir semanas con historial real
+        if plan.has_logged_activity:
+            preserved_weeks += 1
+            continue
+
+        spec = form.week_spec(week_num)
+        pe = PlannedExercise.objects.filter(
+            workout_plan=plan,
+            exercise=exercise,
+            order=order,
+        ).first()
+        if pe is None:
+            pe = PlannedExercise(
+                workout_plan=plan,
+                exercise=exercise,
+                order=order,
+            )
+        pe.session_block = session_block
+        pe.sets = spec['sets']
+        pe.reps = spec['reps']
+        pe.rir = spec['rir']
+        pe.rpe = spec['rpe']
+        pe.load = spec['load']
+        pe.tempo = tempo
+        pe.rest = rest
+        pe.focus = focus
+        pe.notes = notes
+        pe.save()
+        updated_weeks += 1
+
+    msg = f"Ejercicio '{exercise.name}' pautado en {updated_weeks} semana(s) del Día {day_num}."
+    if preserved_weeks:
+        msg += f" Se protegieron intactas {preserved_weeks} semana(s) con marcas ya registradas."
+    messages.success(request, msg)
+
+    return redirect(
+        f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}&day={day_num}"
+    )
+
+
+class AthleteActiveBlockView(AthleteRequiredMixin, View):
+    """
+    Vista `Entrenamiento_Activo` del deportista (Sistema AM §4).
+    Proyecta exclusivamente el bloque publicado activo en formato de Matriz de 4 Semanas,
+    manteniendo 100 % invisibles e inaccesibles (`404`) los bloques no publicados y las
+    notas privadas de auditoría del entrenador.
+    """
+    template_name = 'training/active_block_athlete.html'
+
+    def get(self, request, *args, **kwargs):
+        profile = request.user.athlete_profile
+        macrocycle = (
+            Macrocycle.objects.filter(athlete=profile, is_active=True)
+            .order_by('-created_at')
+            .first()
+        )
+
+        published_blocks = list(macrocycle.published_blocks) if macrocycle else []
+        requested_block_id = request.GET.get('block')
+        selected_block = None
+
+        if requested_block_id:
+            if not str(requested_block_id).isdigit():
+                raise Http404("Bloque no encontrado.")
+            selected_block = get_object_or_404(
+                MacrocycleBlock,
+                pk=int(requested_block_id),
+                macrocycle__athlete=profile,
+                is_published=True,
+            )
+        elif macrocycle is not None:
+            selected_block = macrocycle.active_published_block
+
+        selected_day = 1
+        matrix = None
+        if selected_block is not None:
+            raw_day = request.GET.get('day', '1')
+            selected_day = int(raw_day) if str(raw_day).isdigit() else 1
+            selected_day = max(1, min(selected_day, selected_block.sessions_per_week or 3))
+            matrix = build_mesocycle_matrix(selected_block, day_number=selected_day)
+
+        return render(request, self.template_name, {
+            'macrocycle': macrocycle if published_blocks else None,
+            'published_blocks': published_blocks,
+            'selected_block': selected_block,
+            'selected_day': selected_day,
+            'matrix': matrix,
+        })
+
+
 
 
 

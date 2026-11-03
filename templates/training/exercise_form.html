@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto py-8 trainer-theme">
-    <div class="bg-white shadow-md rounded-2xl border border-slate-150 overflow-hidden animate-fade-in">
+    <div class="bg-white shadow-md rounded-2xl border border-slate-200 overflow-hidden animate-fade-in">
         <!-- Encabezado -->
         <div class="px-6 py-6 border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white relative">
             <div class="absolute top-0 right-0 p-4 opacity-10">
@@ -49,15 +49,15 @@
 
                 <div>
                     <span class="block text-xs font-headline font-bold text-slate-500 mb-2">Etiquetas de Deportes</span>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {% for value, label in form.sport_tags.field.choices %}
-                            <div class="relative flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 cursor-pointer transition hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                            <label for="id_sport_tags_{{ forloop.counter0 }}" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 cursor-pointer transition hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-sky-50">
                                 <input type="checkbox" name="{{ form.sport_tags.html_name }}" value="{{ value }}"
                                        id="id_sport_tags_{{ forloop.counter0 }}"
-                                       class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                                       class="h-4 w-4 rounded accent-sky-600 shrink-0"
                                        {% if value in form.sport_tags.value or value in form.sport_tags.initial %}checked{% endif %}>
-                                <label for="id_sport_tags_{{ forloop.counter0 }}" class="text-sm font-medium text-slate-700 cursor-pointer">{{ label }}</label>
-                            </div>
+                                <span class="text-sm font-medium text-slate-700">{{ label }}</span>
+                            </label>
                         {% endfor %}
                     </div>
                     <p class="mt-1 text-xs text-slate-400">{{ form.sport_tags.help_text }}</p>
@@ -79,11 +79,11 @@
                     {% if form.video_url.errors %}<p class="mt-1 text-sm text-red-600">{{ form.video_url.errors.0 }}</p>{% endif %}
                 </div>
 
-                <div class="pt-6 border-t border-slate-100 flex items-center justify-end gap-3">
-                    <a href="{% url 'training:exercise_list' %}" class="w-full sm:w-auto text-center px-5 py-3 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                <div class="pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
+                    <a href="{% url 'training:exercise_list' %}" class="btn-secondary w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-semibold rounded-xl">
                         Cancelar
                     </a>
-                    <button type="submit" class="w-full sm:w-auto btn-primary px-5 py-3 rounded-xl font-headline font-bold text-sm transition hover:scale-[1.01] shadow-md shadow-primary/15">
+                    <button type="submit" class="btn-primary w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl font-headline font-bold text-sm">
                         {% if object %}Guardar Cambios{% else %}Crear Ejercicio{% endif %}
                     </button>
                 </div>

@@ -25,14 +25,14 @@
                     </div>
                 </div>
             </div>
-            <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto shrink-0">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
                 {% if not plan.is_completed %}
-                    <button type="button" onclick="openModal('completeWorkoutModal')" class="btn-accent px-5 py-3 rounded-xl font-headline font-bold text-sm inline-flex items-center justify-center gap-2 transition hover:scale-[1.02] shadow-lg shadow-accent/20">
+                    <button type="button" onclick="openModal('completeWorkoutModal')" class="btn-accent min-h-[44px] px-5 py-2.5 rounded-xl font-headline font-bold text-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Finalizar Entrenamiento
                     </button>
                 {% endif %}
-                <a href="{% url 'training:athlete_dashboard' %}" class="inline-flex items-center justify-center px-5 py-3 border border-white/15 bg-white/10 text-sm font-semibold rounded-xl text-white hover:bg-white/20 transition">
+                <a href="{% url 'training:athlete_dashboard' %}" class="inline-flex items-center justify-center min-h-[44px] px-5 py-2.5 border border-white/20 bg-white/10 text-sm font-semibold rounded-xl text-white hover:bg-white/20 transition">
                     Salir del Entreno
                 </a>
             </div>
@@ -41,7 +41,7 @@
 
     <!-- Resumen de la sesión -->
     {% if not plan.is_completed %}
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-5 flex flex-wrap items-center gap-x-8 gap-y-3">
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 flex flex-wrap items-center gap-x-8 gap-y-3">
             <div class="flex items-center gap-2.5">
                 <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <div>
@@ -62,7 +62,7 @@
             {% include 'training/partials/live_exercise_card.html' with planned=item.planned logged=item.logged %}
         </div>
         {% empty %}
-            <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-12 text-center text-slate-400">
+            <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
                 No hay ejercicios asignados a este plan todavía. Contacta con tu entrenador.
             </div>
         {% endfor %}
@@ -70,7 +70,7 @@
 
     <!-- Resumen de sesión completada -->
     {% if plan.is_completed and workout_session %}
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-6 text-center">
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-6 text-center">
             <div class="inline-flex p-3 rounded-full bg-sky-50 border border-sky-200 mb-4">
                 <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
@@ -84,11 +84,11 @@
 {% if not plan.is_completed %}
 <div id="completeWorkoutModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('completeWorkoutModal')"></div>
-    <div class="relative min-h-full flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="relative min-h-full w-full flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="relative bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto animate-fade-in">
-            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 sticky top-0 rounded-t-2xl">
+            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 sticky top-0 z-10 rounded-t-2xl">
                 <h3 class="text-lg font-headline font-bold text-slate-800">Finalizar Entrenamiento</h3>
-                <button type="button" onclick="closeModal('completeWorkoutModal')" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition">
+                <button type="button" onclick="closeModal('completeWorkoutModal')" aria-label="Cerrar" class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -123,11 +123,11 @@
                         <label for="id_notes" class="block text-xs font-headline font-bold text-slate-500 mb-1">Tus Comentarios / Notas</label>
                         {{ session_form.notes }}
                     </div>
-                    <div class="pt-4 flex flex-col-reverse sm:flex-row sm:items-end sm:justify-end gap-2 border-t border-slate-100">
-                        <button type="button" onclick="closeModal('completeWorkoutModal')" class="w-full sm:w-auto px-5 py-3 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                    <div class="pt-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 border-t border-slate-100">
+                        <button type="button" onclick="closeModal('completeWorkoutModal')" class="btn-secondary w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-semibold rounded-xl">
                             Cancelar
                         </button>
-                        <button type="submit" class="w-full sm:w-auto btn-accent px-5 py-3 rounded-xl text-base font-headline font-bold transition shadow-md shadow-accent/15">
+                        <button type="submit" class="btn-accent w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-headline font-bold">
                             Marcar como Completado
                         </button>
                     </div>
@@ -141,7 +141,7 @@
 <!-- ===== Modal: Confirmar Finalización de Ejercicio ===== -->
 <div id="finishExerciseModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeFinishModal()"></div>
-    <div class="relative min-h-full flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="relative min-h-full w-full flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="relative bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
             <div class="px-6 py-6 text-center">
                 <div class="mx-auto inline-flex p-3.5 rounded-2xl bg-amber-50 border border-amber-200 mb-4">
@@ -157,11 +157,11 @@
 
                 <p class="text-xs text-slate-400 mt-4">Al terminar se detendrá el cronómetro y se guardará el tiempo de este ejercicio.</p>
             </div>
-            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/40">
-                <button type="button" onclick="closeFinishModal()" class="px-5 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+            <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 px-6 py-4 border-t border-slate-100 bg-slate-50/40">
+                <button type="button" onclick="closeFinishModal()" class="btn-secondary w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-semibold rounded-xl">
                     Cancelar
                 </button>
-                <button type="button" id="finishExerciseConfirm" class="btn-primary px-5 py-2.5 rounded-xl text-base font-headline font-bold transition hover:scale-[1.02] shadow-md shadow-primary/15">
+                <button type="button" id="finishExerciseConfirm" class="btn-accent w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-headline font-bold">
                     Terminar Ejercicio
                 </button>
             </div>

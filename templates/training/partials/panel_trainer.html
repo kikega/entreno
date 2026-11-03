@@ -6,8 +6,8 @@
             <h2 class="text-lg font-headline font-extrabold text-slate-800">Gestión y planificación</h2>
             <p class="text-sm text-slate-500 mt-0.5">Supervisa la carga de tus deportistas (ACWR) y genera planes asistidos por ML.</p>
         </div>
-        <a href="{% url 'training:plan_create' %}" class="btn-primary w-full sm:w-auto flex items-center justify-center px-5 py-2.5 rounded-xl font-headline font-semibold text-sm gap-2 transition hover:scale-[1.02] shadow-lg shadow-primary/20 shrink-0">
-            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+        <a href="{% url 'training:plan_create' %}" class="btn-primary w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-sm shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
             Planificar manualmente
         </a>
     </div>
@@ -55,10 +55,43 @@
         </div>
     </div>
 
+    <!-- Alertas operativas Sistema AM -->
+    {% if unread_notifications %}
+        <section aria-labelledby="am-alerts-title" class="bg-white shadow-sm rounded-2xl border border-amber-200 overflow-hidden">
+            <div class="px-5 sm:px-6 py-4 border-b border-amber-100 bg-amber-50 flex items-center justify-between gap-3">
+                <h3 id="am-alerts-title" class="text-base font-headline font-bold text-amber-900">
+                    <span aria-hidden="true">🔔</span> Alertas pendientes ({{ unread_notifications|length }})
+                </h3>
+                {% if pending_triage_count %}
+                    <span class="text-xs font-bold text-amber-800">{{ pending_triage_count }} ficha{{ pending_triage_count|pluralize }} MMA por revisar</span>
+                {% endif %}
+            </div>
+            <ul class="divide-y divide-slate-100">
+                {% for notif in unread_notifications %}
+                    <li id="notif-{{ notif.pk }}" class="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-800">{{ notif.message }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">{{ notif.get_event_type_display }} · {{ notif.created_at|date:"d M Y H:i" }}</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 shrink-0">
+                            {% if notif.event_type == 'triage_updated' %}
+                                <a href="{% url 'training:trainer_mma_triage' notif.athlete_id %}" class="btn-primary min-h-[36px] px-3.5 py-2 rounded-xl text-xs">Revisar ficha</a>
+                            {% endif %}
+                            <form method="post" action="{% url 'training:mark_notification_read' notif.pk %}" hx-post="{% url 'training:mark_notification_read' notif.pk %}" hx-target="#notif-{{ notif.pk }}" hx-swap="outerHTML" class="m-0 inline-flex">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-secondary min-h-[36px] px-3.5 py-2 rounded-xl text-xs">Marcar leída</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
     <!-- Grid de Deportistas y Actividad Reciente -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Listado de Deportistas con métricas de rendimiento -->
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-150 col-span-1 lg:col-span-2 overflow-hidden">
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 col-span-1 lg:col-span-2 overflow-hidden">
             <div class="px-5 sm:px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-wrap justify-between items-center gap-3">
                 <h3 class="text-lg font-headline font-bold text-slate-800">Deportistas Asignados & Métricas</h3>
                 <span class="text-xs text-slate-400 font-medium">MMA · Karate · BJJ · CrossFit · Hyrox · Pérdida Peso</span>
@@ -90,33 +123,70 @@
                                     <!-- Status ACWR de Lesiones/Carga -->
                                     <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
                                         <span class="font-medium text-slate-500">Estado ACWR:</span>
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-{{ m.acwr.status_color }}-100 text-{{ m.acwr.status_color }}-800">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold
+                                            {% if m.acwr.status_color == 'emerald' %}bg-emerald-100 text-emerald-800
+                                            {% elif m.acwr.status_color == 'amber' %}bg-amber-100 text-amber-800
+                                            {% elif m.acwr.status_color == 'orange' %}bg-orange-100 text-orange-800
+                                            {% else %}bg-rose-100 text-rose-800{% endif %}">
                                             Ratio {{ m.acwr.acwr_ratio }} - {{ m.acwr.status_label }}
                                         </span>
                                     </div>
+                                    {% if item.mma_triage %}
+                                        <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                                            <span class="font-medium text-slate-500">Ficha MMA:</span>
+                                            {% if item.mma_triage.review_status == 'aprobado' %}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800">✔ Aprobada</span>
+                                            {% elif item.mma_triage.review_status == 'pendiente_revision' %}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">⏳ Pendiente de revisión</span>
+                                            {% else %}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600">Borrador</span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
 
-                            <div class="flex flex-wrap items-center gap-2 shrink-0">
-                                <form action="{% url 'training:generate_smart_plan' athlete.id %}" method="POST" class="m-0">
+                            <div class="action-toolbar shrink-0">
+                                <form action="{% url 'training:generate_smart_plan' athlete.id %}" method="POST" class="m-0 inline-flex">
                                     {% csrf_token %}
-                                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-sky-600 to-primary text-white text-xs font-bold rounded-xl hover:opacity-90 transition shadow-sm cursor-pointer">
-                                        <span aria-hidden="true">✨</span> Borrador ML {{ athlete.get_sport_display }}
+                                    <button type="submit" class="btn-primary min-h-[38px] px-3.5 py-2 text-xs rounded-xl">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                        <span>Borrador ML {{ athlete.get_sport_display }}</span>
                                     </button>
                                 </form>
 
-                                <a href="{% url 'training:athlete_detail' athlete.id %}" class="inline-flex items-center justify-center px-3.5 py-2 border border-slate-200 text-xs font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
-                                    Expediente
+                                <a href="{% url 'training:athlete_detail' athlete.id %}" class="btn-secondary min-h-[38px] px-3.5 py-2 text-xs rounded-xl">
+                                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"></path></svg>
+                                    <span>Expediente</span>
                                 </a>
 
-                                <a href="{% url 'training:trainer_athlete_edit' athlete.id %}" class="inline-flex items-center justify-center gap-1 px-3.5 py-2 bg-sky-50 border border-sky-200 text-xs font-bold rounded-xl text-sky-700 hover:bg-sky-100 transition shadow-sm" title="Editar deportista">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                    Editar
+                                {% if athlete.sport == 'mma' or item.mma_triage %}
+                                    <a href="{% url 'training:trainer_mma_triage' athlete.id %}" class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 border border-slate-700 text-xs font-bold rounded-xl text-white bg-slate-900 hover:bg-slate-800 transition shadow-sm">
+                                        <svg class="w-3.5 h-3.5 text-sky-400 shrink-0 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                        <span>Triage AM</span>
+                                    </a>
+                                    {% if item.active_macrocycle %}
+                                        <a href="{% url 'training:macrocycle_control' item.active_macrocycle.id %}" class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-xs font-bold rounded-xl text-indigo-800 hover:bg-indigo-100 transition shadow-sm">
+                                            <span>Macrociclo</span>
+                                        </a>
+                                    {% else %}
+                                        <form method="post" action="{% url 'training:macrocycle_init' athlete.id %}" class="m-0 inline-flex">
+                                            {% csrf_token %}
+                                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-xs font-bold rounded-xl text-indigo-800 hover:bg-indigo-100 transition shadow-sm cursor-pointer">
+                                                <span>+ Macrociclo</span>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
+
+                                <a href="{% url 'training:trainer_athlete_edit' athlete.id %}" class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 bg-sky-50 border border-sky-200 text-xs font-bold rounded-xl text-sky-700 hover:bg-sky-100 transition shadow-sm" title="Editar deportista">
+                                    <svg class="w-3.5 h-3.5 shrink-0 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    <span>Editar</span>
                                 </a>
 
-                                <a href="{% url 'training:trainer_athlete_delete' athlete.id %}" class="inline-flex items-center justify-center gap-1 px-3 py-2 bg-amber-50 border border-amber-200 text-xs font-bold rounded-xl text-amber-700 hover:bg-amber-100 transition shadow-sm" title="Desasignar deportista">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"></path></svg>
-                                    Desasignar
+                                <a href="{% url 'training:trainer_athlete_delete' athlete.id %}" class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 bg-amber-50 border border-amber-200 text-xs font-bold rounded-xl text-amber-700 hover:bg-amber-100 transition shadow-sm" title="Desasignar deportista">
+                                    <svg class="w-3.5 h-3.5 shrink-0 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"></path></svg>
+                                    <span>Desasignar</span>
                                 </a>
                             </div>
                         </li>
@@ -136,7 +206,7 @@
         </div>
 
         <!-- Panel de Actividad Reciente y Plantillas Soportadas -->
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-150 p-5 sm:p-6 flex flex-col space-y-6">
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 sm:p-6 flex flex-col space-y-6">
             <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-3">Motor de Sugerencias por Deporte</h3>
 
             <div class="space-y-3 text-xs">
@@ -158,7 +228,7 @@
                 <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Alertas de Carga Reciente</h4>
                 <div class="relative pl-6 border-l-2 border-slate-100 space-y-4 text-xs">
                     <div class="relative">
-                        <span class="absolute -left-[31px] top-1 w-4.5 h-4.5 rounded-full bg-emerald-50 border-2 border-emerald-400 flex items-center justify-center">
+                        <span class="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-emerald-50 border-2 border-emerald-400 flex items-center justify-center">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                         </span>
                         <h4 class="font-bold text-slate-800">Carga Óptima de Trabajo</h4>

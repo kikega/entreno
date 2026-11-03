@@ -601,4 +601,32 @@ class TrainerAthleteManagementIsolationTests(TestCase):
         self.athlete_user.refresh_from_db()
         self.assertTrue(self.athlete_user.is_dual)
 
+    def test_athlete_detail_assign_plan_preselects_athlete_and_cancels_back(self):
+        """
+        El botón «Asignar Plan» del expediente enlaza a ?athlete=<id>, preselecciona
+        al deportista autorizado en el formulario y devuelve el botón Cancelar a su expediente.
+        """
+        self.client.force_login(self.trainer_user)
+        detail_res = self.client.get(reverse('training:athlete_detail', kwargs={'pk': self.athlete.pk}))
+        expected_create_url = f"{reverse('training:plan_create')}?athlete={self.athlete.pk}"
+        self.assertContains(detail_res, expected_create_url)
+
+        create_res = self.client.get(expected_create_url)
+        self.assertEqual(create_res.status_code, 200)
+        self.assertEqual(create_res.context['preselected_athlete'], self.athlete)
+        self.assertEqual(create_res.context['form'].initial.get('athlete'), self.athlete.pk)
+        self.assertContains(create_res, f'value="{self.athlete.pk}" selected')
+        self.assertContains(
+            create_res,
+            reverse('training:athlete_detail', kwargs={'pk': self.athlete.pk}),
+        )
+
+        # Otro entrenador no puede preseleccionar un deportista ajeno por query string
+        self.client.force_login(self.other_trainer_user)
+        other_res = self.client.get(expected_create_url)
+        self.assertEqual(other_res.status_code, 200)
+        self.assertIsNone(other_res.context['preselected_athlete'])
+        self.assertIsNone(other_res.context['form'].initial.get('athlete'))
+
+
 

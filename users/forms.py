@@ -20,12 +20,22 @@ class CustomAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(
 
         label=_("Correo electrónico"),
-        widget=forms.EmailInput(attrs={'autofocus': True, 'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'placeholder': ' '})
+        widget=forms.EmailInput(attrs={
+            'autofocus': True,
+            'autocomplete': 'username',
+            'autocorrect': 'off',
+            'autocapitalize': 'off',
+            'spellcheck': 'false',
+            'class': 'block w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 focus:border-primary focus:outline-none transition shadow-sm',
+        })
     )
     password = forms.CharField(
         label=_("Contraseña"),
         strip=False,
-        widget=forms.PasswordInput(attrs={'autocomplete': 'current-password', 'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pb-2 pt-5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm', 'placeholder': ' '})
+        widget=forms.PasswordInput(attrs={
+            'autocomplete': 'current-password',
+            'class': 'block w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 focus:border-primary focus:outline-none transition shadow-sm',
+        })
     )
 
     def clean_username(self):
@@ -52,7 +62,7 @@ class AthleteProfileForm(forms.ModelForm):
     email = forms.EmailField(
         label=_("Correo electrónico"),
         required=False,
-        widget=forms.EmailInput(attrs={'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'})
+        widget=forms.EmailInput(attrs={'autocorrect': 'off', 'autocapitalize': 'off', 'spellcheck': 'false', 'class': 'peer block w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-primary focus:ring-primary focus:outline-none transition shadow-sm'})
     )
     profile_picture = forms.ImageField(
         label=_("Fotografía de perfil"),
@@ -214,19 +224,19 @@ class CustomPasswordChangeForm(PasswordChangeForm):
         super().__init__(*args, **kwargs)
         self.fields['old_password'].label = _("Contraseña actual")
         self.fields['old_password'].widget.attrs.update({
-            'class': 'peer block w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition shadow-sm pr-10',
+            'class': 'block w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 focus:border-primary focus:outline-none transition shadow-sm pr-11',
             'placeholder': 'Introduce tu contraseña actual',
             'autocomplete': 'current-password',
         })
         self.fields['new_password1'].label = _("Nueva contraseña")
         self.fields['new_password1'].widget.attrs.update({
-            'class': 'peer block w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition shadow-sm pr-10',
+            'class': 'block w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 focus:border-primary focus:outline-none transition shadow-sm pr-11',
             'placeholder': 'Mínimo 8 caracteres',
             'autocomplete': 'new-password',
         })
         self.fields['new_password2'].label = _("Confirmar nueva contraseña")
         self.fields['new_password2'].widget.attrs.update({
-            'class': 'peer block w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition shadow-sm pr-10',
+            'class': 'block w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 focus:border-primary focus:outline-none transition shadow-sm pr-11',
             'placeholder': 'Repite la nueva contraseña',
             'autocomplete': 'new-password',
         })

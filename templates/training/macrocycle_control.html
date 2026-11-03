@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel de Control Macrociclo - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Cabecera del Macrociclo (Panel_Control) -->
+    <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-6 md:p-8 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+        <div class="min-w-0 space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-sky-50 px-3 py-1 rounded-full border border-sky-100">
+                    PANEL DE CONTROL · SISTEMA AM V2.1
+                </span>
+                {% if mma_triage %}
+                    {% if mma_triage.approved_for_generation %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            ✔ Cerrojo Clínico Activo
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            ⏳ Triage pendiente de aprobación
+                        </span>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <h2 class="text-2xl font-headline font-extrabold text-slate-900 break-words">{{ macrocycle.name }}</h2>
+            <p class="text-sm text-slate-500">
+                Deportista: <strong class="text-slate-800">{{ macrocycle.athlete.user.display_name }}</strong>
+                {% if macrocycle.target_fight_date %}
+                    · Combate objetivo: <strong class="text-slate-800">{{ macrocycle.target_fight_date|date:"d M Y" }}</strong>
+                {% else %}
+                    · Sin fecha cerrada de combate (Off-Season)
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="action-toolbar w-full xl:w-auto xl:justify-end shrink-0">
+            <a href="{% url 'training:athlete_detail' macrocycle.athlete.id %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm rounded-xl">
+                ← Volver al Expediente
+            </a>
+            <a href="{% url 'training:trainer_mma_triage' macrocycle.athlete.id %}" class="w-full sm:w-auto min-h-[42px] px-4 py-2.5 bg-slate-900 border border-slate-700 text-sm font-bold rounded-xl text-white hover:bg-slate-800 transition shadow-sm inline-flex items-center justify-center gap-1.5">
+                <span>Triage Clínico AM</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Panel de Publicación Progresiva: 4 Bloques Oficiales -->
+    <section aria-labelledby="progressive-pub-heading" class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <h3 id="progressive-pub-heading" class="text-lg font-headline font-bold text-slate-800">
+                    Publicación Progresiva por Bloques (1 a 4)
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Los bloques desmarcados permanecen 100 % invisibles para el luchador. Marca un bloque para proyectarlo en su <strong>Entrenamiento Activo</strong>.
+                </p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {% for item in blocks_info %}
+                {% with b=item.block %}
+                <div class="bg-white rounded-2xl border p-5 flex flex-col justify-between gap-4 transition shadow-sm
+                    {% if b.id == selected_block.id %}border-primary ring-2 ring-sky-100{% else %}border-slate-200 hover:border-slate-300{% endif %}">
+                    <div class="space-y-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-headline font-extrabold uppercase tracking-wider text-slate-400">
+                                Bloque {{ b.block_number }} · {{ b.weeks_count }} sem
+                            </span>
+                            {% if b.is_published %}
+                                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    Publicado
+                                </span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                    Borrador oculto
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <a href="{% url 'training:macrocycle_control' macrocycle.id %}?block={{ b.block_number }}"
+                           class="block text-base font-headline font-bold text-slate-900 hover:text-primary transition">
+                            {{ b.title }}
+                        </a>
+
+                        <p class="text-xs text-slate-500">
+                            Fase: <strong class="text-slate-700">{{ b.get_phase_type_display }}</strong>
+                            {% if b.subphase != 'none' %}
+                                · <span class="text-sky-700 font-semibold">{{ b.get_subphase_display }}</span>
+                            {% endif %}
+                        </p>
+
+                        <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 pt-1">
+                            <span>{{ item.completed_plans }}/{{ item.total_plans }} sesiones completadas</span>
+                            {% if b.has_logged_history %}
+                                <span class="px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200 font-semibold">
+                                    Historial protegido
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 am-publish-control">
+                        <form method="post" action="{% url 'training:block_toggle_publish' b.id %}" class="m-0 flex items-center gap-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="mode" value="checkbox">
+                            <input type="hidden" name="day" value="{{ selected_day }}">
+                            <label for="pub-block-{{ b.id }}" class="am-check-label inline-flex items-center gap-2 text-xs font-headline font-bold text-slate-800 cursor-pointer select-none">
+                                <input id="pub-block-{{ b.id }}"
+                                       type="checkbox"
+                                       name="is_published"
+                                       value="1"
+                                       class="am-check-input rounded"
+                                       {% if b.is_published %}checked{% endif %}
+                                       onchange="this.form.submit()">
+                                <span>Publicar Bloque {{ b.block_number }}</span>
+                            </label>
+                            <noscript>
+                                <button type="submit" class="btn-secondary px-2 py-1 text-xs rounded-lg">Guardar</button>
+                            </noscript>
+                        </form>
+
+                        <a href="{% url 'training:macrocycle_control' macrocycle.id %}?block={{ b.block_number }}"
+                           class="text-xs font-bold text-primary hover:underline shrink-0">
+                            Abrir →
+                        </a>
+                    </div>
+                </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Matriz de Mesociclo del Bloque Seleccionado -->
+    <section aria-labelledby="active-matrix-heading" class="bg-white shadow-sm rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="p-5 sm:p-6 border-b border-slate-200 bg-slate-50/60 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="space-y-1">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h3 id="active-matrix-heading" class="text-lg font-headline font-extrabold text-slate-900">
+                        {{ selected_block.title }}
+                    </h3>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200">
+                        {{ selected_block.weeks_count }} semanas · {{ selected_block.sessions_per_week }} días/sem
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500">
+                    Nomenclatura fraccionada activa (<code class="font-mono text-sky-800 bg-sky-50 px-1 rounded">Reps(Totales) @ RPE X</code>).
+                    {% if mma_triage and mma_triage.body_composition_goal != 'ganancia_muscular' %}
+                        Objetivo <strong>{{ mma_triage.get_body_composition_goal_display }}</strong>: los accesorios <strong>B4_Accesorio</strong> fuerzan automáticamente <strong>RIR 3–4</strong>.
+                    {% endif %}
+                </p>
+                {% if selected_block.trainer_notes %}
+                    <p class="text-xs text-slate-600 bg-amber-50/70 border border-amber-200/80 rounded-lg px-3 py-1.5 mt-2">
+                        <strong class="text-amber-900">Nota privada de auditoría:</strong> {{ selected_block.trainer_notes }}
+                    </p>
+                {% endif %}
+            </div>
+
+            <div class="action-toolbar shrink-0">
+                <button type="button"
+                        onclick="openAmModal('configBlockModal')"
+                        class="btn-secondary w-full sm:w-auto min-h-[40px] px-4 py-2 text-xs font-semibold rounded-xl">
+                    Ajustes del Bloque
+                </button>
+                <button type="button"
+                        onclick="openAmModal('prescribeExerciseModal')"
+                        class="btn-primary w-full sm:w-auto min-h-[40px] px-4 py-2 text-xs rounded-xl">
+                    + Pautar Progresión 4 Semanas
+                </button>
+            </div>
+        </div>
+
+        <!-- Pestañas de Día Semanal -->
+        <div class="px-5 sm:px-6 py-3 border-b border-slate-200 bg-white flex flex-wrap items-center gap-2" role="navigation" aria-label="Días de entrenamiento semanal">
+            <span class="text-xs font-headline font-bold uppercase tracking-wider text-slate-400 mr-1">Sesión semanal:</span>
+            {% for d in matrix.day_numbers %}
+                <a href="{% url 'training:macrocycle_control' macrocycle.id %}?block={{ selected_block.block_number }}&day={{ d }}"
+                   class="px-3.5 py-1.5 rounded-xl text-xs font-headline font-bold transition border
+                   {% if d == selected_day %}bg-primary text-white border-primary shadow-sm{% else %}bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100{% endif %}">
+                    Día {{ d }}
+                </a>
+            {% endfor %}
+        </div>
+
+        {% include 'training/partials/mesocycle_matrix_table.html' with matrix=matrix viewer_role='trainer' %}
+    </section>
+</div>
+
+<!-- Modal: Ajustes Estructurales del Bloque -->
+<div id="configBlockModal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="configBlockModalTitle">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeAmModal('configBlockModal')"></div>
+    <div class="relative bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto animate-fade-in">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
+            <h3 id="configBlockModalTitle" class="text-base font-headline font-bold text-slate-800">Configurar {{ selected_block.title }}</h3>
+            <button type="button" onclick="closeAmModal('configBlockModal')" aria-label="Cerrar" class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60">✕</button>
+        </div>
+        <form method="post" action="{% url 'training:block_update' selected_block.id %}" class="p-6 space-y-4">
+            {% csrf_token %}
+            {% for field in block_config_form %}
+                <div>
+                    <label for="{{ field.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+                <button type="button" onclick="closeAmModal('configBlockModal')" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2 text-sm rounded-xl">Cancelar</button>
+                <button type="submit" class="btn-primary w-full sm:w-auto min-h-[42px] px-5 py-2 text-sm rounded-xl">Guardar Bloque</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Pautar Ejercicio en Progresión de 4 Semanas -->
+<div id="prescribeExerciseModal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="prescribeModalTitle">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeAmModal('prescribeExerciseModal')"></div>
+    <div class="relative bg-white w-full sm:max-w-3xl rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto animate-fade-in">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
+            <div>
+                <h3 id="prescribeModalTitle" class="text-base font-headline font-bold text-slate-800">Pautar Progresión en {{ selected_block.title }}</h3>
+                <p class="text-xs text-slate-500">Las semanas ya completadas o con series reales registradas quedan protegidas sin sobrescritura.</p>
+            </div>
+            <button type="button" onclick="closeAmModal('prescribeExerciseModal')" aria-label="Cerrar" class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60">✕</button>
+        </div>
+
+        <form method="post" action="{% url 'training:block_prescribe_exercise' selected_block.id %}" class="p-6 space-y-5">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label for="{{ prescribe_form.exercise.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.exercise.label }}</label>
+                    {{ prescribe_form.exercise }}
+                </div>
+                <div>
+                    <label for="{{ prescribe_form.session_block.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.session_block.label }}</label>
+                    {{ prescribe_form.session_block }}
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="{{ prescribe_form.day_number.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.day_number.label }}</label>
+                        {{ prescribe_form.day_number }}
+                    </div>
+                    <div>
+                        <label for="{{ prescribe_form.order.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.order.label }}</label>
+                        {{ prescribe_form.order }}
+                    </div>
+                </div>
+                <div>
+                    <label for="{{ prescribe_form.tempo.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.tempo.label }}</label>
+                    {{ prescribe_form.tempo }}
+                </div>
+                <div>
+                    <label for="{{ prescribe_form.rest.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.rest.label }}</label>
+                    {{ prescribe_form.rest }}
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="{{ prescribe_form.focus.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.focus.label }}</label>
+                    {{ prescribe_form.focus }}
+                </div>
+            </div>
+
+            <fieldset class="border border-slate-200 rounded-2xl p-4 bg-slate-50/60 space-y-4">
+                <legend class="px-2 text-xs font-headline font-bold uppercase tracking-wider text-primary">
+                    Progresión Semanal (Series · Reps Objetivo · RIR · RPE · Carga)
+                </legend>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                        <p class="text-xs font-headline font-bold text-slate-800">Semana 1</p>
+                        <div class="grid grid-cols-5 gap-2">
+                            <div><label class="block text-[10px] font-bold text-slate-500">Series</label>{{ prescribe_form.w1_sets }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">Reps</label>{{ prescribe_form.w1_reps }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">RIR</label>{{ prescribe_form.w1_rir }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">RPE</label>{{ prescribe_form.w1_rpe }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">Carga</label>{{ prescribe_form.w1_load }}</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                        <p class="text-xs font-headline font-bold text-slate-800">Semana 2</p>
+                        <div class="grid grid-cols-5 gap-2">
+                            <div><label class="block text-[10px] font-bold text-slate-500">Series</label>{{ prescribe_form.w2_sets }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">Reps</label>{{ prescribe_form.w2_reps }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">RIR</label>{{ prescribe_form.w2_rir }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">RPE</label>{{ prescribe_form.w2_rpe }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">Carga</label>{{ prescribe_form.w2_load }}</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                        <p class="text-xs font-headline font-bold text-slate-800">Semana 3</p>
+                        <div class="grid grid-cols-5 gap-2">
+                            <div><label class="block text-[10px] font-bold text-slate-500">Series</label>{{ prescribe_form.w3_sets }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">Reps</label>{{ prescribe_form.w3_reps }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">RIR</label>{{ prescribe_form.w3_rir }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">RPE</label>{{ prescribe_form.w3_rpe }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">Carga</label>{{ prescribe_form.w3_load }}</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                        <p class="text-xs font-headline font-bold text-slate-800">Semana 4 (Descarga / Pico)</p>
+                        <div class="grid grid-cols-5 gap-2">
+                            <div><label class="block text-[10px] font-bold text-slate-500">Series</label>{{ prescribe_form.w4_sets }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">Reps</label>{{ prescribe_form.w4_reps }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">RIR</label>{{ prescribe_form.w4_rir }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">RPE</label>{{ prescribe_form.w4_rpe }}</div>
+                            <div><label class="block text-[10px] font-bold text-slate-500">Carga</label>{{ prescribe_form.w4_load }}</div>
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+
+            <div>
+                <label for="{{ prescribe_form.notes.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.notes.label }}</label>
+                {{ prescribe_form.notes }}
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+                <button type="button" onclick="closeAmModal('prescribeExerciseModal')" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2 text-sm rounded-xl">Cancelar</button>
+                <button type="submit" class="btn-primary w-full sm:w-auto min-h-[42px] px-5 py-2 text-sm rounded-xl">Guardar Progresión</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openAmModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeAmModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            ['configBlockModal', 'prescribeExerciseModal'].forEach(closeAmModal);
+        }
+    });
+</script>
+{% endblock %}

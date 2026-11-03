@@ -1,0 +1,583 @@
+{% extends 'base.html' %}
+
+{% block title %}Ficha Única MMA (Sistema AM) - EntrenoPro{% endblock %}
+
+{% block extra_head %}
+<style>
+    .am-triage-form input:user-invalid,
+    .am-triage-form select:user-invalid,
+    .am-triage-form input.user-invalid-fallback,
+    .am-triage-form select.user-invalid-fallback {
+        border-color: #dc2626;
+        background-color: #fef2f2;
+    }
+    .am-triage-form input:user-valid,
+    .am-triage-form input.user-valid-fallback {
+        border-color: #16a34a;
+    }
+    .am-triage-form input:focus-visible,
+    .am-triage-form select:focus-visible,
+    .am-triage-form textarea:focus-visible {
+        outline: 3px solid #2984D1;
+        outline-offset: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-4 sm:py-8 space-y-6 athlete-theme animate-fade-in">
+    <!-- Cabecera y Estado del Expediente Único -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-lg text-white">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(52,166,244,0.16),transparent_48%)]"></div>
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div class="space-y-2">
+                <span class="inline-flex items-center gap-1.5 text-xs font-headline font-bold uppercase tracking-widest text-accent bg-accent/15 px-3 py-1 rounded-full border border-accent/30">
+                    🥋 Sistema AM · Ficha Única Editable
+                </span>
+                <h1 class="text-2xl sm:text-3xl font-headline font-extrabold">Ingesta, Biometría y Calendario MMA</h1>
+                <p class="text-sm text-slate-300 max-w-2xl">
+                    Completa tus datos actuales hoy y vuelve a esta misma ficha cuando cambie la fecha de tu pelea o realices nuevos tests (RM / Doble Wingate). Tus respuestas previas se conservan siempre.
+                </p>
+            </div>
+            <div class="shrink-0">
+                {% if triage.review_status == 'aprobado' %}
+                    <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-100 text-xs font-bold">
+                        <span aria-hidden="true">✔</span>
+                        <span>Auditada y Aprobada por Entrenador</span>
+                    </div>
+                {% elif triage.review_status == 'pendiente_revision' %}
+                    <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-100 text-xs font-bold">
+                        <span aria-hidden="true">⏳</span>
+                        <span>Pendiente de Revisión del Entrenador</span>
+                    </div>
+                {% else %}
+                    <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-slate-200 text-xs font-bold">
+                        <span aria-hidden="true">📝</span>
+                        <span>Pendiente de Envío Inicial</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if form.errors %}
+        <div role="alert" aria-live="assertive" class="rounded-2xl bg-red-50 border border-red-200 p-5 text-sm text-red-800 space-y-2 shadow-sm">
+            <p class="font-headline font-bold flex items-center gap-2">
+                <span aria-hidden="true">❌</span> Por favor, corrige los siguientes apartados antes de enviar:
+            </p>
+            <ul class="list-disc pl-5 space-y-1 text-xs sm:text-sm">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <form id="athlete-mma-triage-form" method="post" action="{% url 'training:athlete_mma_triage' %}" class="am-triage-form space-y-8">
+        {% csrf_token %}
+
+        <!-- SECCIÓN 1: Identificación y Calendario Competitivo -->
+        <fieldset class="min-w-0 flow-root bg-white shadow-sm rounded-2xl border border-slate-200 p-6 sm:p-8">
+            <legend class="float-left w-full pb-4 mb-6 border-b border-slate-100 text-lg font-headline font-extrabold text-slate-800">
+                1. Identificación Física y Calendario Competitivo
+            </legend>
+            <div class="clear-both space-y-6">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.fasting_weight_kg.id_for_label }}" class="block text-sm font-bold text-slate-800">
+                        Peso corporal actual en ayunas (kg) <span class="text-red-600">*</span>
+                    </label>
+                    <span id="hint-fasting-weight" class="block text-xs text-slate-500 mt-0.5 mb-1.5">Rango válido: 35 a 200 kg (ej. 77.5).</span>
+                    <input type="number"
+                           id="{{ form.fasting_weight_kg.id_for_label }}"
+                           name="{{ form.fasting_weight_kg.html_name }}"
+                           value="{{ form.fasting_weight_kg.value|default_if_none:'' }}"
+                           min="35" max="200" step="0.1" inputmode="decimal" required
+                           aria-describedby="hint-fasting-weight"
+                           class="block w-full min-h-[48px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 shadow-sm transition">
+                    {% if form.fasting_weight_kg.errors %}<p class="mt-1.5 text-xs font-semibold text-red-600" role="alert">❌ {{ form.fasting_weight_kg.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.target_weight_category_kg.id_for_label }}" class="block text-sm font-bold text-slate-800">
+                        Peso de la categoría de competición objetivo (kg) <span class="text-red-600">*</span>
+                    </label>
+                    <span id="hint-target-weight" class="block text-xs text-slate-500 mt-0.5 mb-1.5">Ej: 70.3 kg (Ligero), 77.1 kg (Wélter), 83.9 kg (Medio).</span>
+                    <input type="number"
+                           id="{{ form.target_weight_category_kg.id_for_label }}"
+                           name="{{ form.target_weight_category_kg.html_name }}"
+                           value="{{ form.target_weight_category_kg.value|default_if_none:'' }}"
+                           min="35" max="200" step="0.1" inputmode="decimal" required
+                           aria-describedby="hint-target-weight"
+                           class="block w-full min-h-[48px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 shadow-sm transition">
+                    {% if form.target_weight_category_kg.errors %}<p class="mt-1.5 text-xs font-semibold text-red-600" role="alert">❌ {{ form.target_weight_category_kg.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div>
+                <span class="block text-sm font-bold text-slate-800 mb-2">Estilo táctico predominante <span class="text-red-600">*</span></span>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {% for val, label in form.fields.tactical_style.choices %}
+                        <label for="id_tactical_style_{{ forloop.counter0 }}" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 cursor-pointer transition hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                            <input type="radio" id="id_tactical_style_{{ forloop.counter0 }}" name="{{ form.tactical_style.html_name }}" value="{{ val }}"
+                                   class="h-4 w-4 accent-sky-600"
+                                   {% if form.tactical_style.value == val %}checked{% endif %} required>
+                            <span class="text-sm font-semibold text-slate-800">{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.next_fight_date.id_for_label }}" class="block text-sm font-bold text-slate-800">
+                        Fecha del próximo combate (opcional)
+                    </label>
+                    <span id="hint-fight-date" class="block text-xs text-slate-500 mt-0.5 mb-1.5">Déjalo vacío si estás en Off-Season sin fecha confirmada.</span>
+                    <input type="date"
+                           id="{{ form.next_fight_date.id_for_label }}"
+                           name="{{ form.next_fight_date.html_name }}"
+                           value="{{ form.next_fight_date.value|date:'Y-m-d'|default:form.next_fight_date.value|default_if_none:'' }}"
+                           aria-describedby="hint-fight-date"
+                           class="block w-full min-h-[48px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 shadow-sm transition">
+                    {% if form.next_fight_date.errors %}<p class="mt-1.5 text-xs font-semibold text-red-600" role="alert">❌ {{ form.next_fight_date.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <span class="block text-sm font-bold text-slate-800 mb-2">Reglamentación de pesaje <span class="text-red-600">*</span></span>
+                    <div class="space-y-2.5">
+                        {% for val, label in form.fields.weigh_in_rule.choices %}
+                            <label for="id_weigh_in_rule_{{ forloop.counter0 }}" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-2.5 cursor-pointer transition hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                                <input type="radio" id="id_weigh_in_rule_{{ forloop.counter0 }}" name="{{ form.weigh_in_rule.html_name }}" value="{{ val }}"
+                                       class="h-4 w-4 accent-sky-600"
+                                       {% if form.weigh_in_rule.value == val %}checked{% endif %} required>
+                                <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <span class="block text-sm font-bold text-slate-800 mb-2">Objetivo de composición corporal <span class="text-red-600">*</span></span>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {% for val, label in form.fields.body_composition_goal.choices %}
+                        <label for="id_body_comp_{{ forloop.counter0 }}" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 cursor-pointer transition hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                            <input type="radio" id="id_body_comp_{{ forloop.counter0 }}" name="{{ form.body_composition_goal.html_name }}" value="{{ val }}"
+                                   class="h-4 w-4 accent-sky-600"
+                                   {% if form.body_composition_goal.value == val %}checked{% endif %} required>
+                            <span class="text-sm font-semibold text-slate-800">{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            </div>
+        </fieldset>
+
+        <!-- SECCIÓN 2: Experiencia Técnica -->
+        <fieldset class="min-w-0 flow-root bg-white shadow-sm rounded-2xl border border-slate-200 p-6 sm:p-8">
+            <legend class="float-left w-full pb-4 mb-6 border-b border-slate-100 text-lg font-headline font-extrabold text-slate-800">
+                2. Experiencia Técnica en Fuerza y Halterofilia
+            </legend>
+            <div class="clear-both space-y-6">
+
+            <div>
+                <span class="block text-sm font-bold text-slate-800 mb-2">Nivel de experiencia en entrenamiento de fuerza <span class="text-red-600">*</span></span>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {% for val, label in form.fields.strength_experience.choices %}
+                        <label for="id_strength_exp_{{ forloop.counter0 }}" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 cursor-pointer transition hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                            <input type="radio" id="id_strength_exp_{{ forloop.counter0 }}" name="{{ form.strength_experience.html_name }}" value="{{ val }}"
+                                   class="h-4 w-4 accent-sky-600"
+                                   {% if form.strength_experience.value == val %}checked{% endif %} required>
+                            <span class="text-sm font-semibold text-slate-800">{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <span class="block text-sm font-bold text-slate-800 mb-2">Relación y motivación con Levantamientos Olímpicos (Clean, Snatch, Jerk) <span class="text-red-600">*</span></span>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {% for val, label in form.fields.olympic_lifts_relation.choices %}
+                        <label for="id_olympic_rel_{{ forloop.counter0 }}" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 cursor-pointer transition hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                            <input type="radio" id="id_olympic_rel_{{ forloop.counter0 }}" name="{{ form.olympic_lifts_relation.html_name }}" value="{{ val }}"
+                                   class="h-4 w-4 accent-sky-600"
+                                   {% if form.olympic_lifts_relation.value == val %}checked{% endif %} required>
+                            <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            </div>
+        </fieldset>
+
+        <!-- SECCIÓN 3: Batería de Tests y Biometría -->
+        <fieldset class="min-w-0 flow-root bg-white shadow-sm rounded-2xl border border-slate-200 p-6 sm:p-8">
+            <legend class="float-left w-full pb-4 mb-6 border-b border-slate-100 text-lg font-headline font-extrabold text-slate-800">
+                3. Batería de Tests y Biometría (Opcional / Actualizable)
+            </legend>
+            <div class="clear-both space-y-6">
+            <p class="text-xs sm:text-sm text-slate-500">
+                Rellena únicamente las pruebas que conozcas con certeza hoy. Las restantes las completará tu entrenador contigo durante la videollamada o podrás añadirlas semanas después.
+            </p>
+
+            <!-- 3.1 Test de Fuerza -->
+            <div class="p-5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-5">
+                <label for="id_knows_rm_marks" class="flex items-center gap-3 min-h-[48px] cursor-pointer">
+                    <input type="checkbox" id="id_knows_rm_marks" name="{{ form.knows_rm_marks.html_name }}"
+                           aria-controls="rm-marks-panel"
+                           aria-expanded="{% if form.knows_rm_marks.value %}true{% else %}false{% endif %}"
+                           class="h-5 w-5 rounded accent-sky-600"
+                           {% if form.knows_rm_marks.value %}checked{% endif %}>
+                    <span class="text-sm font-bold text-slate-800">3.1. Conozco mis marcas reales recientes de Fuerza (1RM o 3RM)</span>
+                </label>
+
+                <div id="rm-marks-panel" class="space-y-4 {% if not form.knows_rm_marks.value %}hidden{% endif %}">
+                    <div>
+                        <span class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Formato de las marcas registradas</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {% for val, label in form.fields.rm_format.choices %}
+                                <label for="id_rm_format_{{ forloop.counter0 }}" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-white px-4 py-2.5 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                                    <input type="radio" id="id_rm_format_{{ forloop.counter0 }}" name="{{ form.rm_format.html_name }}" value="{{ val }}"
+                                           class="h-4 w-4 accent-sky-600"
+                                           {% if form.rm_format.value == val %}checked{% endif %}>
+                                    <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label for="{{ form.back_squat_rm_kg.id_for_label }}" class="block text-sm font-semibold text-slate-800">Sentadilla Trasera (kg)</label>
+                            <span id="hint-squat" class="block text-xs text-slate-500 mb-1">Carga total barra + discos.</span>
+                            <input type="number" id="{{ form.back_squat_rm_kg.id_for_label }}" name="{{ form.back_squat_rm_kg.html_name }}"
+                                   value="{{ form.back_squat_rm_kg.value|default_if_none:'' }}"
+                                   min="10" max="450" step="0.5" inputmode="decimal" aria-describedby="hint-squat"
+                                   class="block w-full min-h-[48px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900">
+                        </div>
+                        <div>
+                            <label for="{{ form.bench_press_rm_kg.id_for_label }}" class="block text-sm font-semibold text-slate-800">Press Banca (kg)</label>
+                            <span id="hint-bench" class="block text-xs text-slate-500 mb-1">Carga total barra + discos.</span>
+                            <input type="number" id="{{ form.bench_press_rm_kg.id_for_label }}" name="{{ form.bench_press_rm_kg.html_name }}"
+                                   value="{{ form.bench_press_rm_kg.value|default_if_none:'' }}"
+                                   min="10" max="350" step="0.5" inputmode="decimal" aria-describedby="hint-bench"
+                                   class="block w-full min-h-[48px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900">
+                        </div>
+                        <div>
+                            <label for="{{ form.strict_pullup_external_load_kg.id_for_label }}" class="block text-sm font-semibold text-slate-800">Dominada Estricta (kg)</label>
+                            <span id="hint-pullup" class="block text-xs text-slate-500 mb-1">Solo lastre externo (0 si es sin lastre).</span>
+                            <input type="number" id="{{ form.strict_pullup_external_load_kg.id_for_label }}" name="{{ form.strict_pullup_external_load_kg.html_name }}"
+                                   value="{{ form.strict_pullup_external_load_kg.value|default_if_none:'' }}"
+                                   min="0" max="200" step="0.5" inputmode="decimal" aria-describedby="hint-pullup"
+                                   class="block w-full min-h-[48px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3.2 Test Metabólico Doble Wingate -->
+            <div class="p-5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-4">
+                <h3 class="text-sm font-bold text-slate-800">3.2. Test Metabólico Doble Wingate (2 × 30s con 1 min descanso pasivo)</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label for="{{ form.wingate_modality.id_for_label }}" class="block text-sm font-semibold text-slate-800">Medio utilizado</label>
+                        <span id="hint-wingate-mod" class="block text-xs text-slate-500 mb-1">Opcional si aún no hiciste el test.</span>
+                        {{ form.wingate_modality }}
+                        {% if form.wingate_modality.errors %}<p class="mt-1 text-xs font-semibold text-red-600" role="alert">❌ {{ form.wingate_modality.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.wingate_sprint_1.id_for_label }}" class="block text-sm font-semibold text-slate-800">Sprint 1 (W o Metros)</label>
+                        <span id="hint-s1" class="block text-xs text-slate-500 mb-1">Primer sprint máximo de 30s.</span>
+                        <input type="number" id="{{ form.wingate_sprint_1.id_for_label }}" name="{{ form.wingate_sprint_1.html_name }}"
+                               value="{{ form.wingate_sprint_1.value|default_if_none:'' }}"
+                               min="1" max="3000" step="0.1" inputmode="decimal" aria-describedby="hint-s1"
+                               class="block w-full min-h-[48px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900">
+                    </div>
+                    <div>
+                        <label for="{{ form.wingate_sprint_2.id_for_label }}" class="block text-sm font-semibold text-slate-800">Sprint 2 (W o Metros)</label>
+                        <span id="hint-s2" class="block text-xs text-slate-500 mb-1">Segundo sprint tras 1 min pasivo.</span>
+                        <input type="number" id="{{ form.wingate_sprint_2.id_for_label }}" name="{{ form.wingate_sprint_2.html_name }}"
+                               value="{{ form.wingate_sprint_2.value|default_if_none:'' }}"
+                               min="1" max="3000" step="0.1" inputmode="decimal" aria-describedby="hint-s2"
+                               class="block w-full min-h-[48px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900">
+                        {% if form.wingate_sprint_2.errors %}<p class="mt-1 text-xs font-semibold text-red-600" role="alert">❌ {{ form.wingate_sprint_2.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3.3 Biometría Ángulo ISA -->
+            <div class="p-5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <span class="block text-sm font-bold text-slate-800">3.3. Biometría Torácico-Pélvica (Ángulo Infrasternal ISA)</span>
+                <p class="text-xs text-slate-500">Si no lo conoces, selecciona "Lo desconozco" y tu entrenador lo medirá en pantalla durante la entrevista.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label for="id_isa_unknown" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                        <input type="radio" id="id_isa_unknown" name="{{ form.isa_angle.html_name }}" value=""
+                               class="h-4 w-4 accent-sky-600"
+                               {% if not form.isa_angle.value %}checked{% endif %}>
+                        <span class="text-sm font-medium text-slate-700">Lo desconozco (medir en entrevista)</span>
+                    </label>
+                    {% for val, label in form.fields.isa_angle.choices %}
+                        {% if val %}
+                        <label for="id_isa_{{ forloop.counter0 }}" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                            <input type="radio" id="id_isa_{{ forloop.counter0 }}" name="{{ form.isa_angle.html_name }}" value="{{ val }}"
+                                   class="h-4 w-4 accent-sky-600"
+                                   {% if form.isa_angle.value == val %}checked{% endif %}>
+                            <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                        </label>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            </div>
+        </fieldset>
+
+        <!-- SECCIÓN 4: Logística, Inventario Estricto, Salud y Marco Legal -->
+        <fieldset class="min-w-0 flow-root bg-white shadow-sm rounded-2xl border border-slate-200 p-6 sm:p-8">
+            <legend class="float-left w-full pb-4 mb-6 border-b border-slate-100 text-lg font-headline font-extrabold text-slate-800">
+                4. Logística, Inventario Estricto, Salud Articular y Marco Legal
+            </legend>
+            <div class="clear-both space-y-6">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                    <span class="block text-sm font-bold text-slate-800 mb-2">Días disponibles para preparación física <span class="text-red-600">*</span></span>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        {% for val, label in form.fields.available_days_per_week.choices %}
+                            <label for="id_avail_days_{{ forloop.counter0 }}" class="flex items-center justify-center gap-2 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                                <input type="radio" id="id_avail_days_{{ forloop.counter0 }}" name="{{ form.available_days_per_week.html_name }}" value="{{ val }}"
+                                       class="h-4 w-4 accent-sky-600"
+                                       {% if form.available_days_per_week.value|stringformat:"s" == val|stringformat:"s" %}checked{% endif %} required>
+                                <span class="text-sm font-bold text-slate-800">{{ val }} días</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div>
+                    <span class="block text-sm font-bold text-slate-800 mb-2">Volumen semanal en tatami <span class="text-red-600">*</span></span>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        {% for val, label in form.fields.tatami_weekly_volume.choices %}
+                            <label for="id_tatami_vol_{{ forloop.counter0 }}" class="flex items-center justify-center gap-2 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                                <input type="radio" id="id_tatami_vol_{{ forloop.counter0 }}" name="{{ form.tatami_weekly_volume.html_name }}" value="{{ val }}"
+                                       class="h-4 w-4 accent-sky-600"
+                                       {% if form.tatami_weekly_volume.value == val %}checked{% endif %} required>
+                                <span class="text-sm font-semibold text-slate-800">{{ label }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label for="id_can_separate_block_5" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 p-4 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                    <input type="checkbox" id="id_can_separate_block_5" name="{{ form.can_separate_block_5.html_name }}"
+                           class="h-5 w-5 rounded accent-sky-600 shrink-0"
+                           {% if form.can_separate_block_5.value %}checked{% endif %}>
+                    <span class="text-sm font-medium text-slate-800">Puedo separar el <strong>Bloque 5 (Cardio)</strong> en sesión aparte de las pesas</span>
+                </label>
+
+                <label for="id_has_nutritional_support" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 p-4 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                    <input type="checkbox" id="id_has_nutritional_support" name="{{ form.has_nutritional_support.html_name }}"
+                           class="h-5 w-5 rounded accent-sky-600 shrink-0"
+                           {% if form.has_nutritional_support.value %}checked{% endif %}>
+                    <span class="text-sm font-medium text-slate-800">Cuento con <strong>apoyo nutricional profesional</strong> activo</span>
+                </label>
+            </div>
+
+            <!-- Checklist estricto de material -->
+            <div>
+                <span class="block text-sm font-bold text-slate-800 mb-1">Checklist estricto de equipamiento disponible</span>
+                <p class="text-xs text-slate-500 mb-3">Marca únicamente el material al que tienes acceso real. Cualquier ejercicio cuyo material no esté marcado será descartado automáticamente.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {% with selected_eq=form.available_equipment.value|default:form.initial.available_equipment %}
+                    {% for val, label in form.available_equipment.field.choices %}
+                        <label for="id_equip_{{ forloop.counter0 }}" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-2.5 cursor-pointer transition hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                            <input type="checkbox" id="id_equip_{{ forloop.counter0 }}" name="{{ form.available_equipment.html_name }}" value="{{ val }}"
+                                   class="h-4 w-4 rounded accent-sky-600 shrink-0"
+                                   {% if selected_eq and val in selected_eq %}checked{% endif %}>
+                            <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                    {% endwith %}
+                </div>
+            </div>
+
+            <!-- Días de sparring duro y Actividad laboral -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <span class="block text-sm font-bold text-slate-800 mb-2">Días habituales de sparring duro</span>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-2 gap-2">
+                        {% with selected_days=form.hard_sparring_days.value|default:form.initial.hard_sparring_days %}
+                        {% for val, label in form.hard_sparring_days.field.choices %}
+                            <label for="id_sparring_{{ forloop.counter0 }}" class="flex items-center gap-2.5 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                                <input type="checkbox" id="id_sparring_{{ forloop.counter0 }}" name="{{ form.hard_sparring_days.html_name }}" value="{{ val }}"
+                                       class="h-4 w-4 rounded accent-sky-600"
+                                       {% if selected_days and val in selected_days %}checked{% endif %}>
+                                <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                            </label>
+                        {% endfor %}
+                        {% endwith %}
+                    </div>
+                </div>
+
+                <div>
+                    <span class="block text-sm font-bold text-slate-800 mb-2">Actividad laboral diaria <span class="text-red-600">*</span></span>
+                    <div class="space-y-2.5">
+                        {% for val, label in form.fields.occupational_activity.choices %}
+                            <label for="id_occ_{{ forloop.counter0 }}" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-sky-50">
+                                <input type="radio" id="id_occ_{{ forloop.counter0 }}" name="{{ form.occupational_activity.html_name }}" value="{{ val }}"
+                                       class="h-4 w-4 accent-sky-600"
+                                       {% if form.occupational_activity.value == val %}checked{% endif %} required>
+                                <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Salud Articular y PAR-Q -->
+            <div class="space-y-4 pt-2 border-t border-slate-100">
+                <div>
+                    <span class="block text-sm font-bold text-slate-800 mb-1">Zonas de dolor o molestia articular actual</span>
+                    <p class="text-xs text-slate-500 mb-3">Si no tienes molestias actuales, deja todas sin marcar.</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        {% with selected_pain=form.current_joint_pain_zones.value|default:form.initial.current_joint_pain_zones %}
+                        {% for val, label in form.current_joint_pain_zones.field.choices %}
+                            <label for="id_pain_{{ forloop.counter0 }}" class="flex items-center gap-2.5 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 cursor-pointer has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+                                <input type="checkbox" id="id_pain_{{ forloop.counter0 }}" name="{{ form.current_joint_pain_zones.html_name }}" value="{{ val }}"
+                                       class="h-4 w-4 rounded accent-amber-600"
+                                       {% if selected_pain and val in selected_pain %}checked{% endif %}>
+                                <span class="text-sm font-semibold text-slate-800">{{ label }}</span>
+                            </label>
+                        {% endfor %}
+                        {% endwith %}
+                    </div>
+                </div>
+
+                <label for="id_par_q_has_risk" class="flex items-start gap-3 min-h-[48px] rounded-xl border border-amber-200 bg-amber-50/60 p-4 cursor-pointer">
+                    <input type="checkbox" id="id_par_q_has_risk" name="{{ form.par_q_has_risk.html_name }}"
+                           class="h-5 w-5 mt-0.5 rounded accent-amber-600 shrink-0"
+                           {% if form.par_q_has_risk.value %}checked{% endif %}>
+                    <span class="text-sm text-slate-800">
+                        <strong>Filtro Médico PAR-Q:</strong> Marca esta casilla únicamente si has experimentado dolor en el pecho, mareos/pérdida de conocimiento o tienes alguna patología cardíaca/médica diagnosticada que limite el esfuerzo intenso.
+                    </span>
+                </label>
+            </div>
+
+            <!-- 3 Casillas Legales Obligatorias -->
+            <div class="space-y-3 pt-4 border-t border-slate-200">
+                <span class="block text-sm font-bold text-slate-800">Conformidad Legal y Asunción de Riesgo <span class="text-red-600">*</span></span>
+
+                <label for="id_accepted_terms" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/50">
+                    <input type="checkbox" id="id_accepted_terms" name="{{ form.accepted_terms_of_service.html_name }}" required
+                           class="h-5 w-5 rounded accent-emerald-600 shrink-0"
+                           {% if form.accepted_terms_of_service.value %}checked{% endif %}>
+                    <span class="text-sm font-medium text-slate-800">Acepto los <strong>Términos de servicio</strong> del Sistema AM.</span>
+                </label>
+
+                <label for="id_accepted_privacy" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/50">
+                    <input type="checkbox" id="id_accepted_privacy" name="{{ form.accepted_privacy_policy.html_name }}" required
+                           class="h-5 w-5 rounded accent-emerald-600 shrink-0"
+                           {% if form.accepted_privacy_policy.value %}checked{% endif %}>
+                    <span class="text-sm font-medium text-slate-800">Acepto la <strong>Política de privacidad</strong> y el tratamiento de mis datos deportivos y biométricos.</span>
+                </label>
+
+                <label for="id_accepted_waiver" class="flex items-center gap-3 min-h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/50">
+                    <input type="checkbox" id="id_accepted_waiver" name="{{ form.accepted_medical_waiver.html_name }}" required
+                           class="h-5 w-5 rounded accent-emerald-600 shrink-0"
+                           {% if form.accepted_medical_waiver.value %}checked{% endif %}>
+                    <span class="text-sm font-medium text-slate-800">Confirmo el <strong>Descargo de responsabilidad médico y asunción de riesgo</strong> deportivo.</span>
+                </label>
+            </div>
+            </div>
+        </fieldset>
+
+        <!-- Acciones -->
+        <div class="flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
+            <a href="{% url 'home' %}?tab=athlete" class="btn-secondary w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-xl text-sm font-semibold">
+                Volver a Mi Entreno
+            </a>
+            <button type="submit" id="triage-submit-btn" class="btn-accent w-full sm:w-auto min-h-[48px] px-7 py-3 rounded-xl font-headline font-bold text-sm">
+                Guardar y Enviar Ficha Única MMA
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const form = document.getElementById('athlete-mma-triage-form');
+    if (!form) return;
+
+    // 1. Salto condicional accesible para marcas RM (aria-expanded + aria-controls)
+    const rmToggle = document.getElementById('id_knows_rm_marks');
+    const rmPanel = document.getElementById('rm-marks-panel');
+    if (rmToggle && rmPanel) {
+        rmToggle.addEventListener('change', () => {
+            const open = rmToggle.checked;
+            rmPanel.classList.toggle('hidden', !open);
+            rmToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+    }
+
+    // 2. Sincronizar aria-invalid con :user-invalid y fallback WeakMap
+    const syncAria = (el) => {
+        if (!el || typeof el.matches !== 'function') return;
+        if (CSS.supports('selector(:user-invalid)')) {
+            el.setAttribute('aria-invalid', el.matches(':user-invalid') ? 'true' : 'false');
+        }
+    };
+    form.addEventListener('blur', (e) => syncAria(e.target), true);
+    form.addEventListener('input', (e) => {
+        if (e.target && e.target.hasAttribute && e.target.hasAttribute('aria-invalid')) {
+            syncAria(e.target);
+        }
+    });
+
+    if (!CSS.supports('selector(:user-invalid)')) {
+        const dirtyState = new WeakMap();
+        const updateFallback = (input) => {
+            const valid = input.checkValidity();
+            input.classList.toggle('user-invalid-fallback', !valid);
+            input.classList.toggle('user-valid-fallback', valid);
+            if (!valid) input.setAttribute('aria-invalid', 'true');
+            else input.removeAttribute('aria-invalid');
+        };
+        form.addEventListener('blur', (e) => {
+            const input = e.target;
+            if (!input || !input.checkValidity) return;
+            const st = dirtyState.get(input) || { interacted: false, blurred: false };
+            st.blurred = true;
+            dirtyState.set(input, st);
+            if (st.interacted) updateFallback(input);
+        }, true);
+        form.addEventListener('input', (e) => {
+            const input = e.target;
+            if (!input || !input.checkValidity) return;
+            const st = dirtyState.get(input) || { interacted: false, blurred: false };
+            st.interacted = true;
+            dirtyState.set(input, st);
+            if (st.blurred) updateFallback(input);
+        });
+    }
+
+    // 3. Evitar envíos duplicados deshabilitando el botón tras una validación exitosa
+    const submitBtn = document.getElementById('triage-submit-btn');
+    form.addEventListener('submit', () => {
+        if (form.checkValidity() && submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Guardando ficha...';
+        }
+    });
+})();
+</script>
+{% endblock %}

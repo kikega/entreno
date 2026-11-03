@@ -31,7 +31,7 @@
                             {% if user.is_dual %}
                                 bg-sky-500/20 text-sky-200 border-sky-400/30
                             {% elif user.is_trainer %}
-                                bg-primary/20 text-primary-200 border-primary/30
+                                bg-primary/20 text-sky-200 border-primary/30
                             {% else %}
                                 bg-emerald-500/20 text-emerald-200 border-emerald-400/30
                             {% endif %}">
@@ -47,7 +47,7 @@
             </div>
 
             <div class="shrink-0">
-                <a href="{% url 'users:password_change' %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-headline font-bold transition shadow-sm hover:scale-[1.02] cursor-pointer">
+                <a href="{% url 'users:password_change' %}" class="inline-flex items-center justify-center gap-2 min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-headline font-bold transition shadow-sm cursor-pointer">
                     <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
                     <span>Cambiar contraseña</span>
                 </a>
@@ -101,15 +101,15 @@
                         {% if user.is_dual %}
                             <form method="post" action="{% url 'users:remove_athlete_profile' %}" onsubmit="return confirm('¿Seguro que deseas desactivar tu rol de deportista? Tus entrenamientos anteriores no se borrarán y podrás reactivarlo cuando quieras.');">
                                 {% csrf_token %}
-                                <button type="submit" class="w-full text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg py-2 px-3 transition cursor-pointer">
+                                <button type="submit" class="inline-flex items-center justify-center w-full min-h-[38px] text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 bg-white border border-red-200 rounded-xl py-2 px-3 transition cursor-pointer">
                                     Desactivar rol deportista
                                 </button>
                             </form>
                         {% else %}
-                            <p class="text-[11px] text-slate-400 italic text-center">Es tu único rol activo. No puedes desactivarlo.</p>
+                            <p class="text-[11px] text-slate-400 italic text-center py-2">Es tu único rol activo. No puedes desactivarlo.</p>
                         {% endif %}
                     {% else %}
-                        <a href="{% url 'users:become_athlete' %}" class="block text-center w-full text-xs font-headline font-bold text-white bg-accent hover:bg-accent-hover rounded-lg py-2 px-3 transition shadow-sm cursor-pointer">
+                        <a href="{% url 'users:become_athlete' %}" class="btn-accent w-full min-h-[38px] text-xs font-headline font-bold rounded-xl py-2 px-3 cursor-pointer">
                             Activar rol deportista
                         </a>
                     {% endif %}
@@ -153,15 +153,15 @@
                         {% if user.is_dual %}
                             <form method="post" action="{% url 'users:remove_trainer_profile' %}" onsubmit="return confirm('¿Seguro que deseas desactivar tu rol de entrenador? Los planes que hayas creado para tus alumnos seguirán existiendo y podrás reactivarlo cuando quieras.');">
                                 {% csrf_token %}
-                                <button type="submit" class="w-full text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg py-2 px-3 transition cursor-pointer">
+                                <button type="submit" class="inline-flex items-center justify-center w-full min-h-[38px] text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 bg-white border border-red-200 rounded-xl py-2 px-3 transition cursor-pointer">
                                     Desactivar rol entrenador
                                 </button>
                             </form>
                         {% else %}
-                            <p class="text-[11px] text-slate-400 italic text-center">Es tu único rol activo. No puedes desactivarlo.</p>
+                            <p class="text-[11px] text-slate-400 italic text-center py-2">Es tu único rol activo. No puedes desactivarlo.</p>
                         {% endif %}
                     {% else %}
-                        <a href="{% url 'users:become_trainer' %}" class="block text-center w-full text-xs font-headline font-bold text-white bg-primary hover:bg-primary-hover rounded-lg py-2 px-3 transition shadow-sm cursor-pointer">
+                        <a href="{% url 'users:become_trainer' %}" class="btn-primary w-full min-h-[38px] text-xs font-headline font-bold rounded-xl py-2 px-3 cursor-pointer">
                             Activar rol entrenador
                         </a>
                     {% endif %}
@@ -272,7 +272,7 @@
                         <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
                             <button type="button"
                                     id="btn-upload-photo"
-                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-headline font-bold transition shadow-sm hover:scale-[1.01] cursor-pointer">
+                                    class="btn-primary min-h-[38px] px-4 py-2 rounded-xl text-xs font-headline font-bold cursor-pointer">
                                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                 </svg>
@@ -281,7 +281,7 @@
 
                             <button type="button"
                                     id="btn-remove-photo"
-                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-headline font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 transition cursor-pointer {% if not user.profile_picture %}hidden{% endif %}">
+                                    class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 rounded-xl text-xs font-headline font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 transition cursor-pointer {% if not user.profile_picture %}hidden{% endif %}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
@@ -312,10 +312,10 @@
 
             {% if user.is_athlete %}
                 <!-- Sección Perfil Deportivo & Objetivos (Solo deportistas) -->
-                <div class="space-y-4 pt-4 border-t border-slate-150">
+                <div class="space-y-4 pt-4 border-t border-slate-200">
                     <div class="flex items-center justify-between">
                         <h4 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Perfil Deportivo y Objetivos</h4>
-                        <span class="text-[11px] font-bold text-accent bg-sky-50 px-2 py-0.5 rounded border border-sky-150">Rol Deportista</span>
+                        <span class="text-[11px] font-bold text-accent bg-sky-50 px-2 py-0.5 rounded border border-sky-200">Rol Deportista</span>
                     </div>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -341,7 +341,7 @@
                 </div>
 
                 <!-- Sección Composición Corporal (Solo deportistas) -->
-                <div class="space-y-4 pt-4 border-t border-slate-150">
+                <div class="space-y-4 pt-4 border-t border-slate-200">
                     <h4 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Composición Física Actual</h4>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -378,10 +378,10 @@
 
             <!-- Botones de Acción -->
             <div class="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-6 border-t border-slate-100">
-                <a href="/" class="w-full sm:w-auto text-center px-5 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                <a href="/" class="btn-secondary w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-semibold rounded-xl">
                     Volver al resumen
                 </a>
-                <button type="submit" class="w-full sm:w-auto btn-primary px-6 py-2.5 rounded-xl font-headline font-bold text-sm transition hover:scale-[1.01] shadow-md shadow-primary/20 cursor-pointer">
+                <button type="submit" class="btn-primary w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-xl font-headline font-bold text-sm cursor-pointer">
                     Guardar Cambios
                 </button>
             </div>
@@ -433,7 +433,7 @@
                     <strong class="text-slate-700 font-headline block mb-0.5">¿Deseas cambiar tu contraseña?</strong>
                     Por motivos de seguridad, te solicitaremos tu contraseña actual antes de establecer la nueva.
                 </div>
-                <a href="{% url 'users:password_change' %}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-headline font-bold text-xs sm:text-sm transition shadow-sm hover:shadow hover:scale-[1.01] shrink-0 cursor-pointer">
+                <a href="{% url 'users:password_change' %}" class="btn-primary min-h-[42px] px-5 py-2.5 rounded-xl font-headline font-bold text-xs sm:text-sm shrink-0 cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
                     Cambiar contraseña
                 </a>

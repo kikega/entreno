@@ -41,12 +41,12 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-                <a href="{% url 'training:athlete_detail' athlete.id %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-headline font-bold transition shadow-sm">
+            <div class="action-toolbar shrink-0">
+                <a href="{% url 'training:athlete_detail' athlete.id %}" class="inline-flex items-center justify-center gap-2 min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-headline font-bold transition shadow-sm">
                     Ver expediente
                 </a>
                 {% if athlete.assigned_trainer_id == request.user.id %}
-                    <a href="{% url 'training:trainer_athlete_delete' athlete.id %}" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/30 text-amber-200 text-xs font-headline font-bold transition shadow-sm">
+                    <a href="{% url 'training:trainer_athlete_delete' athlete.id %}" class="inline-flex items-center justify-center gap-1.5 min-h-[40px] px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/30 text-amber-200 text-xs font-headline font-bold transition shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
                         </svg>
@@ -132,7 +132,7 @@
                         <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
                             <button type="button"
                                     id="btn-upload-photo"
-                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-headline font-bold transition shadow-sm hover:scale-[1.01] cursor-pointer">
+                                    class="btn-primary min-h-[38px] px-4 py-2 rounded-xl text-xs font-headline font-bold cursor-pointer">
                                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                 </svg>
@@ -141,7 +141,7 @@
 
                             <button type="button"
                                     id="btn-remove-photo"
-                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-headline font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 transition cursor-pointer {% if not athlete.user.profile_picture %}hidden{% endif %}">
+                                    class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 rounded-xl text-xs font-headline font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 transition cursor-pointer {% if not athlete.user.profile_picture %}hidden{% endif %}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
@@ -175,10 +175,10 @@
             </div>
 
             <!-- Sección Perfil Deportivo & Objetivos -->
-            <div class="space-y-4 pt-4 border-t border-slate-150">
+            <div class="space-y-4 pt-4 border-t border-slate-200">
                 <div class="flex items-center justify-between">
                     <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Perfil Deportivo y Objetivos</h3>
-                    <span class="text-[11px] font-bold text-accent bg-sky-50 px-2 py-0.5 rounded border border-sky-150">Parámetros de Entreno</span>
+                    <span class="text-[11px] font-bold text-accent bg-sky-50 px-2 py-0.5 rounded border border-sky-200">Parámetros de Entreno</span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -198,7 +198,7 @@
             </div>
 
             <!-- Sección Composición Corporal -->
-            <div class="space-y-4 pt-4 border-t border-slate-150">
+            <div class="space-y-4 pt-4 border-t border-slate-200">
                 <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Composición Física Actual</h3>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -226,14 +226,14 @@
 
             <!-- Botones de Acción -->
             <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-6 border-t border-slate-100">
-                <a href="{% url 'training:trainer_dashboard' %}" class="w-full sm:w-auto text-center px-5 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                <a href="{% url 'training:trainer_dashboard' %}" class="btn-secondary w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-semibold rounded-xl">
                     Volver a Mis deportistas
                 </a>
-                <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                    <a href="{% url 'training:athlete_detail' athlete.id %}" class="w-full sm:w-auto text-center px-5 py-2.5 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+                <div class="flex flex-col-reverse sm:flex-row items-center gap-3 w-full sm:w-auto">
+                    <a href="{% url 'training:athlete_detail' athlete.id %}" class="btn-secondary w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-semibold rounded-xl">
                         Cancelar
                     </a>
-                    <button type="submit" class="w-full sm:w-auto btn-primary px-6 py-2.5 rounded-xl font-headline font-bold text-sm transition hover:scale-[1.01] shadow-md shadow-primary/20 cursor-pointer">
+                    <button type="submit" class="btn-primary w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-xl font-headline font-bold text-sm cursor-pointer">
                         Guardar Cambios
                     </button>
                 </div>

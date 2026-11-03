@@ -1,7 +1,12 @@
 {% load training_extras %}
 <tr class="hover:bg-slate-50/40 transition">
-    <td class="px-6 py-4.5">
-        <div class="flex items-center gap-2">
+    <td class="px-6 py-4">
+        <div class="flex flex-wrap items-center gap-2">
+            {% if exercise.effective_session_block %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-headline font-bold border {{ exercise.session_block_badge_class }}">
+                    {{ exercise.session_block_short }}
+                </span>
+            {% endif %}
             <span class="text-base font-bold text-slate-800">{{ exercise.exercise.name }}</span>
             {% if exercise.exercise.description %}
                 <button type="button"
@@ -17,16 +22,24 @@
             <div class="text-xs text-slate-400 mt-0.5"><span class="font-semibold text-slate-500">Foco:</span> {{ exercise.focus }}</div>
         {% endif %}
     </td>
-    <td class="px-6 py-4.5 whitespace-nowrap text-base text-slate-600 font-semibold">
-        {{ exercise.sets }} x {{ exercise.reps }}
+    <td class="px-6 py-4 whitespace-nowrap text-base text-slate-600 font-semibold">
+        {% if exercise.am_reps_fraction %}
+            {{ exercise.sets }} x {{ exercise.am_reps_fraction }}
+        {% else %}
+            {{ exercise.sets }} x {{ exercise.reps }}
+        {% endif %}
     </td>
-    <td class="px-6 py-4.5 whitespace-nowrap text-base text-slate-600 font-semibold">
-        {{ exercise.load }}{% if exercise.rpe %} @ RPE {{ exercise.rpe }}{% endif %}{% if exercise.rir %} (RIR {{ exercise.rir }}){% endif %}
+    <td class="px-6 py-4 whitespace-nowrap text-base text-slate-600 font-semibold">
+        {% if exercise.am_fractional_intensity %}
+            {% if exercise.load %}{{ exercise.load }} · {% endif %}<span class="font-bold text-sky-800">{{ exercise.am_fractional_intensity }}</span>
+        {% else %}
+            {{ exercise.load }}{% if exercise.rpe %} @ RPE {{ exercise.rpe }}{% endif %}{% if exercise.rir %} (RIR {{ exercise.rir }}){% endif %}
+        {% endif %}
     </td>
-    <td class="px-6 py-4.5 whitespace-nowrap">
+    <td class="px-6 py-4 whitespace-nowrap">
         <div class="text-base text-slate-600 font-semibold">Descanso: {{ exercise.rest|default:"--" }}</div>
         {% if exercise.tempo %}
-            <div class="text-xs text-slate-450 font-medium mt-0.5">Tempo: {{ exercise.tempo }}</div>
+            <div class="text-xs text-slate-500 font-medium mt-0.5">Tempo: {{ exercise.tempo }}</div>
         {% endif %}
         {% if exercise.exercise.video_url %}
             <a href="{{ exercise.exercise.video_url }}" target="_blank" class="inline-flex items-center text-xs text-primary font-semibold hover:underline gap-1 mt-1">
