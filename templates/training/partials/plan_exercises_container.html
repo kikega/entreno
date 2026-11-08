@@ -1,0 +1,198 @@
+{% load training_extras %}
+<div id="plan-exercises-container" class="bg-white shadow-sm rounded-2xl border border-slate-200 overflow-hidden">
+    <div class="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+            <h3 class="text-lg font-headline font-bold text-slate-800">Ejercicios Programados</h3>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-headline font-bold bg-sky-50 text-primary border border-sky-200">
+                {{ plan.planned_exercises.count }} ejercicio{{ plan.planned_exercises.count|pluralize }}
+            </span>
+        </div>
+        {% if can_manage_plan %}
+            <span class="text-xs text-slate-500">
+                Usa <strong>Editar</strong>, <strong>↑/↓</strong> o <strong>Quitar</strong> en cualquier fila para ajustar el plan al instante.
+            </span>
+        {% endif %}
+    </div>
+
+    <!-- Tabla para Escritorio (Entrenador) -->
+    <div class="hidden md:block overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100">
+            <thead class="bg-slate-50/40">
+                <tr>
+                    <th scope="col" class="px-5 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Orden / Ejercicio</th>
+                    <th scope="col" class="px-5 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Series x Reps</th>
+                    <th scope="col" class="px-5 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Carga / RPE / RIR</th>
+                    <th scope="col" class="px-5 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Descanso / Tempo</th>
+                    <th scope="col" class="px-5 py-3.5 text-right text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="exercises-list" class="bg-white divide-y divide-slate-100">
+                {% for planned in plan.planned_exercises.all %}
+                    {% include 'training/partials/exercise_row.html' with exercise=planned %}
+                {% empty %}
+                    <tr id="empty-message">
+                        <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-base">
+                            No hay ejercicios asignados a este plan todavía. Usa la barra superior para añadirlos en 1 clic.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Lista de Tarjetas para Móviles (Entrenador) -->
+    <div class="block md:hidden divide-y divide-slate-100" id="exercises-list-mobile">
+        {% for planned in plan.planned_exercises.all %}
+            <div class="p-5 space-y-3">
+                <div class="flex justify-between items-start gap-2">
+                    <div class="space-y-1">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="bg-slate-100 text-slate-700 border border-slate-200 text-xs px-2 py-0.5 rounded-md font-bold shrink-0">#{{ planned.order }}</span>
+                            {% if planned.effective_session_block %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-headline font-bold border {{ planned.session_block_badge_class }}">
+                                    {{ planned.session_block_short }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <h4 class="text-base font-bold text-slate-800">{{ planned.exercise.name }}</h4>
+                    </div>
+
+                    <div class="flex items-center gap-1 shrink-0">
+                        <form method="post"
+                              action="{% url 'training:move_planned_exercise' planned.id %}"
+                              hx-post="{% url 'training:move_planned_exercise' planned.id %}"
+                              hx-target="#plan-exercises-container"
+                              hx-swap="outerHTML"
+                              class="m-0 inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="direction" value="up">
+                            <button type="submit" aria-label="Subir" class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600">↑</button>
+                        </form>
+                        <form method="post"
+                              action="{% url 'training:move_planned_exercise' planned.id %}"
+                              hx-post="{% url 'training:move_planned_exercise' planned.id %}"
+                              hx-target="#plan-exercises-container"
+                              hx-swap="outerHTML"
+                              class="m-0 inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="direction" value="down">
+                            <button type="submit" aria-label="Bajar" class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600">↓</button>
+                        </form>
+                        {% if not planned.has_logged_sets %}
+                            <form method="post"
+                                  action="{% url 'training:delete_planned_exercise' planned.id %}"
+                                  hx-post="{% url 'training:delete_planned_exercise' planned.id %}"
+                                  hx-target="#plan-exercises-container"
+                                  hx-swap="outerHTML"
+                                  class="m-0 inline">
+                                {% csrf_token %}
+                                <button type="submit" aria-label="Eliminar {{ planned.exercise.name }}" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                    Quitar
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if planned.focus %}
+                    <p class="text-xs text-slate-500"><span class="font-semibold">Foco:</span> {{ planned.focus }}</p>
+                {% endif %}
+
+                <div class="grid grid-cols-2 gap-3 pt-1 text-sm text-slate-600">
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Series x Reps</span>
+                        <span class="font-bold text-slate-800">{% if planned.am_reps_fraction %}{{ planned.sets }} x {{ planned.am_reps_fraction }}{% else %}{{ planned.sets }} x {{ planned.reps }}{% endif %}</span>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Carga / Intensidad</span>
+                        <span class="font-bold text-slate-800">{% if planned.am_fractional_intensity %}{% if planned.load %}{{ planned.load }} · {% endif %}{{ planned.am_fractional_intensity }}{% else %}{{ planned.load }} {% if planned.rpe %}@ RPE {{ planned.rpe }}{% endif %}{% endif %}</span>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Descanso</span>
+                        <span class="font-bold text-slate-800">{{ planned.rest|default:"--" }}</span>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Tempo / RIR</span>
+                        <span class="font-bold text-slate-800">{% if planned.tempo %}Tempo: {{ planned.tempo }}{% elif planned.rir %}RIR: {{ planned.rir }}{% else %}--{% endif %}</span>
+                    </div>
+                </div>
+
+                <!-- Edición rápida móvil desplegable -->
+                <details class="pt-1">
+                    <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                        ✏️ Editar pauta
+                    </summary>
+                    <form method="post"
+                          action="{% url 'training:edit_planned_exercise' planned.id %}"
+                          hx-post="{% url 'training:edit_planned_exercise' planned.id %}"
+                          hx-target="#plan-exercises-container"
+                          hx-swap="outerHTML"
+                          class="mt-2 p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="mob-sets-{{ planned.id }}" class="block text-[10px] font-bold text-slate-500">Series</label>
+                                <input id="mob-sets-{{ planned.id }}" type="text" name="sets" value="{{ planned.sets }}" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label for="mob-reps-{{ planned.id }}" class="block text-[10px] font-bold text-slate-500">Reps</label>
+                                <input id="mob-reps-{{ planned.id }}" type="text" name="reps" value="{{ planned.reps }}" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label for="mob-rir-{{ planned.id }}" class="block text-[10px] font-bold text-slate-500">RIR</label>
+                                <input id="mob-rir-{{ planned.id }}" type="text" name="rir" value="{{ planned.rir }}" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label for="mob-rpe-{{ planned.id }}" class="block text-[10px] font-bold text-slate-500">RPE</label>
+                                <input id="mob-rpe-{{ planned.id }}" type="text" name="rpe" value="{{ planned.rpe }}" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label for="mob-load-{{ planned.id }}" class="block text-[10px] font-bold text-slate-500">Carga</label>
+                                <input id="mob-load-{{ planned.id }}" type="text" name="load" value="{{ planned.load }}" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label for="mob-rest-{{ planned.id }}" class="block text-[10px] font-bold text-slate-500">Descanso</label>
+                                <input id="mob-rest-{{ planned.id }}" type="text" name="rest" value="{{ planned.rest }}" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full py-2 rounded-lg bg-primary text-white text-xs font-headline font-bold">
+                            Guardar Cambios
+                        </button>
+                    </form>
+                </details>
+
+                {% if planned.notes %}
+                    <div class="mt-2 text-xs text-slate-500 bg-amber-50/50 p-3 rounded-lg border border-amber-100/60">
+                        <span class="font-semibold block mb-0.5 text-amber-700">Indicaciones:</span>
+                        {{ planned.notes }}
+                    </div>
+                {% endif %}
+
+                {% if planned.exercise.description %}
+                    <div class="pt-1">
+                        <button type="button"
+                                onclick="toggleMobileGuide('mob-guide-{{ planned.id }}')"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-50 text-primary border border-sky-200 hover:bg-sky-100 transition shadow-sm">
+                            <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                            <span>Guía y Técnica</span>
+                        </button>
+                        <div id="mob-guide-{{ planned.id }}" class="hidden mt-2 p-4 bg-slate-50/90 rounded-xl border border-slate-200 exercise-markdown shadow-inner animate-fade-in">
+                            {{ planned.exercise.description|render_markdown }}
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if planned.exercise.video_url %}
+                    <a href="{{ planned.exercise.video_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs text-primary font-semibold hover:underline gap-1 pt-1">
+                        Ver video de ejemplo
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="p-8 text-center text-slate-400 text-sm md:hidden">
+                No hay ejercicios asignados a este plan todavía.
+            </div>
+        {% endfor %}
+    </div>
+</div>

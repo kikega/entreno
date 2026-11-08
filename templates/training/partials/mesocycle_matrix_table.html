@@ -1,4 +1,5 @@
 {% load training_extras %}
+<div id="macrocycle-matrix-table-area">
 {% if matrix and matrix.rows %}
 <div tabindex="0"
      role="region"
@@ -50,22 +51,66 @@
                 <tr class="align-top hover:bg-slate-50/30 transition">
                     <th scope="row" class="px-5 py-4 text-left font-normal align-top">
                         <div class="space-y-1.5">
-                            <div class="flex flex-wrap items-center gap-1.5">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-headline font-bold border {{ row.block_badge_class }}">
-                                    {{ row.block_short }}
-                                </span>
-                                {% if row.pain_status == 'option_a' %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                                        ⚠️ Opción A Isométrica
+                            <div class="flex flex-wrap items-center justify-between gap-1.5">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-headline font-bold border {{ row.block_badge_class }}">
+                                        {{ row.block_short }}
                                     </span>
-                                {% elif row.pain_status == 'option_b' %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-900 border border-orange-300">
-                                        ⚠️ Opción B Vector
-                                    </span>
-                                {% elif row.pain_status == 'omitted_injury' %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white">
-                                        🛑 OMITIDO_POR_LESION
-                                    </span>
+                                    {% if row.pain_status == 'option_a' %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                            ⚠️ Opción A Isométrica
+                                        </span>
+                                    {% elif row.pain_status == 'option_b' %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-900 border border-orange-300">
+                                            ⚠️ Opción B Vector
+                                        </span>
+                                    {% elif row.pain_status == 'omitted_injury' %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white">
+                                            🛑 OMITIDO_POR_LESION
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                {% if viewer_role == 'trainer' %}
+                                    <!-- Controles rápidos de orden ↑ / ↓ y borrado de fila -->
+                                    <div class="inline-flex items-center gap-1">
+                                        <form method="post"
+                                              action="{% url 'training:block_move_exercise_row' matrix.block.id %}"
+                                              hx-post="{% url 'training:block_move_exercise_row' matrix.block.id %}"
+                                              hx-target="#macrocycle-matrix-table-area"
+                                              hx-swap="outerHTML"
+                                              class="m-0 inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="day_number" value="{{ matrix.day_number }}">
+                                            <input type="hidden" name="order" value="{{ row.order }}">
+                                            <input type="hidden" name="exercise_id" value="{{ row.exercise.id }}">
+                                            <input type="hidden" name="direction" value="up">
+                                            <button type="submit"
+                                                    title="Subir ejercicio"
+                                                    aria-label="Subir {{ row.exercise.name }}"
+                                                    class="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[11px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition">
+                                                ↑
+                                            </button>
+                                        </form>
+                                        <form method="post"
+                                              action="{% url 'training:block_move_exercise_row' matrix.block.id %}"
+                                              hx-post="{% url 'training:block_move_exercise_row' matrix.block.id %}"
+                                              hx-target="#macrocycle-matrix-table-area"
+                                              hx-swap="outerHTML"
+                                              class="m-0 inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="day_number" value="{{ matrix.day_number }}">
+                                            <input type="hidden" name="order" value="{{ row.order }}">
+                                            <input type="hidden" name="exercise_id" value="{{ row.exercise.id }}">
+                                            <input type="hidden" name="direction" value="down">
+                                            <button type="submit"
+                                                    title="Bajar ejercicio"
+                                                    aria-label="Bajar {{ row.exercise.name }}"
+                                                    class="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[11px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition">
+                                                ↓
+                                            </button>
+                                        </form>
+                                    </div>
                                 {% endif %}
                             </div>
 
@@ -100,8 +145,51 @@
                             </div>
 
                             {% if viewer_role == 'trainer' %}
+                                <!-- Barra de edición rápida de fila (Editar 4 semanas + Quitar fila) -->
+                                <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                                    <button type="button"
+                                            onclick="openEditProgressionModal(this)"
+                                            data-exercise-id="{{ row.exercise.id }}"
+                                            data-session-block="{{ row.session_block }}"
+                                            data-day-number="{{ matrix.day_number }}"
+                                            data-order="{{ row.order }}"
+                                            data-tempo="{{ row.tempo|default:'' }}"
+                                            data-rest="{{ row.rest|default:'' }}"
+                                            data-focus="{{ row.focus|default:'' }}"
+                                            data-notes="{{ row.notes|default:'' }}"
+                                            {% for c in row.cells %}
+                                                {% if c.planned %}
+                                                    data-w{{ c.week_number }}-sets="{{ c.planned.sets }}"
+                                                    data-w{{ c.week_number }}-reps="{{ c.planned.reps }}"
+                                                    data-w{{ c.week_number }}-rir="{{ c.planned.rir }}"
+                                                    data-w{{ c.week_number }}-rpe="{{ c.planned.rpe }}"
+                                                    data-w{{ c.week_number }}-load="{{ c.planned.load }}"
+                                                {% endif %}
+                                            {% endfor %}
+                                            class="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg transition">
+                                        <span>✏️ Editar 4 sem</span>
+                                    </button>
+
+                                    <form method="post"
+                                          action="{% url 'training:block_delete_exercise_row' matrix.block.id %}"
+                                          hx-post="{% url 'training:block_delete_exercise_row' matrix.block.id %}"
+                                          hx-target="#macrocycle-matrix-table-area"
+                                          hx-swap="outerHTML"
+                                          class="m-0 inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="day_number" value="{{ matrix.day_number }}">
+                                        <input type="hidden" name="order" value="{{ row.order }}">
+                                        <input type="hidden" name="exercise_id" value="{{ row.exercise.id }}">
+                                        <button type="submit"
+                                                title="Eliminar este ejercicio de las semanas pendientes del bloque"
+                                                class="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2 py-1 rounded-lg transition">
+                                            <span>🗑️ Quitar</span>
+                                        </button>
+                                    </form>
+                                </div>
+
                                 <!-- Edición rápida con autocompletado XLOOKUP (BD_Local_Ejercicios) -->
-                                <details class="pt-1.5 group">
+                                <details class="pt-1 group">
                                     <summary class="cursor-pointer list-none inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 hover:text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2 py-1 rounded-lg transition">
                                         <span>🔄 Cambiar ejercicio (XLOOKUP)</span>
                                     </summary>
@@ -186,6 +274,52 @@
                                             Carga objetivo: <span class="text-slate-900">{{ cell.load }}</span>
                                         </div>
                                     {% endif %}
+
+                                    {% if viewer_role == 'trainer' and not cell.plan.has_logged_activity %}
+                                        <!-- Edición rápida inline de celda individual (Semana {{ cell.week_number }}) -->
+                                        <details class="group">
+                                            <summary class="cursor-pointer list-none inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-primary transition">
+                                                <span>✏️ Editar S{{ cell.week_number }}</span>
+                                            </summary>
+                                            <form method="post"
+                                                  action="{% url 'training:block_update_cell_prescription' matrix.block.id %}"
+                                                  hx-post="{% url 'training:block_update_cell_prescription' matrix.block.id %}"
+                                                  hx-target="#macrocycle-matrix-table-area"
+                                                  hx-swap="outerHTML"
+                                                  class="mt-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="planned_id" value="{{ cell.planned.id }}">
+                                                <input type="hidden" name="week_number" value="{{ cell.week_number }}">
+                                                <input type="hidden" name="day_number" value="{{ matrix.day_number }}">
+                                                <div class="grid grid-cols-2 gap-1.5">
+                                                    <div>
+                                                        <label for="cell-sets-{{ cell.planned.id }}" class="block text-[9px] font-bold text-slate-500 uppercase">Series</label>
+                                                        <input id="cell-sets-{{ cell.planned.id }}" type="text" name="sets" value="{{ cell.planned.sets }}" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]">
+                                                    </div>
+                                                    <div>
+                                                        <label for="cell-reps-{{ cell.planned.id }}" class="block text-[9px] font-bold text-slate-500 uppercase">Reps</label>
+                                                        <input id="cell-reps-{{ cell.planned.id }}" type="text" name="reps" value="{{ cell.planned.reps }}" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]">
+                                                    </div>
+                                                    <div>
+                                                        <label for="cell-rir-{{ cell.planned.id }}" class="block text-[9px] font-bold text-slate-500 uppercase">RIR</label>
+                                                        <input id="cell-rir-{{ cell.planned.id }}" type="text" name="rir" value="{{ cell.planned.rir }}" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]">
+                                                    </div>
+                                                    <div>
+                                                        <label for="cell-rpe-{{ cell.planned.id }}" class="block text-[9px] font-bold text-slate-500 uppercase">RPE</label>
+                                                        <input id="cell-rpe-{{ cell.planned.id }}" type="text" name="rpe" value="{{ cell.planned.rpe }}" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]">
+                                                    </div>
+                                                    <div class="col-span-2">
+                                                        <label for="cell-load-{{ cell.planned.id }}" class="block text-[9px] font-bold text-slate-500 uppercase">Carga</label>
+                                                        <input id="cell-load-{{ cell.planned.id }}" type="text" name="load" value="{{ cell.planned.load }}" placeholder="Ej: 100 kg" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]">
+                                                    </div>
+                                                </div>
+                                                <button type="submit" class="w-full py-1 rounded bg-primary text-white text-[10px] font-headline font-bold hover:bg-sky-700 transition">
+                                                    Guardar S{{ cell.week_number }}
+                                                </button>
+                                            </form>
+                                        </details>
+                                    {% endif %}
+
                                     <ul class="space-y-1.5 pt-0.5" aria-label="Series Semana {{ cell.week_number }}">
                                         {% for slot in cell.set_slots %}
                                             {% if slot.is_locked %}
@@ -208,7 +342,53 @@
                                     </ul>
                                 </div>
                             {% else %}
-                                <span class="text-xs text-slate-400 italic">Sin pauta en Semana {{ cell.week_number }}</span>
+                                <div class="space-y-2">
+                                    <span class="text-xs text-slate-400 italic block">Sin pauta en Semana {{ cell.week_number }}</span>
+                                    {% if viewer_role == 'trainer' %}
+                                        <details class="group">
+                                            <summary class="cursor-pointer list-none inline-flex items-center gap-1 text-[10px] font-semibold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md">
+                                                <span>+ Pautar S{{ cell.week_number }}</span>
+                                            </summary>
+                                            <form method="post"
+                                                  action="{% url 'training:block_update_cell_prescription' matrix.block.id %}"
+                                                  hx-post="{% url 'training:block_update_cell_prescription' matrix.block.id %}"
+                                                  hx-target="#macrocycle-matrix-table-area"
+                                                  hx-swap="outerHTML"
+                                                  class="mt-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="week_number" value="{{ cell.week_number }}">
+                                                <input type="hidden" name="day_number" value="{{ matrix.day_number }}">
+                                                <input type="hidden" name="order" value="{{ row.order }}">
+                                                <input type="hidden" name="exercise_id" value="{{ row.exercise.id }}">
+                                                <div class="grid grid-cols-2 gap-1.5">
+                                                    <div>
+                                                        <label for="new-cell-sets-{{ row.order }}-w{{ cell.week_number }}" class="block text-[9px] font-bold text-slate-500">Series</label>
+                                                        <input id="new-cell-sets-{{ row.order }}-w{{ cell.week_number }}" type="text" name="sets" value="3" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]">
+                                                    </div>
+                                                    <div>
+                                                        <label for="new-cell-reps-{{ row.order }}-w{{ cell.week_number }}" class="block text-[9px] font-bold text-slate-500">Reps</label>
+                                                        <input id="new-cell-reps-{{ row.order }}-w{{ cell.week_number }}" type="text" name="reps" value="5" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]">
+                                                    </div>
+                                                    <div>
+                                                        <label for="new-cell-rir-{{ row.order }}-w{{ cell.week_number }}" class="block text-[9px] font-bold text-slate-500">RIR</label>
+                                                        <input id="new-cell-rir-{{ row.order }}-w{{ cell.week_number }}" type="text" name="rir" value="2" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]">
+                                                    </div>
+                                                    <div>
+                                                        <label for="new-cell-rpe-{{ row.order }}-w{{ cell.week_number }}" class="block text-[9px] font-bold text-slate-500">RPE</label>
+                                                        <input id="new-cell-rpe-{{ row.order }}-w{{ cell.week_number }}" type="text" name="rpe" value="8" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]">
+                                                    </div>
+                                                    <div class="col-span-2">
+                                                        <label for="new-cell-load-{{ row.order }}-w{{ cell.week_number }}" class="block text-[9px] font-bold text-slate-500">Carga</label>
+                                                        <input id="new-cell-load-{{ row.order }}-w{{ cell.week_number }}" type="text" name="load" placeholder="Ej: 90 kg" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]">
+                                                    </div>
+                                                </div>
+                                                <button type="submit" class="w-full py-1 rounded bg-primary text-white text-[10px] font-headline font-bold">
+                                                    Guardar S{{ cell.week_number }}
+                                                </button>
+                                            </form>
+                                        </details>
+                                    {% endif %}
+                                </div>
                             {% endif %}
                         </td>
                     {% endfor %}
@@ -227,3 +407,4 @@
     {% endif %}
 </div>
 {% endif %}
+</div>

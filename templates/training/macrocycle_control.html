@@ -203,7 +203,7 @@
                     Ajustes del Bloque
                 </button>
                 <button type="button"
-                        onclick="openAmModal('prescribeExerciseModal')"
+                        onclick="openNewProgressionModal()"
                         class="btn-primary w-full sm:w-auto min-h-[40px] px-4 py-2 text-xs rounded-xl">
                     + Pautar Progresión 4 Semanas
                 </button>
@@ -262,8 +262,10 @@
             <button type="button" onclick="closeAmModal('prescribeExerciseModal')" aria-label="Cerrar" class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60">✕</button>
         </div>
 
-        <form method="post" action="{% url 'training:block_prescribe_exercise' selected_block.id %}" class="p-6 space-y-5">
+        <form method="post" action="{% url 'training:block_prescribe_exercise' selected_block.id %}" id="prescribeExerciseForm" class="p-6 space-y-5">
             {% csrf_token %}
+            <input type="hidden" name="editing_row_exercise_id" id="id_editing_row_exercise_id" value="">
+            <input type="hidden" name="editing_row_order" id="id_editing_row_order" value="">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="sm:col-span-2">
                     <label for="{{ prescribe_form.exercise.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.exercise.label }}</label>
@@ -307,6 +309,21 @@
                 <legend class="px-2 text-xs font-headline font-bold uppercase tracking-wider text-primary">
                     Progresión Semanal (Series · Reps Objetivo · RIR · RPE · Carga)
                 </legend>
+                <div class="flex flex-wrap items-center gap-1.5 pb-1">
+                    <span class="text-[11px] font-bold text-slate-500 mr-1">Plantillas rápidas:</span>
+                    <button type="button" onclick="applyProgressionPreset('strength')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-primary/5 text-slate-700 hover:text-primary text-[11px] font-bold border border-slate-200 transition">
+                        ⚡ Fuerza Principal (S1→S4)
+                    </button>
+                    <button type="button" onclick="applyProgressionPreset('accessory')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-primary/5 text-slate-700 hover:text-primary text-[11px] font-bold border border-slate-200 transition">
+                        💪 Accesorio / Hipertrofia
+                    </button>
+                    <button type="button" onclick="applyProgressionPreset('power')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-primary/5 text-slate-700 hover:text-primary text-[11px] font-bold border border-slate-200 transition">
+                        🚀 Potencia / Balístico
+                    </button>
+                    <button type="button" onclick="applyProgressionPreset('copy_w1')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-primary/5 text-slate-700 hover:text-primary text-[11px] font-bold border border-slate-200 transition">
+                        📋 Copiar Sem 1 a Sem 2-4
+                    </button>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
                         <p class="text-xs font-headline font-bold text-slate-800">Semana 1</p>
@@ -427,6 +444,103 @@
         el.classList.add('hidden');
         el.classList.remove('flex');
         document.body.style.overflow = '';
+    }
+    function setFieldVal(name, val) {
+        const form = document.getElementById('prescribeExerciseForm');
+        if (!form) return;
+        const el = form.elements[name];
+        if (el) el.value = val ?? '';
+    }
+    function openNewProgressionModal() {
+        const titleEl = document.getElementById('prescribeModalTitle');
+        if (titleEl) titleEl.textContent = 'Pautar Progresión en {{ selected_block.title|escapejs }}';
+        setFieldVal('editing_row_exercise_id', '');
+        setFieldVal('editing_row_order', '');
+        openAmModal('prescribeExerciseModal');
+    }
+    function openEditProgressionModal(btn) {
+        if (!btn) return;
+        const d = btn.dataset;
+        const titleEl = document.getElementById('prescribeModalTitle');
+        if (titleEl) titleEl.textContent = 'Editar Progresión 4 Semanas · {{ selected_block.title|escapejs }}';
+
+        setFieldVal('editing_row_exercise_id', d.exerciseId || '');
+        setFieldVal('editing_row_order', d.order || '');
+        setFieldVal('exercise', d.exerciseId || '');
+        setFieldVal('session_block', d.sessionBlock || 'B4');
+        setFieldVal('day_number', d.dayNumber || '{{ selected_day }}');
+        setFieldVal('order', d.order || '1');
+        setFieldVal('tempo', d.tempo || '');
+        setFieldVal('rest', d.rest || '');
+        setFieldVal('focus', d.focus || '');
+        setFieldVal('notes', d.notes || '');
+
+        [1, 2, 3, 4].forEach(function(w) {
+            setFieldVal('w' + w + '_sets', d['w' + w + 'Sets'] || '');
+            setFieldVal('w' + w + '_reps', d['w' + w + 'Reps'] || '');
+            setFieldVal('w' + w + '_rir', d['w' + w + 'Rir'] || '');
+            setFieldVal('w' + w + '_rpe', d['w' + w + 'Rpe'] || '');
+            setFieldVal('w' + w + '_load', d['w' + w + 'Load'] || '');
+        });
+
+        openAmModal('prescribeExerciseModal');
+    }
+    function applyProgressionPreset(type) {
+        if (type === 'strength') {
+            const p = [
+                { w: 1, s: 4, r: '6', rir: '3', rpe: '7', load: '' },
+                { w: 2, s: 4, r: '5', rir: '2', rpe: '8', load: '' },
+                { w: 3, s: 5, r: '3-4', rir: '1', rpe: '9', load: '' },
+                { w: 4, s: 2, r: '4', rir: '3', rpe: '6.5', load: '' }
+            ];
+            p.forEach(x => {
+                setFieldVal('w' + x.w + '_sets', x.s);
+                setFieldVal('w' + x.w + '_reps', x.r);
+                setFieldVal('w' + x.w + '_rir', x.rir);
+                setFieldVal('w' + x.w + '_rpe', x.rpe);
+            });
+        } else if (type === 'accessory') {
+            const p = [
+                { w: 1, s: 3, r: '10-12', rir: '2', rpe: '8' },
+                { w: 2, s: 3, r: '10-12', rir: '2', rpe: '8' },
+                { w: 3, s: 4, r: '8-10', rir: '1', rpe: '9' },
+                { w: 4, s: 2, r: '10-12', rir: '3', rpe: '7' }
+            ];
+            p.forEach(x => {
+                setFieldVal('w' + x.w + '_sets', x.s);
+                setFieldVal('w' + x.w + '_reps', x.r);
+                setFieldVal('w' + x.w + '_rir', x.rir);
+                setFieldVal('w' + x.w + '_rpe', x.rpe);
+            });
+        } else if (type === 'power') {
+            const p = [
+                { w: 1, s: 4, r: '4', rir: 'MAX V', rpe: '7' },
+                { w: 2, s: 4, r: '4', rir: 'MAX V', rpe: '7.5' },
+                { w: 3, s: 5, r: '3', rir: 'MAX V', rpe: '8' },
+                { w: 4, s: 3, r: '3', rir: 'MAX V', rpe: '7' }
+            ];
+            p.forEach(x => {
+                setFieldVal('w' + x.w + '_sets', x.s);
+                setFieldVal('w' + x.w + '_reps', x.r);
+                setFieldVal('w' + x.w + '_rir', x.rir);
+                setFieldVal('w' + x.w + '_rpe', x.rpe);
+            });
+        } else if (type === 'copy_w1') {
+            const form = document.getElementById('prescribeExerciseForm');
+            if (!form) return;
+            const s = form.elements['w1_sets']?.value || '';
+            const r = form.elements['w1_reps']?.value || '';
+            const rir = form.elements['w1_rir']?.value || '';
+            const rpe = form.elements['w1_rpe']?.value || '';
+            const load = form.elements['w1_load']?.value || '';
+            [2, 3, 4].forEach(w => {
+                setFieldVal('w' + w + '_sets', s);
+                setFieldVal('w' + w + '_reps', r);
+                setFieldVal('w' + w + '_rir', rir);
+                setFieldVal('w' + w + '_rpe', rpe);
+                setFieldVal('w' + w + '_load', load);
+            });
+        }
     }
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {

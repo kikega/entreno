@@ -65,6 +65,7 @@ class PlannedExerciseForm(forms.ModelForm):
         """Inicializa el formulario aplicando estilos CSS y cargando todos los ejercicios ordenados."""
         super().__init__(*args, **kwargs)
         self.fields['exercise'].queryset = Exercise.objects.all().order_by('name')
+        self.fields['order'].required = False
         self.fields['session_block'].required = False
         self.fields['session_block'].choices = [
             ('', 'Automático (según bloque del ejercicio en catálogo)'),
@@ -73,6 +74,10 @@ class PlannedExerciseForm(forms.ModelForm):
 
         for field in self.fields.values():
             field.widget.attrs.update({'class': GENERIC_INPUT_CLASS})
+
+    def clean_order(self):
+        val = self.cleaned_data.get('order')
+        return val if val is not None else 0
 
 
 class ExerciseForm(forms.ModelForm):

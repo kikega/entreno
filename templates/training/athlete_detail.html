@@ -148,10 +148,24 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="flex items-center w-full sm:w-auto shrink-0">
+                            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
                                 <a href="{% url 'training:plan_detail' plan.id %}" class="btn-secondary w-full sm:w-auto min-h-[38px] px-4 py-2 text-sm rounded-xl">
-                                    Ver Detalle
+                                    Ver / Editar Detalle
                                 </a>
+                                <form method="post" action="{% url 'training:plan_duplicate' plan.id %}" class="m-0 inline-flex">
+                                    {% csrf_token %}
+                                    <button type="submit" title="Duplicar este plan" class="min-h-[38px] px-3 py-2 text-xs font-semibold rounded-xl bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition">
+                                        📋 Duplicar
+                                    </button>
+                                </form>
+                                {% if not plan.has_logged_activity %}
+                                    <form method="post" action="{% url 'training:plan_delete' plan.id %}" class="m-0 inline-flex">
+                                        {% csrf_token %}
+                                        <button type="submit" title="Eliminar este plan" class="min-h-[38px] px-3 py-2 text-xs font-semibold rounded-xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition">
+                                            🗑️ Eliminar
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </li>
                     {% endfor %}

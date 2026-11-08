@@ -451,3 +451,115 @@ class SistemaAMPhase3MacrocycleTests(TestCase):
             self.client.post(reverse('training:block_prescribe_exercise', kwargs={'block_id': block_1.pk})).status_code,
             404,
         )
+
+    def test_mesocycle_matrix_cell_edit_row_move_and_row_delete_with_non_destructive_guard(self):
+        """
+        Opción B: En la matriz de 4 semanas del bloque, el entrenador puede:
+        - Editar una celda individual (Semana 1..4) en línea (`update_block_cell_prescription`).
+        - Reordenar filas (`move_block_exercise_row`) dentro del día.
+        - Eliminar una fila completa (`delete_block_exercise_row`) preservando las semanas con `LoggedSet`.
+        """
+        macrocycle = Macrocycle.objects.create(
+            name='Macrociclo Edición Matriz',
+            trainer=self.trainer,
+            athlete=self.fighter,
+        )
+        block_1 = macrocycle.initialize_four_blocks()[0]
+        self.client.force_login(self.trainer_user)
+
+        prescribe_url = reverse('training:block_prescribe_exercise', kwargs={'block_id': block_1.pk})
+        # Pautamos dos ejercicios en el Día 1 (orden 1 y orden 2)
+        self.client.post(prescribe_url, {
+            'exercise': self.ex_main.pk,
+            'session_block': 'B4_Principal',
+            'day_number': 1,
+            'order': 1,
+            'w1_sets': '3', 'w1_reps': '5', 'w1_rir': '2', 'w1_rpe': '8', 'w1_load': '100 kg',
+            'w2_sets': '4', 'w2_reps': '5', 'w2_rir': '2', 'w2_rpe': '8', 'w2_load': '105 kg',
+            'w3_sets': '4', 'w3_reps': '4', 'w3_rir': '1', 'w3_rpe': '9', 'w3_load': '110 kg',
+            'w4_sets': '2', 'w4_reps': '4', 'w4_rir': '3', 'w4_rpe': '7', 'w4_load': '95 kg',
+        })
+        self.client.post(prescribe_url, {
+            'exercise': self.ex_accessory.pk,
+            'session_block': 'B4_Accesorio',
+            'day_number': 1,
+            'order': 2,
+            'w1_sets': '3', 'w1_reps': '10', 'w1_rir': '2', 'w1_rpe': '8', 'w1_load': '32 kg',
+            'w2_sets': '3', 'w2_reps': '10', 'w2_rir': '2', 'w2_rpe': '8', 'w2_load': '34 kg',
+            'w3_sets': '3', 'w3_reps': '10', 'w3_rir': '1', 'w3_rpe': '9', 'w3_load': '36 kg',
+            'w4_sets': '2', 'w4_reps': '10', 'w4_rir': '3', 'w4_rpe': '7', 'w4_load': '30 kg',
+        })
+
+        # 1. Edición rápida por celda individual en Semana 2 de ex_main
+        cell_url = reverse('training:block_update_cell_prescription', kwargs={'block_id': block_1.pk})
+        cell_res = self.client.post(
+            cell_url,
+            {
+                'day_number': 1,
+                'week_number': 2,
+                'exercise_id': self.ex_main.pk,
+                'order': 1,
+                'session_block': 'B4_Principal',
+                'sets': '5',
+                'reps': '3',
+                'rir_target': '1',
+                'rpe': '9',
+                'load': '112.5 kg',
+            },
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(cell_res.status_code, 200)
+        w2_plan = WorkoutPlan.objects.get(macrocycle_block=block_1, week_number=2, day_number=1)
+        w2_pe = PlannedExercise.objects.get(workout_plan=w2_plan, exercise=self.ex_main)
+        self.assertEqual(w2_pe.sets, '5')
+        self.assertEqual(w2_pe.reps, '3')
+        self.assertEqual(w2_pe.load, '112.5 kg')
+
+        # 2. Reordenar fila (mover ex_accessory de order 2 hacia arriba -> order 1)
+        move_url = reverse('training:block_move_exercise_row', kwargs={'block_id': block_1.pk})
+        move_res = self.client.post(
+            move_url,
+            {
+                'day_number': 1,
+                'exercise_id': self.ex_accessory.pk,
+                'order': 2,
+                'direction': 'up',
+            },
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(move_res.status_code, 200)
+        w2_acc = PlannedExercise.objects.get(workout_plan=w2_plan, exercise=self.ex_accessory)
+        w2_pe.refresh_from_db()
+        self.assertEqual(w2_acc.order, 1)
+        self.assertEqual(w2_pe.order, 2)
+
+        # 3. Registrar una serie real en Semana 1 y eliminar la fila de ex_main:
+        #    Semana 1 (con actividad real) debe conservarse intacta; Semanas 2, 3 y 4 se eliminan.
+        w1_plan = WorkoutPlan.objects.get(macrocycle_block=block_1, week_number=1, day_number=1)
+        w1_pe = PlannedExercise.objects.get(workout_plan=w1_plan, exercise=self.ex_main)
+        session = WorkoutSession.objects.create(workout_plan=w1_plan, athlete=self.fighter)
+        logged_ex = LoggedExercise.objects.create(workout_session=session, planned_exercise=w1_pe)
+        LoggedSet.objects.create(logged_exercise=logged_ex, set_number=1, reps=5, weight_kg=100.0, rpe=8.0)
+
+        del_row_url = reverse('training:block_delete_exercise_row', kwargs={'block_id': block_1.pk})
+        del_res = self.client.post(
+            del_row_url,
+            {
+                'day_number': 1,
+                'exercise_id': self.ex_main.pk,
+                'order': 2,
+            },
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(del_res.status_code, 200)
+        # Semana 1 sigue existiendo porque tenía LoggedSet
+        self.assertTrue(PlannedExercise.objects.filter(workout_plan=w1_plan, exercise=self.ex_main).exists())
+        # Semanas 2, 3 y 4 fueron limpiadas
+        self.assertFalse(
+            PlannedExercise.objects.filter(
+                workout_plan__macrocycle_block=block_1,
+                workout_plan__week_number__in=[2, 3, 4],
+                exercise=self.ex_main,
+            ).exists()
+        )
+

@@ -7,178 +7,275 @@
 {% block content %}
 <div class="space-y-6">
     <!-- Encabezado del Plan de Entrenamiento -->
-    <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 sm:p-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
-        <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-sky-50 px-3 py-1 rounded-full border border-sky-100">
-                    PLAN DE ENTRENAMIENTO
-                </span>
-                {% if plan.macrocycle_block %}
-                    <span class="text-xs font-headline font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                        {{ plan.macrocycle_block.title }}{% if plan.week_number %} · Sem {{ plan.week_number }}{% endif %}{% if plan.day_number %} · Día {{ plan.day_number }}{% endif %}
+    <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-4">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-sky-50 px-3 py-1 rounded-full border border-sky-100">
+                        PLAN DE ENTRENAMIENTO
                     </span>
-                {% endif %}
-            </div>
-            <h2 class="text-2xl font-headline font-extrabold text-slate-800 mt-3 break-words">{{ plan.name|default:"Sesión de Entrenamiento" }}</h2>
-            <div class="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500">
-                <div class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                    <span class="font-semibold text-slate-700 truncate">{{ plan.athlete.user.first_name }} {{ plan.athlete.user.last_name }}</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    <span>{{ plan.target_date|date:"d M Y" }}</span>
-                </div>
-                <div class="flex items-center">
-                    {% if plan.is_completed %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold badge-completed">Completado</span>
-                    {% else %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold badge-pending">Pendiente</span>
+                    {% if plan.macrocycle_block %}
+                        <span class="text-xs font-headline font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                            {{ plan.macrocycle_block.title }}{% if plan.week_number %} · Sem {{ plan.week_number }}{% endif %}{% if plan.day_number %} · Día {{ plan.day_number }}{% endif %}
+                        </span>
                     {% endif %}
                 </div>
+                <h2 class="text-2xl font-headline font-extrabold text-slate-800 mt-3 break-words">{{ plan.name|default:"Sesión de Entrenamiento" }}</h2>
+                <div class="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <span class="font-semibold text-slate-700 truncate">{{ plan.athlete.user.first_name }} {{ plan.athlete.user.last_name }}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span>{{ plan.target_date|date:"d M Y" }}</span>
+                    </div>
+                    <div class="flex items-center">
+                        {% if plan.is_completed %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold badge-completed">Completado</span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold badge-pending">Pendiente</span>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="action-toolbar w-full lg:w-auto lg:justify-end shrink-0">
-            {% if can_manage_plan %}
-                <button type="button" onclick="openModal('addExerciseModal')" class="btn-primary w-full sm:w-auto min-h-[42px] px-4 py-2.5 rounded-xl font-headline font-semibold text-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-                    Añadir Ejercicio
-                </button>
-            {% endif %}
 
-            {% if is_plan_owner %}
-                {% if not plan.is_completed %}
-                    <a href="{% url 'training:live_workout' plan.id %}" class="btn-accent w-full sm:w-auto min-h-[42px] px-4 py-2.5 rounded-xl font-headline font-semibold text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
-                        Iniciar Modo en Vivo
+            <div class="action-toolbar w-full lg:w-auto lg:justify-end shrink-0 flex-wrap">
+                {% if can_manage_plan %}
+                    <button type="button" onclick="openModal('addExerciseModal')" class="btn-primary w-full sm:w-auto min-h-[42px] px-4 py-2.5 rounded-xl font-headline font-semibold text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                        Añadir Ejercicio
+                    </button>
+                    <button type="button" onclick="togglePlanMetaPanel()" class="btn-secondary w-full sm:w-auto min-h-[42px] px-3.5 py-2.5 rounded-xl text-sm font-semibold">
+                        ✏️ Editar Plan
+                    </button>
+                    <form method="post" action="{% url 'training:plan_duplicate' plan.id %}" class="m-0 inline-flex w-full sm:w-auto">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-secondary w-full sm:w-auto min-h-[42px] px-3.5 py-2.5 rounded-xl text-sm font-semibold" title="Crear una copia de este plan con todos sus ejercicios">
+                            📋 Duplicar
+                        </button>
+                    </form>
+                    {% if not plan.has_logged_activity %}
+                        <form method="post" action="{% url 'training:plan_delete' plan.id %}" class="m-0 inline-flex w-full sm:w-auto">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full sm:w-auto min-h-[42px] px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition inline-flex items-center justify-center gap-1" title="Eliminar este plan">
+                                🗑️ Eliminar Plan
+                            </button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+
+                {% if is_plan_owner %}
+                    {% if not plan.is_completed %}
+                        <a href="{% url 'training:live_workout' plan.id %}" class="btn-accent w-full sm:w-auto min-h-[42px] px-4 py-2.5 rounded-xl font-headline font-semibold text-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                            Iniciar Modo en Vivo
+                        </a>
+                    {% else %}
+                        <a href="{% url 'training:live_workout' plan.id %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
+                            Ver Sesión en Vivo
+                        </a>
+                    {% endif %}
+                    {% if plan.macrocycle_block %}
+                        <a href="{% url 'training:athlete_active_block' %}?block={{ plan.macrocycle_block.id }}{% if plan.day_number %}&day={{ plan.day_number }}{% endif %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
+                            Matriz 4 Semanas
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'training:athlete_dashboard' %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
+                        Volver a Mi Entrenamiento
                     </a>
                 {% else %}
-                    <a href="{% url 'training:live_workout' plan.id %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
-                        Ver Sesión en Vivo
+                    {% if plan.macrocycle_block %}
+                        <a href="{% url 'training:macrocycle_control' plan.macrocycle_block.macrocycle_id %}?block={{ plan.macrocycle_block.block_number }}{% if plan.day_number %}&day={{ plan.day_number }}{% endif %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
+                            Volver al Macrociclo
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'training:athlete_detail' plan.athlete.id %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
+                        Volver al Deportista
                     </a>
                 {% endif %}
-                {% if plan.macrocycle_block %}
-                    <a href="{% url 'training:athlete_active_block' %}?block={{ plan.macrocycle_block.id }}{% if plan.day_number %}&day={{ plan.day_number }}{% endif %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
-                        Matriz 4 Semanas
-                    </a>
-                {% endif %}
-                <a href="{% url 'training:athlete_dashboard' %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
-                    Volver a Mi Entrenamiento
-                </a>
-            {% else %}
-                {% if plan.macrocycle_block %}
-                    <a href="{% url 'training:macrocycle_control' plan.macrocycle_block.macrocycle_id %}?block={{ plan.macrocycle_block.block_number }}{% if plan.day_number %}&day={{ plan.day_number }}{% endif %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
-                        Volver al Macrociclo
-                    </a>
-                {% endif %}
-                <a href="{% url 'training:athlete_detail' plan.athlete.id %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">
-                    Volver al Deportista
-                </a>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Lista de Ejercicios Programados (ancho completo) -->
-    <div class="bg-white shadow-sm rounded-2xl border border-slate-200 overflow-hidden">
-        <div class="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
-            <h3 class="text-lg font-headline font-bold text-slate-800">Ejercicios Programados</h3>
-            <span class="text-xs font-semibold text-slate-500">{{ plan.planned_exercises.count }} ejercicio{{ plan.planned_exercises.count|pluralize }}</span>
+            </div>
         </div>
 
         {% if can_manage_plan %}
-            <!-- Tabla para Escritorio (Entrenador) -->
-            <div class="hidden md:block overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-100">
-                    <thead class="bg-slate-50/30">
-                        <tr>
-                            <th scope="col" class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Ejercicio</th>
-                            <th scope="col" class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Series x Reps</th>
-                            <th scope="col" class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Carga / RPE / RIR</th>
-                            <th scope="col" class="px-6 py-3.5 text-left text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Descanso / Tempo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="exercises-list" class="bg-white divide-y divide-slate-100">
-                        {% for planned in plan.planned_exercises.all %}
-                            {% include 'training/partials/exercise_row.html' with exercise=planned %}
-                        {% empty %}
-                            <tr id="empty-message">
-                                <td colspan="4" class="px-6 py-12 text-center text-slate-400 text-base">
-                                    No hay ejercicios asignados a este plan todavía.
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <!-- Panel Desplegable: Editar Nombre y Fecha del Plan -->
+            <div id="plan-meta-edit-panel" class="hidden pt-4 border-t border-slate-100 animate-fade-in">
+                <form method="post" action="{% url 'training:plan_update_meta' plan.id %}" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    {% csrf_token %}
+                    <div class="sm:col-span-6">
+                        <label for="id_plan_meta_name" class="block text-xs font-headline font-bold text-slate-600 mb-1">Nombre del Plan</label>
+                        <input id="id_plan_meta_name"
+                               type="text"
+                               name="name"
+                               value="{{ plan.name }}"
+                               required
+                               class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label for="id_plan_meta_date" class="block text-xs font-headline font-bold text-slate-600 mb-1">Fecha programada</label>
+                        <input id="id_plan_meta_date"
+                               type="date"
+                               name="target_date"
+                               value="{{ plan.target_date|date:'Y-m-d' }}"
+                               required
+                               class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                    </div>
+                    <div class="sm:col-span-3 flex items-center gap-2">
+                        <button type="submit" class="btn-primary w-full min-h-[38px] px-4 py-2 rounded-lg text-xs font-headline font-bold">
+                            Guardar
+                        </button>
+                        <button type="button" onclick="togglePlanMetaPanel()" class="btn-secondary min-h-[38px] px-3 py-2 rounded-lg text-xs">
+                            Cerrar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if can_manage_plan %}
+        <!-- Barra de Inserción Rápida de Ejercicios (Quick-Add Bar con XLOOKUP + HTMX) -->
+        <section aria-labelledby="quick-add-heading" class="bg-white shadow-sm rounded-2xl border border-sky-200/80 p-5 sm:p-6">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-xs font-headline font-bold">⚡ EDICIÓN RÁPIDA</span>
+                    <h3 id="quick-add-heading" class="text-sm font-headline font-bold text-slate-800">
+                        Añadir ejercicio al plan sin salir de la tabla
+                    </h3>
+                </div>
+                <span class="text-xs text-slate-400">Busca por nombre o código AM (ej. <code class="font-mono text-slate-600">[B4P_001]</code>)</span>
             </div>
 
-            <!-- Lista de Tarjetas para Móviles (Entrenador) -->
-            <div class="block md:hidden divide-y divide-slate-100" id="exercises-list-mobile">
-                {% for planned in plan.planned_exercises.all %}
-                    <div class="p-5 space-y-3">
-                        <div class="flex justify-between items-start gap-2">
-                            <h4 class="text-base font-bold text-slate-800">{{ planned.exercise.name }}</h4>
-                            <span class="bg-sky-50 text-primary border border-sky-100 text-xs px-2 py-0.5 rounded-md font-semibold shrink-0">Orden: {{ planned.order }}</span>
-                        </div>
-
-                        {% if planned.focus %}
-                            <p class="text-xs text-slate-500"><span class="font-semibold">Foco:</span> {{ planned.focus }}</p>
-                        {% endif %}
-
-                        <div class="grid grid-cols-2 gap-3 pt-2 text-sm text-slate-600">
-                            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Series x Reps</span>
-                                <span class="font-bold text-slate-800">{% if planned.am_reps_fraction %}{{ planned.sets }} x {{ planned.am_reps_fraction }}{% else %}{{ planned.sets }} x {{ planned.reps }}{% endif %}</span>
-                            </div>
-                            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Carga / Intensidad</span>
-                                <span class="font-bold text-slate-800">{% if planned.am_fractional_intensity %}{% if planned.load %}{{ planned.load }} · {% endif %}{{ planned.am_fractional_intensity }}{% else %}{{ planned.load }} {% if planned.rpe %}@ RPE {{ planned.rpe }}{% endif %}{% endif %}</span>
-                            </div>
-                            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Descanso</span>
-                                <span class="font-bold text-slate-800">{{ planned.rest }}</span>
-                            </div>
-                            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                <span class="block text-xxs font-bold uppercase tracking-wider text-slate-400">Tempo / RIR</span>
-                                <span class="font-bold text-slate-800">{% if planned.tempo %}Tempo: {{ planned.tempo }}{% elif planned.rir %}RIR: {{ planned.rir }}{% else %}--{% endif %}</span>
-                            </div>
-                        </div>
-
-                        {% if planned.notes %}
-                            <div class="mt-2 text-xs text-slate-500 bg-amber-50/50 p-3 rounded-lg border border-amber-100/60">
-                                <span class="font-semibold block mb-0.5 text-amber-700">Indicaciones:</span>
-                                {{ planned.notes }}
-                            </div>
-                        {% endif %}
-
-                        {% if planned.exercise.description %}
-                            <div class="pt-1">
-                                <button type="button"
-                                        onclick="toggleMobileGuide('mob-guide-{{ planned.id }}')"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-50 text-primary border border-sky-200 hover:bg-sky-100 transition shadow-sm">
-                                    <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                                    <span>Guía y Técnica</span>
-                                </button>
-                                <div id="mob-guide-{{ planned.id }}" class="hidden mt-2 p-4 bg-slate-50/90 rounded-xl border border-slate-200 exercise-markdown shadow-inner animate-fade-in">
-                                    {{ planned.exercise.description|render_markdown }}
-                                </div>
-                            </div>
-                        {% endif %}
-
-                        {% if planned.exercise.video_url %}
-                            <a href="{{ planned.exercise.video_url }}" target="_blank" class="inline-flex items-center text-xs text-primary font-semibold hover:underline gap-1 pt-1">
-                                Ver video de ejemplo
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                            </a>
-                        {% endif %}
+            <form id="quick-add-exercise-form"
+                  method="post"
+                  action="{% url 'training:add_exercise' plan.id %}"
+                  hx-post="{% url 'training:add_exercise' plan.id %}"
+                  hx-target="#plan-exercises-container"
+                  hx-swap="outerHTML"
+                  hx-on::after-request="if(event.detail.successful) { this.reset(); document.getElementById('quick-add-xlookup-preview').innerHTML = ''; }"
+                  class="space-y-3">
+                {% csrf_token %}
+                <div class="grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-12 gap-3 items-end">
+                    <div class="col-span-2 sm:col-span-6 lg:col-span-4">
+                        <label for="quick-ex-query" class="block text-xs font-headline font-bold text-slate-600 mb-1">
+                            Ejercicio (Buscador XLOOKUP)
+                        </label>
+                        <input id="quick-ex-query"
+                               type="text"
+                               name="exercise_query"
+                               list="plan-catalog-datalist"
+                               autocorrect="off"
+                               autocapitalize="off"
+                               spellcheck="false"
+                               placeholder="Escribe para buscar ejercicio..."
+                               hx-get="{% url 'training:exercise_xlookup_meta' %}"
+                               hx-trigger="input changed delay:200ms, change"
+                               hx-target="#quick-add-xlookup-preview"
+                               required
+                               class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
                     </div>
 
-                {% empty %}
-                    <div class="p-8 text-center text-slate-400 text-sm md:hidden">
-                        No hay ejercicios asignados a este plan todavía.
+                    <div class="col-span-1 sm:col-span-2 lg:col-span-2">
+                        <label for="quick-session-block" class="block text-xs font-headline font-bold text-slate-600 mb-1">
+                            Bloque
+                        </label>
+                        <select id="quick-session-block"
+                                name="session_block"
+                                class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                            <option value="">Auto (según catálogo)</option>
+                            {% for val, label in session_block_choices %}
+                                <option value="{{ val }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
+
+                    <div class="col-span-1 sm:col-span-1 lg:col-span-1">
+                        <label for="quick-sets" class="block text-xs font-headline font-bold text-slate-600 mb-1">Series</label>
+                        <input id="quick-sets" type="text" name="sets" value="3" placeholder="3"
+                               class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                    </div>
+
+                    <div class="col-span-1 sm:col-span-1 lg:col-span-1">
+                        <label for="quick-reps" class="block text-xs font-headline font-bold text-slate-600 mb-1">Reps</label>
+                        <input id="quick-reps" type="text" name="reps" value="5" placeholder="5"
+                               class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                    </div>
+
+                    <div class="col-span-1 sm:col-span-1 lg:col-span-1">
+                        <label for="quick-rir" class="block text-xs font-headline font-bold text-slate-600 mb-1">RIR</label>
+                        <input id="quick-rir" type="text" name="rir" placeholder="2"
+                               class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                    </div>
+
+                    <div class="col-span-1 sm:col-span-1 lg:col-span-1">
+                        <label for="quick-rpe" class="block text-xs font-headline font-bold text-slate-600 mb-1">RPE</label>
+                        <input id="quick-rpe" type="text" name="rpe" placeholder="8"
+                               class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                    </div>
+
+                    <div class="col-span-2 sm:col-span-2 lg:col-span-2">
+                        <label for="quick-load" class="block text-xs font-headline font-bold text-slate-600 mb-1">Carga</label>
+                        <input id="quick-load" type="text" name="load" placeholder="Ej: 80 kg"
+                               class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                    </div>
+                </div>
+
+                <div id="quick-add-xlookup-preview" class="text-xs text-slate-600"></div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                    <details class="w-full sm:w-auto flex-1">
+                        <summary class="cursor-pointer list-none inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-primary transition">
+                            <span>+ Opciones avanzadas (Descanso, Tempo, Foco, Indicaciones)</span>
+                        </summary>
+                        <div class="mt-2.5 grid grid-cols-1 sm:grid-cols-4 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                            <div>
+                                <label for="quick-rest" class="block text-[11px] font-bold text-slate-600 mb-1">Descanso</label>
+                                <input id="quick-rest" type="text" name="rest" placeholder="Ej: 90s"
+                                       class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label for="quick-tempo" class="block text-[11px] font-bold text-slate-600 mb-1">Tempo</label>
+                                <input id="quick-tempo" type="text" name="tempo" placeholder="Ej: 3-1-X-0"
+                                       class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label for="quick-focus" class="block text-[11px] font-bold text-slate-600 mb-1">Foco técnico</label>
+                                <input id="quick-focus" type="text" name="focus" placeholder="Ej: Explosividad"
+                                       class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label for="quick-notes" class="block text-[11px] font-bold text-slate-600 mb-1">Indicaciones</label>
+                                <input id="quick-notes" type="text" name="notes" placeholder="Notas opcionales"
+                                       class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs">
+                            </div>
+                        </div>
+                    </details>
+
+                    <button type="submit" class="btn-primary w-full sm:w-auto min-h-[40px] px-5 py-2 rounded-xl text-xs font-headline font-bold shrink-0">
+                        + Añadir al Plan
+                    </button>
+                </div>
+            </form>
+
+            <datalist id="plan-catalog-datalist">
+                {% for ex in catalog_exercises %}
+                    <option value="{% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}">
+                        {% if ex.session_block %}{{ ex.get_session_block_display }}{% else %}{{ ex.get_category_display }}{% endif %}
+                    </option>
                 {% endfor %}
+            </datalist>
+        </section>
+
+        <!-- Contenedor Dinámico de Ejercicios Programados (Entrenador) -->
+        {% include 'training/partials/plan_exercises_container.html' %}
+    {% else %}
+        <!-- Vista de Ejercicios para el Deportista -->
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 overflow-hidden">
+            <div class="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+                <h3 class="text-lg font-headline font-bold text-slate-800">Ejercicios Programados</h3>
+                <span class="text-xs font-semibold text-slate-500">{{ plan.planned_exercises.count }} ejercicio{{ plan.planned_exercises.count|pluralize }}</span>
             </div>
-        {% else %}
+
             <!-- Modo en vivo (Deportista): Iniciar / Finalizar por ejercicio -->
             <div id="live-workout-list" class="space-y-6 p-4 sm:p-5 lg:p-6">
                 {% for item in live_items %}
@@ -198,8 +295,8 @@
                     <a href="{% url 'training:plan_detail' plan.id %}" class="text-sm font-semibold text-primary hover:underline">Refrescar</a>
                 </div>
             {% endif %}
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 
     {% if is_plan_owner and plan.is_completed and workout_session %}
         <!-- Resumen de Sesión Registrada (ancho completo) -->
@@ -246,7 +343,11 @@
                 </button>
             </div>
             <div class="px-6 py-6">
-                <form id="add-exercise-form" hx-post="{% url 'training:add_exercise' plan.id %}" hx-target="#exercises-list" hx-swap="beforeend" hx-on::after-request="if(event.detail.successful) { closeModal('addExerciseModal'); window.location.reload(); }">
+                <form id="add-exercise-form"
+                      hx-post="{% url 'training:add_exercise' plan.id %}"
+                      hx-target="#plan-exercises-container"
+                      hx-swap="outerHTML"
+                      hx-on::after-request="if(event.detail.successful) { closeModal('addExerciseModal'); this.reset(); }">
                     {% csrf_token %}
                     <div class="space-y-4">
                         {% for field in exercise_form %}
@@ -308,6 +409,11 @@
 
 {% block extra_scripts %}
 <script>
+    function togglePlanMetaPanel() {
+        const panel = document.getElementById('plan-meta-edit-panel');
+        if (panel) panel.classList.toggle('hidden');
+    }
+
     function openModal(id) {
         const el = document.getElementById(id);
         if (!el) return;

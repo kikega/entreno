@@ -747,6 +747,13 @@ class PlannedExercise(models.Model):
         )
         return format_am_series_prescription(self.sets, self.reps, rir_eff, rpe_eff)
 
+    @property
+    def has_logged_sets(self) -> bool:
+        """Indica si el deportista ya ha registrado series reales (`LoggedSet`) en este ejercicio planificado."""
+        if not self.pk:
+            return False
+        return LoggedSet.objects.filter(logged_exercise__planned_exercise=self).exists()
+
     def save(self, *args, **kwargs):
         if not self.session_block and self.exercise_id and self.exercise.session_block:
             self.session_block = self.exercise.session_block

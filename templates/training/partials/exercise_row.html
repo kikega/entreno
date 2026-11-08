@@ -1,7 +1,10 @@
 {% load training_extras %}
-<tr class="hover:bg-slate-50/40 transition">
-    <td class="px-6 py-4">
+<tr id="exercise-row-{{ exercise.id }}" class="hover:bg-slate-50/40 transition group">
+    <td class="px-5 py-4">
         <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center justify-center min-w-[26px] h-6 px-1.5 rounded-md bg-slate-100 text-slate-600 text-xs font-headline font-bold border border-slate-200" title="Orden en la sesión">
+                #{{ exercise.order }}
+            </span>
             {% if exercise.effective_session_block %}
                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-headline font-bold border {{ exercise.session_block_badge_class }}">
                     {{ exercise.session_block_short }}
@@ -21,41 +24,115 @@
         {% if exercise.focus %}
             <div class="text-xs text-slate-400 mt-0.5"><span class="font-semibold text-slate-500">Foco:</span> {{ exercise.focus }}</div>
         {% endif %}
+        {% if exercise.notes %}
+            <div class="text-xs text-amber-700 bg-amber-50/70 border border-amber-100 rounded-md px-2 py-1 mt-1 max-w-md">
+                <span class="font-semibold">Nota:</span> {{ exercise.notes }}
+            </div>
+        {% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-base text-slate-600 font-semibold">
+    <td class="px-5 py-4 whitespace-nowrap text-base text-slate-600 font-semibold">
         {% if exercise.am_reps_fraction %}
             {{ exercise.sets }} x {{ exercise.am_reps_fraction }}
         {% else %}
             {{ exercise.sets }} x {{ exercise.reps }}
         {% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-base text-slate-600 font-semibold">
+    <td class="px-5 py-4 whitespace-nowrap text-base text-slate-600 font-semibold">
         {% if exercise.am_fractional_intensity %}
             {% if exercise.load %}{{ exercise.load }} · {% endif %}<span class="font-bold text-sky-800">{{ exercise.am_fractional_intensity }}</span>
         {% else %}
             {{ exercise.load }}{% if exercise.rpe %} @ RPE {{ exercise.rpe }}{% endif %}{% if exercise.rir %} (RIR {{ exercise.rir }}){% endif %}
         {% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap">
+    <td class="px-5 py-4 whitespace-nowrap">
         <div class="text-base text-slate-600 font-semibold">Descanso: {{ exercise.rest|default:"--" }}</div>
         {% if exercise.tempo %}
             <div class="text-xs text-slate-500 font-medium mt-0.5">Tempo: {{ exercise.tempo }}</div>
         {% endif %}
         {% if exercise.exercise.video_url %}
-            <a href="{{ exercise.exercise.video_url }}" target="_blank" class="inline-flex items-center text-xs text-primary font-semibold hover:underline gap-1 mt-1">
+            <a href="{{ exercise.exercise.video_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs text-primary font-semibold hover:underline gap-1 mt-1">
                 Ver video
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
             </a>
         {% endif %}
     </td>
+    <td class="px-5 py-4 whitespace-nowrap text-right">
+        <div class="inline-flex items-center justify-end gap-1.5">
+            <!-- Subir / Bajar Orden -->
+            <form method="post"
+                  action="{% url 'training:move_planned_exercise' exercise.id %}"
+                  hx-post="{% url 'training:move_planned_exercise' exercise.id %}"
+                  hx-target="#plan-exercises-container"
+                  hx-swap="outerHTML"
+                  class="m-0 inline">
+                {% csrf_token %}
+                <input type="hidden" name="direction" value="up">
+                <button type="submit"
+                        title="Subir posición"
+                        aria-label="Subir posición de {{ exercise.exercise.name }}"
+                        class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path></svg>
+                </button>
+            </form>
+            <form method="post"
+                  action="{% url 'training:move_planned_exercise' exercise.id %}"
+                  hx-post="{% url 'training:move_planned_exercise' exercise.id %}"
+                  hx-target="#plan-exercises-container"
+                  hx-swap="outerHTML"
+                  class="m-0 inline">
+                {% csrf_token %}
+                <input type="hidden" name="direction" value="down">
+                <button type="submit"
+                        title="Bajar posición"
+                        aria-label="Bajar posición de {{ exercise.exercise.name }}"
+                        class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+            </form>
+
+            <!-- Editar en línea -->
+            <button type="button"
+                    hx-get="{% url 'training:edit_planned_exercise' exercise.id %}"
+                    hx-target="#exercise-row-{{ exercise.id }}"
+                    hx-swap="outerHTML"
+                    title="Editar ejercicio y pauta"
+                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                <span>Editar</span>
+            </button>
+
+            <!-- Eliminar ejercicio -->
+            {% if exercise.has_logged_sets %}
+                <span class="inline-flex items-center px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                      title="Protegido: el deportista ya tiene series registradas en este ejercicio">
+                    🔒 Con marcas
+                </span>
+            {% else %}
+                <form method="post"
+                      action="{% url 'training:delete_planned_exercise' exercise.id %}"
+                      hx-post="{% url 'training:delete_planned_exercise' exercise.id %}"
+                      hx-target="#plan-exercises-container"
+                      hx-swap="outerHTML"
+                      class="m-0 inline">
+                    {% csrf_token %}
+                    <button type="submit"
+                            title="Eliminar ejercicio del plan"
+                            aria-label="Eliminar {{ exercise.exercise.name }} del plan"
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        <span>Quitar</span>
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </td>
 </tr>
 {% if exercise.exercise.description %}
 <tr id="row-guide-{{ exercise.id }}" class="hidden bg-slate-50/70 border-b border-slate-100 animate-fade-in">
-    <td colspan="4" class="px-6 py-4">
+    <td colspan="5" class="px-6 py-4">
         <div class="exercise-markdown p-5 bg-white rounded-xl border border-slate-200 shadow-sm max-w-4xl">
             {{ exercise.exercise.description|render_markdown }}
         </div>
     </td>
 </tr>
 {% endif %}
-

@@ -1,0 +1,181 @@
+<tr id="exercise-row-{{ exercise.id }}" class="bg-sky-50/50 border-y border-sky-200 animate-fade-in">
+    <td colspan="5" class="p-4 sm:p-5">
+        <form method="post"
+              action="{% url 'training:edit_planned_exercise' exercise.id %}"
+              hx-post="{% url 'training:edit_planned_exercise' exercise.id %}"
+              hx-target="#plan-exercises-container"
+              hx-swap="outerHTML"
+              class="space-y-3">
+            {% csrf_token %}
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sky-200/70 pb-2">
+                <span class="text-xs font-headline font-bold uppercase tracking-wider text-sky-900">
+                    ✏️ Editando ejercicio #{{ exercise.order }}: {{ exercise.exercise.name }}
+                </span>
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                            hx-get="{% url 'training:edit_planned_exercise' exercise.id %}?cancel=1"
+                            hx-target="#exercise-row-{{ exercise.id }}"
+                            hx-swap="outerHTML"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                            class="px-3.5 py-1.5 rounded-lg text-xs font-headline font-bold bg-primary text-white hover:bg-sky-700 transition shadow-sm">
+                        ✓ Guardar Cambios
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+                <div class="sm:col-span-2 lg:col-span-4">
+                    <label for="edit-ex-select-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Ejercicio del catálogo
+                    </label>
+                    <select id="edit-ex-select-{{ exercise.id }}"
+                            name="exercise"
+                            class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                        {% for ex in catalog_exercises %}
+                            <option value="{{ ex.id }}" {% if ex.id == exercise.exercise_id %}selected{% endif %}>
+                                {% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}{% if ex.session_block %} ({{ ex.get_session_block_display }}){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label for="edit-block-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Bloque (B1-B5)
+                    </label>
+                    <select id="edit-block-{{ exercise.id }}"
+                            name="session_block"
+                            class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                        <option value="">Automático</option>
+                        {% for val, label in session_block_choices %}
+                            <option value="{{ val }}" {% if exercise.session_block == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="lg:col-span-1">
+                    <label for="edit-sets-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Series
+                    </label>
+                    <input id="edit-sets-{{ exercise.id }}"
+                           type="text"
+                           name="sets"
+                           value="{{ exercise.sets }}"
+                           placeholder="3"
+                           class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                </div>
+
+                <div class="lg:col-span-1">
+                    <label for="edit-reps-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Reps
+                    </label>
+                    <input id="edit-reps-{{ exercise.id }}"
+                           type="text"
+                           name="reps"
+                           value="{{ exercise.reps }}"
+                           placeholder="5"
+                           class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                </div>
+
+                <div class="lg:col-span-1">
+                    <label for="edit-rir-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        RIR
+                    </label>
+                    <input id="edit-rir-{{ exercise.id }}"
+                           type="text"
+                           name="rir"
+                           value="{{ exercise.rir }}"
+                           placeholder="2"
+                           class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                </div>
+
+                <div class="lg:col-span-1">
+                    <label for="edit-rpe-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        RPE
+                    </label>
+                    <input id="edit-rpe-{{ exercise.id }}"
+                           type="text"
+                           name="rpe"
+                           value="{{ exercise.rpe }}"
+                           placeholder="8"
+                           class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label for="edit-load-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Carga objetivo
+                    </label>
+                    <input id="edit-load-{{ exercise.id }}"
+                           type="text"
+                           name="load"
+                           value="{{ exercise.load }}"
+                           placeholder="Ej: 80 kg"
+                           class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label for="edit-rest-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Descanso
+                    </label>
+                    <input id="edit-rest-{{ exercise.id }}"
+                           type="text"
+                           name="rest"
+                           value="{{ exercise.rest }}"
+                           placeholder="Ej: 120s"
+                           class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label for="edit-tempo-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Tempo
+                    </label>
+                    <input id="edit-tempo-{{ exercise.id }}"
+                           type="text"
+                           name="tempo"
+                           value="{{ exercise.tempo }}"
+                           placeholder="Ej: 3-1-X-0"
+                           class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                </div>
+
+                <div class="lg:col-span-3">
+                    <label for="edit-focus-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Foco técnico
+                    </label>
+                    <input id="edit-focus-{{ exercise.id }}"
+                           type="text"
+                           name="focus"
+                           value="{{ exercise.focus }}"
+                           placeholder="Ej: Intención concéntrica máxima"
+                           class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                </div>
+
+                <div class="lg:col-span-4">
+                    <label for="edit-notes-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Indicaciones / Notas
+                    </label>
+                    <input id="edit-notes-{{ exercise.id }}"
+                           type="text"
+                           name="notes"
+                           value="{{ exercise.notes }}"
+                           placeholder="Notas opcionales para el deportista"
+                           class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                </div>
+
+                <div class="lg:col-span-1">
+                    <label for="edit-order-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Orden
+                    </label>
+                    <input id="edit-order-{{ exercise.id }}"
+                           type="number"
+                           min="1"
+                           name="order"
+                           value="{{ exercise.order }}"
+                           class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                </div>
+            </div>
+        </form>
+    </td>
+</tr>

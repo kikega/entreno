@@ -401,6 +401,147 @@ class TrainingWorkflowAndSecurityTests(TestCase):
         self.assertEqual(add_res.status_code, 200)
         self.assertTrue(dual_plan.planned_exercises.filter(exercise=self.exercise).exists())
 
+    def test_trainer_quick_add_inline_edit_reorder_and_delete_planned_exercise(self):
+        """
+        Opción A: El entrenador puede añadir ejercicios por búsqueda XLOOKUP (auto-orden),
+        editarlos en línea, reordenarlos (↑/↓) y eliminarlos (con bloqueo no destructivo si hay LoggedSet).
+        """
+        second_ex = Exercise.objects.create(
+            code='B4A_999',
+            name='Remo con Barra Pendlay',
+            category='fuerza',
+            movement_pattern='traccion_horizontal',
+            session_block='B4_Accesorio',
+            created_by=self.trainer,
+        )
+        self.client.force_login(self.trainer_user)
+
+        # 1. Quick-Add con exercise_query XLOOKUP y orden automático
+        add_url = reverse('training:add_exercise', kwargs={'plan_id': self.plan.pk})
+        add_res = self.client.post(
+            add_url,
+            {
+                'exercise_query': '[B4A_999] Remo con Barra Pendlay',
+                'session_block': 'B4_Accesorio',
+                'sets': '3',
+                'reps': '10',
+                'rir_target': '2',
+                'rpe': '8',
+                'load': '70 kg',
+                'rest': '90s',
+            },
+            HTTP_HX_TARGET='plan-exercises-container',
+        )
+        self.assertEqual(add_res.status_code, 200)
+        self.assertContains(add_res, 'Remo con Barra Pendlay')
+
+        added_pe = PlannedExercise.objects.get(workout_plan=self.plan, exercise=second_ex)
+        self.assertEqual(added_pe.order, 2)
+        self.assertEqual(added_pe.sets, '3')
+        self.assertEqual(added_pe.reps, '10')
+
+        # 2. Edición en línea (GET devuelve formulario, POST actualiza prescripción)
+        edit_url = reverse('training:edit_planned_exercise', kwargs={'planned_id': added_pe.pk})
+        get_edit_res = self.client.get(edit_url)
+        self.assertEqual(get_edit_res.status_code, 200)
+        self.assertContains(get_edit_res, 'Guardar Cambios')
+
+        post_edit_res = self.client.post(
+            edit_url,
+            {
+                'exercise': second_ex.pk,
+                'session_block': 'B4_Accesorio',
+                'order': 2,
+                'sets': '4',
+                'reps': '8',
+                'rir_target': '1',
+                'rpe': '8.5',
+                'load': '77.5 kg',
+                'tempo': '2010',
+                'rest': '120s',
+                'focus': 'Espalda neutra',
+                'notes': 'Pausa en el suelo',
+            },
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(post_edit_res.status_code, 200)
+        added_pe.refresh_from_db()
+        self.assertEqual(added_pe.sets, '4')
+        self.assertEqual(added_pe.load, '77.5 kg')
+        self.assertEqual(added_pe.notes, 'Pausa en el suelo')
+
+        # 3. Reordenar ejercicio hacia arriba (order 2 -> order 1)
+        move_url = reverse('training:move_planned_exercise', kwargs={'planned_id': added_pe.pk})
+        move_res = self.client.post(move_url, {'direction': 'up'}, HTTP_HX_REQUEST='true')
+        self.assertEqual(move_res.status_code, 200)
+        added_pe.refresh_from_db()
+        self.planned_ex.refresh_from_db()
+        self.assertEqual(added_pe.order, 1)
+        self.assertEqual(self.planned_ex.order, 2)
+
+        # 4. Eliminar ejercicio sin series registradas funciona y renumera el plan
+        del_url = reverse('training:delete_planned_exercise', kwargs={'planned_id': added_pe.pk})
+        del_res = self.client.post(del_url, HTTP_HX_REQUEST='true')
+        self.assertEqual(del_res.status_code, 200)
+        self.assertFalse(PlannedExercise.objects.filter(pk=added_pe.pk).exists())
+        self.planned_ex.refresh_from_db()
+        self.assertEqual(self.planned_ex.order, 1)
+
+        # 5. Protección no destructiva: no permite eliminar un ejercicio con series reales (LoggedSet)
+        session = WorkoutSession.objects.create(workout_plan=self.plan, athlete=self.athlete)
+        logged_ex = LoggedExercise.objects.create(workout_session=session, planned_exercise=self.planned_ex)
+        LoggedSet.objects.create(logged_exercise=logged_ex, set_number=1, reps=8, weight_kg=80.0, rpe=8.0)
+
+        protected_del_url = reverse('training:delete_planned_exercise', kwargs={'planned_id': self.planned_ex.pk})
+        protected_res = self.client.post(protected_del_url, HTTP_HX_REQUEST='true')
+        self.assertEqual(protected_res.status_code, 400)
+        self.assertTrue(PlannedExercise.objects.filter(pk=self.planned_ex.pk).exists())
+
+    def test_trainer_update_meta_duplicate_and_delete_workout_plan(self):
+        """
+        El entrenador puede editar nombre/fecha de un WorkoutPlan, duplicarlo con todos sus
+        ejercicios y eliminar planes pendientes (bloqueando si ya tienen actividad registrada).
+        """
+        self.client.force_login(self.trainer_user)
+
+        # 1. Actualizar nombre y fecha del plan
+        meta_url = reverse('training:plan_update_meta', kwargs={'plan_id': self.plan.pk})
+        new_date = date.today() + timedelta(days=5)
+        meta_res = self.client.post(meta_url, {
+            'name': 'Fuerza Pecho V2',
+            'target_date': new_date.isoformat(),
+        })
+        self.assertEqual(meta_res.status_code, 302)
+        self.plan.refresh_from_db()
+        self.assertEqual(self.plan.name, 'Fuerza Pecho V2')
+        self.assertEqual(self.plan.target_date, new_date)
+
+        # 2. Duplicar plan con sus ejercicios pautados
+        dup_url = reverse('training:plan_duplicate', kwargs={'plan_id': self.plan.pk})
+        dup_res = self.client.post(dup_url, {
+            'name': 'Fuerza Pecho Clónico',
+            'target_date': (new_date + timedelta(days=7)).isoformat(),
+        })
+        self.assertEqual(dup_res.status_code, 302)
+        cloned_plan = WorkoutPlan.objects.exclude(pk=self.plan.pk).get(athlete=self.athlete)
+        self.assertEqual(cloned_plan.name, 'Fuerza Pecho Clónico')
+        self.assertEqual(cloned_plan.planned_exercises.count(), 1)
+        self.assertEqual(cloned_plan.planned_exercises.first().exercise, self.exercise)
+
+        # 3. Eliminar plan pendiente sin actividad funciona
+        del_cloned_url = reverse('training:plan_delete', kwargs={'plan_id': cloned_plan.pk})
+        del_cloned_res = self.client.post(del_cloned_url)
+        self.assertEqual(del_cloned_res.status_code, 302)
+        self.assertFalse(WorkoutPlan.objects.filter(pk=cloned_plan.pk).exists())
+
+        # 4. Un plan completado o con series registradas NO se elimina
+        self.plan.is_completed = True
+        self.plan.save(update_fields=['is_completed'])
+        del_completed_url = reverse('training:plan_delete', kwargs={'plan_id': self.plan.pk})
+        self.client.post(del_completed_url)
+        self.assertTrue(WorkoutPlan.objects.filter(pk=self.plan.pk).exists())
+
+
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class TrainerAthleteManagementIsolationTests(TestCase):
@@ -627,6 +768,8 @@ class TrainerAthleteManagementIsolationTests(TestCase):
         self.assertEqual(other_res.status_code, 200)
         self.assertIsNone(other_res.context['preselected_athlete'])
         self.assertIsNone(other_res.context['form'].initial.get('athlete'))
+
+
 
 
 

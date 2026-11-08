@@ -12,7 +12,7 @@ import json
 from collections import defaultdict
 from datetime import datetime, timedelta, date
 
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Max
 from django.utils import timezone
 
 from users.models import AthleteProfile, AthleteProgressLog
@@ -308,7 +308,23 @@ class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
         can_manage = user.is_trainer and plan.trainer == user.trainer_profile
         context['is_plan_owner'] = is_owner
         context['can_manage_plan'] = can_manage
-        context['exercise_form'] = PlannedExerciseForm()
+        planned_list = list(
+            plan.planned_exercises.select_related(
+                'exercise',
+                'exercise__regression_option_a',
+                'exercise__regression_option_b',
+            ).order_by('order', 'id')
+        )
+        context['planned_exercises'] = planned_list
+        next_order = (max((pe.order for pe in planned_list), default=0) + 1)
+        context['next_order'] = next_order
+        context['exercise_form'] = PlannedExerciseForm(initial={'order': next_order})
+        if can_manage:
+            context['catalog_exercises'] = list(
+                Exercise.objects.select_related('regression_option_a', 'regression_option_b')
+                .order_by('session_block', 'name')
+            )
+            context['session_block_choices'] = Exercise.SESSION_BLOCK_CHOICES
 
         # Para el deportista destinatario: sesión en vivo con per-exercicio (inicio/fin y peso)
         if is_owner:
@@ -324,10 +340,7 @@ class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
             }
             context['live_items'] = [
                 build_live_exercise_item(pe, session, logged_map.get(pe.id))
-                for pe in plan.planned_exercises.all().select_related(
-                    'exercise__regression_option_a',
-                    'exercise__regression_option_b',
-                )
+                for pe in planned_list
             ]
 
         if plan.is_completed:
@@ -680,24 +693,355 @@ def complete_workout(request, plan_id):
     return HttpResponseRedirect(f"{reverse('home')}?tab=athlete")
 
 
+def _resolve_exercise_from_input(raw_id: str = '', raw_query: str = '') -> Exercise | None:
+    """
+    Resuelve un `Exercise` del catálogo a partir de su ID numérico o de una búsqueda XLOOKUP
+    (`[CÓDIGO] Nombre`, código exacto, nombre exacto o coincidencia parcial).
+    """
+    qs = Exercise.objects.select_related('regression_option_a', 'regression_option_b')
+    rid = str(raw_id or '').strip()
+    if rid and rid.isdigit():
+        ex = qs.filter(pk=int(rid)).first()
+        if ex is not None:
+            return ex
+
+    rq = str(raw_query or '').strip()
+    if not rq:
+        return None
+    if rq.startswith('[') and ']' in rq:
+        code_part = rq[1:rq.index(']')].strip()
+        ex = qs.filter(code__iexact=code_part).first()
+        if ex is not None:
+            return ex
+    return (
+        qs.filter(Q(code__iexact=rq) | Q(name__iexact=rq)).first()
+        or qs.filter(Q(code__icontains=rq) | Q(name__icontains=rq)).first()
+    )
+
+
+def _renumber_plan_exercises(plan: WorkoutPlan) -> None:
+    """Normaliza secuencialmente el campo `order` (1..N) de los ejercicios de un plan."""
+    items = list(plan.planned_exercises.order_by('order', 'id'))
+    for idx, item in enumerate(items, start=1):
+        if item.order != idx:
+            PlannedExercise.objects.filter(pk=item.pk).update(order=idx)
+
+
+def _render_plan_exercises_container(request, plan: WorkoutPlan) -> HttpResponse:
+    """
+    Renderiza el contenedor completo de ejercicios prescritos (contador, tabla escritorio y tarjetas móvil)
+    para actualizaciones dinámicas vía HTMX sin recarga de página.
+    """
+    planned_list = list(
+        plan.planned_exercises.select_related(
+            'exercise',
+            'exercise__regression_option_a',
+            'exercise__regression_option_b',
+        ).order_by('order', 'id')
+    )
+    return render(
+        request,
+        'training/partials/plan_exercises_container.html',
+        {
+            'plan': plan,
+            'planned_exercises': planned_list,
+            'can_manage_plan': True,
+        },
+    )
+
+
 @login_required
 @require_POST
-def add_planned_exercise(request, plan_id):
+def update_workout_plan_meta(request, plan_id: int):
     """
-    Vista diseñada para manejar peticiones POST de HTMX para añadir ejercicios a un plan.
-    Restringida al entrenador propietario del plan.
+    Actualiza en un clic los metadatos del plan (`name` y `target_date`) desde la cabecera del plan.
+    Restringido al entrenador propietario del plan.
     """
     plan = get_object_or_404(WorkoutPlan, pk=plan_id)
     if not request.user.is_trainer or plan.trainer != request.user.trainer_profile:
         return HttpResponse("No autorizado", status=403)
 
-    form = PlannedExerciseForm(request.POST)
+    new_name = (request.POST.get('name') or '').strip()
+    raw_date = (request.POST.get('target_date') or '').strip()
+
+    if new_name:
+        plan.name = new_name
+    if raw_date:
+        try:
+            plan.target_date = date.fromisoformat(raw_date)
+        except ValueError:
+            messages.error(request, "Formato de fecha inválido (usa YYYY-MM-DD).")
+            return redirect('training:plan_detail', pk=plan.pk)
+
+    plan.save(update_fields=['name', 'target_date', 'updated_at'])
+    messages.success(request, "Cabecera del plan actualizada con éxito.")
+    return redirect('training:plan_detail', pk=plan.pk)
+
+
+@login_required
+@require_POST
+def duplicate_workout_plan(request, plan_id: int):
+    """
+    Clona un `WorkoutPlan` con todos sus ejercicios prescritos para reutilizar la sesión en otra fecha.
+    """
+    plan = get_object_or_404(WorkoutPlan, pk=plan_id)
+    if not request.user.is_trainer or plan.trainer != request.user.trainer_profile:
+        return HttpResponse("No autorizado", status=403)
+
+    raw_date = (request.POST.get('target_date') or '').strip()
+    target_date = plan.target_date + timedelta(days=7)
+    if raw_date:
+        try:
+            target_date = date.fromisoformat(raw_date)
+        except ValueError:
+            pass
+
+    new_name = (request.POST.get('name') or '').strip() or f"{plan.name or 'Plan de Entrenamiento'} (Copia)"
+    new_plan = WorkoutPlan.objects.create(
+        name=new_name,
+        trainer=plan.trainer,
+        athlete=plan.athlete,
+        sport=plan.sport,
+        target_date=target_date,
+        is_completed=False,
+    )
+
+    for pe in plan.planned_exercises.order_by('order', 'id'):
+        PlannedExercise.objects.create(
+            workout_plan=new_plan,
+            exercise=pe.exercise,
+            session_block=pe.session_block,
+            order=pe.order,
+            sets=pe.sets,
+            reps=pe.reps,
+            load=pe.load,
+            rpe=pe.rpe,
+            rir=pe.rir,
+            tempo=pe.tempo,
+            focus=pe.focus,
+            rest=pe.rest,
+            notes=pe.notes,
+        )
+
+    messages.success(
+        request,
+        f"📋 Plan duplicado como '{new_plan.name}' para el {new_plan.target_date.strftime('%d/%m/%Y')}."
+    )
+    return redirect('training:plan_detail', pk=new_plan.pk)
+
+
+@login_required
+@require_POST
+def delete_workout_plan(request, plan_id: int):
+    """
+    Elimina un `WorkoutPlan` pendiente (protegiendo sesiones ya completadas o con series reales registradas).
+    """
+    plan = get_object_or_404(WorkoutPlan, pk=plan_id)
+    if not request.user.is_trainer or plan.trainer != request.user.trainer_profile:
+        return HttpResponse("No autorizado", status=403)
+
+    if plan.has_logged_activity:
+        messages.error(
+            request,
+            "No se puede eliminar este plan porque el deportista ya ha registrado series o completado la sesión."
+        )
+        return redirect('training:plan_detail', pk=plan.pk)
+
+    athlete_id = plan.athlete_id
+    block = plan.macrocycle_block
+    day_num = plan.day_number or 1
+    plan_name = plan.name or 'Plan de Entrenamiento'
+    plan.delete()
+
+    messages.success(request, f"🗑️ Plan '{plan_name}' eliminado correctamente.")
+    if block:
+        return redirect(
+            f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}&day={day_num}"
+        )
+    return redirect('training:athlete_detail', pk=athlete_id)
+
+
+@login_required
+@require_POST
+def add_planned_exercise(request, plan_id):
+    """
+    Vista diseñada para manejar peticiones POST (HTMX o formulario) para añadir ejercicios a un plan.
+    Soporta tanto `exercise` (ID) como `exercise_query` (autocompletado XLOOKUP `[Código] Nombre`).
+    Si no se indica `order`, asigna automáticamente el siguiente orden disponible (`max + 1`).
+    """
+    plan = get_object_or_404(WorkoutPlan, pk=plan_id)
+    if not request.user.is_trainer or plan.trainer != request.user.trainer_profile:
+        return HttpResponse("No autorizado", status=403)
+
+    post_data = request.POST.copy()
+    if not post_data.get('exercise') and post_data.get('exercise_query'):
+        resolved = _resolve_exercise_from_input(raw_query=post_data.get('exercise_query'))
+        if resolved is not None:
+            post_data['exercise'] = str(resolved.pk)
+
+    form = PlannedExerciseForm(post_data)
     if form.is_valid():
         planned_exercise = form.save(commit=False)
         planned_exercise.workout_plan = plan
+        raw_order = (request.POST.get('order') or '').strip()
+        if not raw_order or not raw_order.isdigit() or int(raw_order) <= 0:
+            max_order = plan.planned_exercises.aggregate(m=Max('order'))['m'] or 0
+            planned_exercise.order = max_order + 1
         planned_exercise.save()
-        return render(request, 'training/partials/exercise_row.html', {'exercise': planned_exercise})
-    return HttpResponse("Error en formulario", status=400)
+
+        if request.headers.get('HX-Target') == 'plan-exercises-container':
+            return _render_plan_exercises_container(request, plan)
+        return render(
+            request,
+            'training/partials/exercise_row.html',
+            {'exercise': planned_exercise, 'can_manage_plan': True},
+        )
+    return HttpResponse("Error en formulario: selecciona un ejercicio válido del catálogo.", status=400)
+
+
+@login_required
+def edit_planned_exercise(request, planned_id: int):
+    """
+    Edición en línea (HTMX GET / POST) de un `PlannedExercise` dentro de un plan de entrenamiento.
+    - GET: Devuelve la fila editable (`exercise_row_edit.html`) o restaura la fila (`?cancel=1`).
+    - POST: Guarda los cambios de ejercicio, bloque, series, reps, carga, RPE, RIR, tempo, foco,
+      descanso y notas, devolviendo el contenedor actualizado (o la fila actualizada).
+    """
+    planned_exercise = get_object_or_404(
+        PlannedExercise.objects.select_related('workout_plan', 'exercise'),
+        pk=planned_id,
+    )
+    plan = planned_exercise.workout_plan
+    if not request.user.is_trainer or plan.trainer != request.user.trainer_profile:
+        return HttpResponse("No autorizado", status=403)
+
+    if request.method == 'GET':
+        if request.GET.get('cancel') == '1':
+            return render(
+                request,
+                'training/partials/exercise_row.html',
+                {'exercise': planned_exercise, 'can_manage_plan': True},
+            )
+        return render(
+            request,
+            'training/partials/exercise_row_edit.html',
+            {
+                'exercise': planned_exercise,
+                'plan': plan,
+                'catalog_exercises': Exercise.objects.order_by('session_block', 'name'),
+                'session_block_choices': Exercise.SESSION_BLOCK_CHOICES,
+            },
+        )
+
+    if request.method != 'POST':
+        return HttpResponse("Método no permitido", status=405)
+
+    resolved_ex = _resolve_exercise_from_input(
+        raw_id=request.POST.get('exercise', ''),
+        raw_query=request.POST.get('exercise_query', ''),
+    )
+    if resolved_ex is not None:
+        old_ex_id = planned_exercise.exercise_id
+        planned_exercise.exercise = resolved_ex
+        if resolved_ex.id != old_ex_id and not (request.POST.get('session_block') or '').strip():
+            planned_exercise.session_block = resolved_ex.session_block or ''
+
+    if 'session_block' in request.POST:
+        sb = (request.POST.get('session_block') or '').strip()
+        planned_exercise.session_block = sb or (planned_exercise.exercise.session_block or '')
+
+    raw_order = (request.POST.get('order') or '').strip()
+    if raw_order.isdigit() and int(raw_order) > 0:
+        planned_exercise.order = int(raw_order)
+
+    for field_name in ('sets', 'reps', 'load', 'rpe', 'rir', 'tempo', 'focus', 'rest', 'notes'):
+        if field_name in request.POST:
+            setattr(planned_exercise, field_name, (request.POST.get(field_name) or '').strip())
+    if 'rir_target' in request.POST and 'rir' not in request.POST:
+        planned_exercise.rir = (request.POST.get('rir_target') or '').strip()
+
+    planned_exercise.save()
+
+    if request.headers.get('HX-Target') == 'plan-exercises-container':
+        return _render_plan_exercises_container(request, plan)
+    if request.headers.get('HX-Request'):
+        return render(
+            request,
+            'training/partials/exercise_row.html',
+            {'exercise': planned_exercise, 'can_manage_plan': True},
+        )
+    messages.success(request, f"Ejercicio '{planned_exercise.exercise.name}' actualizado.")
+    return redirect('training:plan_detail', pk=plan.pk)
+
+
+@login_required
+@require_POST
+def delete_planned_exercise(request, planned_id: int):
+    """
+    Elimina un `PlannedExercise` de un plan en un clic y renumera el orden restante.
+    Protege automáticamente el historial si el deportista ya registró series reales (`LoggedSet`).
+    """
+    planned_exercise = get_object_or_404(
+        PlannedExercise.objects.select_related('workout_plan', 'exercise'),
+        pk=planned_id,
+    )
+    plan = planned_exercise.workout_plan
+    if not request.user.is_trainer or plan.trainer != request.user.trainer_profile:
+        return HttpResponse("No autorizado", status=403)
+
+    if planned_exercise.has_logged_sets:
+        msg = "No se puede eliminar un ejercicio que ya tiene series reales registradas por el deportista."
+        if request.headers.get('HX-Request'):
+            return HttpResponse(msg, status=400)
+        messages.error(request, msg)
+        return redirect('training:plan_detail', pk=plan.pk)
+
+    ex_name = planned_exercise.exercise.name
+    planned_exercise.delete()
+    _renumber_plan_exercises(plan)
+
+    if request.headers.get('HX-Target') == 'plan-exercises-container' or request.headers.get('HX-Request'):
+        return _render_plan_exercises_container(request, plan)
+
+    messages.success(request, f"Ejercicio '{ex_name}' eliminado del plan.")
+    return redirect('training:plan_detail', pk=plan.pk)
+
+
+@login_required
+@require_POST
+def move_planned_exercise(request, planned_id: int):
+    """
+    Reordena (`direction='up'` o `'down'`) un ejercicio dentro de su plan de entrenamiento.
+    """
+    planned_exercise = get_object_or_404(
+        PlannedExercise.objects.select_related('workout_plan'),
+        pk=planned_id,
+    )
+    plan = planned_exercise.workout_plan
+    if not request.user.is_trainer or plan.trainer != request.user.trainer_profile:
+        return HttpResponse("No autorizado", status=403)
+
+    direction = (request.POST.get('direction') or '').strip().lower()
+    items = list(plan.planned_exercises.order_by('order', 'id'))
+    target_idx = next((i for i, item in enumerate(items) if item.pk == planned_exercise.pk), None)
+
+    if target_idx is not None:
+        swap_idx = None
+        if direction == 'up' and target_idx > 0:
+            swap_idx = target_idx - 1
+        elif direction == 'down' and target_idx < len(items) - 1:
+            swap_idx = target_idx + 1
+
+        if swap_idx is not None:
+            items[target_idx], items[swap_idx] = items[swap_idx], items[target_idx]
+
+        for new_order, obj in enumerate(items, start=1):
+            if obj.order != new_order:
+                PlannedExercise.objects.filter(pk=obj.pk).update(order=new_order)
+
+    if request.headers.get('HX-Target') == 'plan-exercises-container' or request.headers.get('HX-Request'):
+        return _render_plan_exercises_container(request, plan)
+    return redirect('training:plan_detail', pk=plan.pk)
 
 
 class AthleteDetailView(TrainerRequiredMixin, DetailView):
@@ -1274,7 +1618,13 @@ def prescribe_block_exercise(request, block_id: int):
         pk=block_id,
         macrocycle__trainer=request.user.trainer_profile,
     )
-    form = BlockProgressionPrescribeForm(request.POST)
+    post_data = request.POST.copy()
+    if not post_data.get('exercise') and post_data.get('exercise_query'):
+        resolved_ex = _resolve_exercise_from_input(raw_query=post_data.get('exercise_query'))
+        if resolved_ex is not None:
+            post_data['exercise'] = str(resolved_ex.pk)
+
+    form = BlockProgressionPrescribeForm(post_data)
     if not form.is_valid():
         messages.error(request, "Datos de prescripción inválidos. Revisa el formulario.")
         return redirect(
@@ -1289,6 +1639,11 @@ def prescribe_block_exercise(request, block_id: int):
     rest = form.cleaned_data['rest']
     focus = form.cleaned_data['focus']
     notes = form.cleaned_data['notes']
+
+    raw_edit_ex_id = (request.POST.get('editing_row_exercise_id') or '').strip()
+    raw_edit_order = (request.POST.get('editing_row_order') or '').strip()
+    edit_ex_id = int(raw_edit_ex_id) if raw_edit_ex_id.isdigit() else None
+    edit_order = int(raw_edit_order) if raw_edit_order.isdigit() else None
 
     base_date = block.start_date or timezone.now().date()
     athlete = block.macrocycle.athlete
@@ -1326,17 +1681,27 @@ def prescribe_block_exercise(request, block_id: int):
             continue
 
         spec = form.week_spec(week_num)
-        pe = PlannedExercise.objects.filter(
-            workout_plan=plan,
-            exercise=exercise,
-            order=order,
-        ).first()
+        pe = None
+        if edit_ex_id is not None and edit_order is not None:
+            pe = PlannedExercise.objects.filter(
+                workout_plan=plan,
+                exercise_id=edit_ex_id,
+                order=edit_order,
+            ).first()
+        if pe is None:
+            pe = PlannedExercise.objects.filter(
+                workout_plan=plan,
+                exercise=exercise,
+                order=order,
+            ).first()
         if pe is None:
             pe = PlannedExercise(
                 workout_plan=plan,
                 exercise=exercise,
                 order=order,
             )
+        pe.exercise = exercise
+        pe.order = order
         pe.session_block = session_block
         pe.sets = spec['sets']
         pe.reps = spec['reps']
@@ -1832,6 +2197,270 @@ def quick_swap_block_exercise(request, block_id: int):
         msg += f" Se protegieron intactas {preserved_weeks} semana(s) con marcas registradas."
     messages.success(request, msg)
 
+    return redirect(
+        f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}&day={day_num}"
+    )
+
+
+@login_required
+@require_POST
+def delete_block_exercise_row(request, block_id: int):
+    """
+    Elimina una fila de ejercicio (`day_number` + `order` + `exercise_id`) de la Matriz de 4 Semanas
+    de un `MacrocycleBlock`, borrando únicamente las semanas pendientes sin actividad registrada
+    (`has_logged_activity == False`) para proteger al 100 % el historial real del deportista.
+    """
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+
+    block = get_object_or_404(
+        MacrocycleBlock.objects.select_related('macrocycle__athlete__user'),
+        pk=block_id,
+        macrocycle__trainer=request.user.trainer_profile,
+    )
+
+    raw_day = (request.POST.get('day_number') or '1').strip()
+    raw_order = (request.POST.get('order') or '1').strip()
+    raw_ex_id = (request.POST.get('exercise_id') or '').strip()
+
+    day_num = int(raw_day) if raw_day.isdigit() else 1
+    order_num = int(raw_order) if raw_order.isdigit() else 1
+    ex_id = int(raw_ex_id) if raw_ex_id.isdigit() else None
+
+    plans = list(
+        WorkoutPlan.objects.filter(
+            macrocycle_block=block,
+            day_number=day_num,
+        ).order_by('week_number')
+    )
+
+    deleted_weeks = 0
+    preserved_weeks = 0
+    ex_name = "Ejercicio"
+
+    for plan in plans:
+        if plan.has_logged_activity:
+            preserved_weeks += 1
+            continue
+        qs = PlannedExercise.objects.filter(workout_plan=plan, order=order_num)
+        if ex_id is not None:
+            qs_exact = qs.filter(exercise_id=ex_id)
+            if qs_exact.exists():
+                qs = qs_exact
+        first_pe = qs.select_related('exercise').first()
+        if first_pe:
+            ex_name = first_pe.exercise.name
+            qs.delete()
+            deleted_weeks += 1
+
+    if request.headers.get('HX-Target') == 'macrocycle-matrix-table-area' or request.headers.get('HX-Request'):
+        matrix = build_mesocycle_matrix(block, day_number=day_num)
+        return render(
+            request,
+            'training/partials/mesocycle_matrix_table.html',
+            {'matrix': matrix, 'viewer_role': 'trainer'},
+        )
+
+    msg = f"🗑️ '{ex_name}' eliminado en {deleted_weeks} semana(s) pendiente(s) del Día {day_num}."
+    if preserved_weeks:
+        msg += f" Se protegieron intactas {preserved_weeks} semana(s) con marcas registradas."
+    messages.success(request, msg)
+
+    return redirect(
+        f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}&day={day_num}"
+    )
+
+
+@login_required
+@require_POST
+def move_block_exercise_row(request, block_id: int):
+    """
+    Reordena (`direction='up'` o `'down'`) una fila de ejercicio dentro de la Matriz de Mesociclo
+    en todas las semanas pendientes (`has_logged_activity == False`) del Día seleccionado.
+    """
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+
+    block = get_object_or_404(
+        MacrocycleBlock.objects.select_related('macrocycle'),
+        pk=block_id,
+        macrocycle__trainer=request.user.trainer_profile,
+    )
+
+    raw_day = (request.POST.get('day_number') or '1').strip()
+    raw_order = (request.POST.get('order') or '1').strip()
+    raw_ex_id = (request.POST.get('exercise_id') or '').strip()
+    direction = (request.POST.get('direction') or '').strip().lower()
+
+    day_num = int(raw_day) if raw_day.isdigit() else 1
+    order_num = int(raw_order) if raw_order.isdigit() else 1
+    ex_id = int(raw_ex_id) if raw_ex_id.isdigit() else None
+
+    matrix = build_mesocycle_matrix(block, day_number=day_num)
+    rows = list(matrix['rows'])
+
+    target_idx = next(
+        (
+            i for i, r in enumerate(rows)
+            if r['order'] == order_num and (ex_id is None or r['exercise'].id == ex_id)
+        ),
+        None,
+    )
+
+    if target_idx is not None:
+        target_block = rows[target_idx]['session_block']
+        # Buscar vecino dentro del mismo bloque concurrente o fila adyacente
+        swap_idx = None
+        if direction == 'up':
+            for j in range(target_idx - 1, -1, -1):
+                if rows[j]['session_block'] == target_block:
+                    swap_idx = j
+                    break
+            if swap_idx is None and target_idx > 0:
+                swap_idx = target_idx - 1
+        elif direction == 'down':
+            for j in range(target_idx + 1, len(rows)):
+                if rows[j]['session_block'] == target_block:
+                    swap_idx = j
+                    break
+            if swap_idx is None and target_idx < len(rows) - 1:
+                swap_idx = target_idx + 1
+
+        if swap_idx is not None:
+            rows[target_idx], rows[swap_idx] = rows[swap_idx], rows[target_idx]
+
+        # Aplicar el nuevo orden secuencial (1..N) en todas las semanas no registradas
+        for new_order, row_data in enumerate(rows, start=1):
+            for cell in row_data['weeks_data'].values():
+                plan = cell['plan']
+                pe = cell['planned']
+                if plan and not plan.has_logged_activity and pe and pe.order != new_order:
+                    PlannedExercise.objects.filter(pk=pe.pk).update(order=new_order)
+
+    if request.headers.get('HX-Target') == 'macrocycle-matrix-table-area' or request.headers.get('HX-Request'):
+        updated_matrix = build_mesocycle_matrix(block, day_number=day_num)
+        return render(
+            request,
+            'training/partials/mesocycle_matrix_table.html',
+            {'matrix': updated_matrix, 'viewer_role': 'trainer'},
+        )
+
+    return redirect(
+        f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}&day={day_num}"
+    )
+
+
+@login_required
+@require_POST
+def update_block_cell_prescription(request, block_id: int):
+    """
+    Edición rápida en línea de una celda semanal individual (`Semana 1..4`) dentro de la
+    Matriz de Mesociclo (`sets`, `reps`, `rir`, `rpe`, `load`), creando el `PlannedExercise`
+    si la semana estaba vacía y respetando siempre la salvaguarda no destructiva.
+    """
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+
+    block = get_object_or_404(
+        MacrocycleBlock.objects.select_related('macrocycle__athlete', 'macrocycle__trainer'),
+        pk=block_id,
+        macrocycle__trainer=request.user.trainer_profile,
+    )
+
+    raw_planned_id = (request.POST.get('planned_id') or '').strip()
+    raw_week = (request.POST.get('week_number') or '1').strip()
+    raw_day = (request.POST.get('day_number') or '1').strip()
+    raw_order = (request.POST.get('order') or '1').strip()
+    raw_ex_id = (request.POST.get('exercise_id') or '').strip()
+
+    week_num = int(raw_week) if raw_week.isdigit() else 1
+    day_num = int(raw_day) if raw_day.isdigit() else 1
+    order_num = int(raw_order) if raw_order.isdigit() else 1
+
+    pe = None
+    if raw_planned_id and raw_planned_id.isdigit():
+        pe = PlannedExercise.objects.select_related('workout_plan', 'exercise').filter(
+            pk=int(raw_planned_id),
+            workout_plan__macrocycle_block=block,
+        ).first()
+
+    if pe is not None:
+        plan = pe.workout_plan
+        day_num = plan.day_number or day_num
+        if plan.has_logged_activity:
+            msg = f"La Semana {plan.week_number} ya tiene actividad registrada y está protegida."
+            if request.headers.get('HX-Request'):
+                return HttpResponse(msg, status=400)
+            messages.warning(request, msg)
+            return redirect(
+                f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}&day={day_num}"
+            )
+    else:
+        if not (raw_ex_id and raw_ex_id.isdigit()):
+            return HttpResponse("Ejercicio requerido", status=400)
+        exercise = get_object_or_404(Exercise, pk=int(raw_ex_id))
+        base_date = block.start_date or timezone.now().date()
+        plan_date = base_date + timedelta(days=(week_num - 1) * 7 + (day_num - 1) * 2)
+        plan = (
+            WorkoutPlan.objects.filter(
+                macrocycle_block=block,
+                week_number=week_num,
+                day_number=day_num,
+            )
+            .order_by('id')
+            .first()
+        )
+        if plan is None:
+            plan = WorkoutPlan.objects.create(
+                name=f"{block.title} · Semana {week_num} · Día {day_num}",
+                trainer=block.macrocycle.trainer,
+                athlete=block.macrocycle.athlete,
+                macrocycle_block=block,
+                week_number=week_num,
+                day_number=day_num,
+                sport=block.macrocycle.athlete.sport or 'mma',
+                target_date=plan_date,
+            )
+        if plan.has_logged_activity:
+            return HttpResponse("Semana con actividad registrada protegida.", status=400)
+        pe = (
+            PlannedExercise.objects.filter(
+                workout_plan=plan,
+                exercise=exercise,
+                order=order_num,
+            ).first()
+            or PlannedExercise.objects.filter(
+                workout_plan=plan,
+                exercise=exercise,
+            ).first()
+        )
+        if pe is None:
+            pe = PlannedExercise(
+                workout_plan=plan,
+                exercise=exercise,
+                session_block=request.POST.get('session_block') or exercise.session_block or '',
+                order=order_num,
+            )
+
+    for field_name in ('sets', 'reps', 'rir', 'rpe', 'load'):
+        if field_name in request.POST:
+            setattr(pe, field_name, (request.POST.get(field_name) or '').strip())
+    if 'rir_target' in request.POST and 'rir' not in request.POST:
+        pe.rir = (request.POST.get('rir_target') or '').strip()
+    pe.save()
+
+    if request.headers.get('HX-Target') == 'macrocycle-matrix-table-area' or request.headers.get('HX-Request'):
+        matrix = build_mesocycle_matrix(block, day_number=day_num)
+        return render(
+            request,
+            'training/partials/mesocycle_matrix_table.html',
+            {'matrix': matrix, 'viewer_role': 'trainer'},
+        )
+
+    messages.success(
+        request,
+        f"Pauta de '{pe.exercise.name}' actualizada en Semana {plan.week_number or week_num}."
+    )
     return redirect(
         f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}&day={day_num}"
     )
