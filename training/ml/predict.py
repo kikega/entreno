@@ -158,7 +158,26 @@ def _rule_based_prediction(athlete_profile, previous_logs: List[LoggedSet]) -> D
     last_rpe = float(recent_set.rpe or 8.0)
     est_1rm = calculate_1rm_brzycki(last_weight, last_reps)
 
-    if acwr_ratio > 1.4:
+    logged_ex = getattr(recent_set, 'logged_exercise', None)
+    last_pain_status = getattr(logged_ex, 'pain_status', 'normal') if logged_ex else 'normal'
+    last_session = getattr(logged_ex, 'workout_session', None) if logged_ex else None
+    last_readiness = int(getattr(last_session, 'readiness_level', 4) or 4) if last_session else 4
+
+    if last_pain_status != 'normal':
+        factor = 0.92
+        note = (
+            f'⚠️ Autoregulación AM: molestia articular previa ({last_pain_status}). '
+            'Se sugiere descarga articular protectora (-8%).'
+        )
+        suggested_rpe = 7.0
+    elif last_readiness <= 2:
+        factor = 0.95
+        note = (
+            f'🟡 Autoregulación AM: Semáforo Nivel {last_readiness} en sesión previa. '
+            'Ajuste conservador (-5%) para consolidar recuperación del SNC.'
+        )
+        suggested_rpe = 7.0
+    elif acwr_ratio > 1.4:
         factor = 0.92
         note = (f'⚠️ Carga Aguda Elevada (ACWR {acwr_ratio}). '
                 'Se sugiere descarga del 8% por seguridad.')

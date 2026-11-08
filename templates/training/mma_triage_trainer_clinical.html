@@ -54,6 +54,14 @@
                 <a href="{% url 'training:athlete_detail' athlete.pk %}" class="min-h-[48px] inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-white/20 bg-white/10 text-sm font-semibold text-white hover:bg-white/20 transition">
                     Volver al Expediente
                 </a>
+                {% if triage.approved_for_generation and triage.review_status == 'aprobado' %}
+                <form method="post" action="{% url 'training:macrocycle_generate' athlete.pk %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="min-h-[48px] inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-headline font-extrabold text-sm shadow-lg transition">
+                        ⚡ Generar / Recalcular Macrociclo AM ({% if llm_enabled %}LLM + ML{% else %}8 Módulos + ML{% endif %})
+                    </button>
+                </form>
+                {% endif %}
             </div>
         </div>
     </div>

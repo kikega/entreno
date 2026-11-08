@@ -285,6 +285,211 @@ def format_am_series_prescription(
     return ' '.join(parts)
 
 
+def compute_readiness_adjusted_prescription(
+    planned: 'PlannedExercise',
+    readiness_level: int = 4,
+) -> dict:
+    """
+    Aplica las leyes del Semáforo de Disposición Diaria (Niveles 1 a 5) del Sistema AM (§4.2):
+      - Niveles 3, 4 y 5 (Verde): Muestra el `Esquema_Normal` prescrito.
+      - Nivel 2 (Amarillo - Fatiga Moderada): Conmuta al `Esquema_Fatiga`:
+          * Amplía movilidad en `B1_Movilidad` (+1 serie).
+          * Pasa `B2_Velocidad` y `B3_Potencia` a fluidez técnica submáxima (RPE 6).
+          * Reduce RPE (-1 punto / +1 RIR) y recorta 1 serie en accesorios de `B4` (`B4_Accesorio` / `B4_Auxiliar`).
+          * Cambia `B5_Cardio` a Zona 2 regenerativa continua.
+      - Nivel 1 (Rojo - Colapso Sistémico): Conmuta al `Esquema_Regenerativo`:
+          * Suprime al 100 % los Bloques 2 y 3 (`B2_Velocidad` y `B3_Potencia`).
+          * Convierte todo el Bloque 4 en bombeo regenerativo (`RIR 5-6` manteniendo series/reps con carga mínima).
+          * Sustituye el Bloque 5 por Zona 2 sin impacto.
+    """
+    lvl = max(1, min(5, int(readiness_level or 4)))
+    eff_block = planned.effective_session_block
+    base_sets = parse_sets_count(planned.sets, default=1)
+    sets_str = str(planned.sets or base_sets).strip()
+    reps_str = str(planned.reps or '').strip()
+    rir_str, rpe_str = enforce_am_accessory_rir(
+        reps_str,
+        planned.rir,
+        planned.rpe,
+        eff_block,
+        planned._resolve_athlete_body_comp_goal(),
+    )
+    load_str = str(planned.load or '').strip()
+    focus_str = str(planned.focus or '').strip()
+    is_suppressed = False
+    scheme_code = 'normal'
+    scheme_badge = ''
+
+    if lvl == 2:
+        scheme_code = 'fatiga'
+        if eff_block == 'B1_Movilidad':
+            base_sets = base_sets + 1
+            sets_str = str(base_sets)
+            focus_str = 'Movilidad ampliada + liberación miofascial (Esquema Fatiga)'
+            scheme_badge = '🟡 Esquema Fatiga: +1 serie de movilidad articular'
+        elif eff_block in ('B2_Velocidad', 'B3_Potencia'):
+            rpe_str = '6'
+            rir_str = '4' if rir_str else ''
+            load_str = 'Fluidez técnica submáxima'
+            focus_str = 'Fluidez técnica submáxima sin fatiga neural (Esquema Fatiga)'
+            scheme_badge = '🟡 Esquema Fatiga: Fluidez técnica submáxima @ RPE 6'
+        elif eff_block == 'B4_Principal':
+            rir_val = parse_rir_value(rir_str) or 2
+            rpe_val = _parse_rpe_float(rpe_str) or 8.0
+            rir_str = str(min(6, rir_val + 1))
+            rpe_str = clean_rpe_display(max(5.0, rpe_val - 1.0))
+            scheme_badge = '🟡 Esquema Fatiga: RPE reducido (-1) / +1 RIR'
+        elif eff_block in ('B4_Accesorio', 'B4_Auxiliar'):
+            base_sets = max(1, base_sets - 1)
+            sets_str = str(base_sets)
+            rir_val = parse_rir_value(rir_str) or 3
+            rpe_val = _parse_rpe_float(rpe_str) or 7.0
+            rir_str = str(min(6, rir_val + 1))
+            rpe_str = clean_rpe_display(max(5.0, rpe_val - 1.0))
+            scheme_badge = '🟡 Esquema Fatiga: Recorte de 1 serie y reducción de RPE'
+        elif eff_block == 'B5_Cardio':
+            base_sets = 1
+            sets_str = '1'
+            reps_str = '20-25 min Zona 2'
+            rir_str = ''
+            rpe_str = '5.5'
+            load_str = 'Zona 2 regenerativa continua'
+            focus_str = 'Zona 2 regenerativa (130-145 ppm, oxidación aeróbica)'
+            scheme_badge = '🟡 Esquema Fatiga: Conmutado a Zona 2 regenerativa'
+
+    elif lvl == 1:
+        scheme_code = 'colapso'
+        if eff_block in ('B2_Velocidad', 'B3_Potencia'):
+            is_suppressed = True
+            base_sets = 0
+            sets_str = '0'
+            scheme_badge = '🔴 Colapso Sistémico: Bloque suprimido al 100 %'
+        elif eff_block == 'B1_Movilidad':
+            base_sets = max(3, base_sets + 1)
+            sets_str = str(base_sets)
+            rpe_str = '4'
+            focus_str = 'Respiración parasimpática y movilidad suave (Colapso Sistémico)'
+            scheme_badge = '🔴 Colapso Sistémico: Movilidad parasimpática ampliada'
+        elif eff_block in ('B4_Principal', 'B4_Accesorio', 'B4_Auxiliar'):
+            rir_str = '5-6'
+            rpe_str = '4.5'
+            load_str = 'Carga mínima regenerativa (~50%)'
+            focus_str = 'Bombeo regenerativo articular/tendinoso (RIR 5-6)'
+            scheme_badge = '🔴 Colapso Sistémico: Bombeo regenerativo (RIR 5–6 con carga mínima)'
+        elif eff_block == 'B5_Cardio':
+            base_sets = 1
+            sets_str = '1'
+            reps_str = '20 min Zona 2 sin impacto'
+            rir_str = ''
+            rpe_str = '4.5'
+            load_str = 'AirBike / Ergómetro sin impacto'
+            focus_str = 'Zona 2 regenerativa sin impacto articular'
+            scheme_badge = '🔴 Colapso Sistémico: Sustituido por Zona 2 sin impacto'
+
+    fractional = format_am_fractional_intensity(reps_str, rir_str, rpe_str)
+    series_presc = format_am_series_prescription(sets_str, reps_str, rir_str, rpe_str)
+
+    scheme_Name = (
+        'Esquema_Regenerativo'
+        if scheme_code == 'colapso'
+        else ('Esquema_Fatiga' if scheme_code == 'fatiga' else 'Esquema_Normal')
+    )
+    return {
+        'readiness_level': lvl,
+        'scheme': scheme_Name,
+        'scheme_code': scheme_code,
+        'scheme_badge': scheme_badge,
+        'is_suppressed': is_suppressed,
+        'sets_count': base_sets,
+        'sets': sets_str,
+        'reps': reps_str,
+        'rir': rir_str,
+        'rpe': rpe_str,
+        'load': load_str,
+        'focus': focus_str,
+        'fractional_intensity': fractional,
+        'series_prescription': series_presc,
+    }
+
+
+def max_sets_for_planned_exercise(planned: 'PlannedExercise') -> int:
+    """
+    Calcula el número máximo de series prescritas para este ejercicio/orden a lo largo
+    de las semanas de su `MacrocycleBlock` (para sombrear series inactivas en semanas
+    de descarga / Tapering o cuando el Semáforo Nivel 2 recorta 1 serie).
+    """
+    base_sets = parse_sets_count(planned.sets, default=1)
+    plan = planned.workout_plan
+    if not plan or not plan.macrocycle_block_id:
+        return base_sets
+
+    sibling_sets = (
+        plan.macrocycle_block.workout_plans.filter(day_number=plan.day_number)
+        .values_list('planned_exercises__exercise_id', 'planned_exercises__order', 'planned_exercises__sets')
+    )
+    max_found = base_sets
+    for ex_id, order_val, raw_sets in sibling_sets:
+        if ex_id == planned.exercise_id and order_val == planned.order and raw_sets:
+            max_found = max(max_found, parse_sets_count(raw_sets, default=1))
+    return max_found
+
+
+def build_live_exercise_item(
+    planned: 'PlannedExercise',
+    session,
+    logged=None,
+    block_max_sets: int | None = None,
+) -> dict:
+    """
+    Construye el diccionario enriquecido de un ejercicio para la vista en vivo del luchador:
+      - Prescripción adaptada por el Semáforo de Disposición Diaria (1 a 5).
+      - Ejercicio y vídeo activos según el Árbol Autónomo de Dolor Articular (Opción A / B / Omitido).
+      - Ranuras de series activas y series bloqueadas en gris oscuro por Descarga/Tapering.
+    """
+    readiness_lvl = int(getattr(session, 'readiness_level', 4) or 4)
+    adjusted = compute_readiness_adjusted_prescription(planned, readiness_level=readiness_lvl)
+    max_sets = block_max_sets if block_max_sets is not None else max_sets_for_planned_exercise(planned)
+    max_sets = max(max_sets, parse_sets_count(planned.sets, default=1))
+
+    target_sets = adjusted['sets_count']
+    logged_sets_list = list(logged.sets.all()) if logged and logged.pk else []
+    logged_count = len(logged_sets_list)
+
+    locked_set_numbers = [
+        s_num for s_num in range(target_sets + 1, max_sets + 1)
+    ] if target_sets > 0 and max_sets > target_sets else []
+
+    base_ex = planned.exercise
+    pain_status = getattr(logged, 'pain_status', 'normal') if logged else 'normal'
+    active_ex = logged.active_exercise if logged else base_ex
+    active_video = logged.active_video_url if logged else (base_ex.video_url or '')
+
+    return {
+        'planned': planned,
+        'logged': logged,
+        'session': session,
+        'adjusted': adjusted,
+        'pain_status': pain_status,
+        'is_omitted_by_injury': pain_status == 'omitted_injury',
+        'active_exercise': active_ex,
+        'active_video_url': active_video,
+        'has_pain_tree_options': bool(base_ex.regression_option_a_id or base_ex.regression_option_b_id),
+        'option_a': base_ex.regression_option_a,
+        'option_b': base_ex.regression_option_b,
+        'target_sets_count': target_sets,
+        'block_max_sets': max_sets,
+        'max_sets_in_block': max_sets,
+        'locked_set_numbers': locked_set_numbers,
+        'logged_sets_count': logged_count,
+        'next_set_number': logged_count + 1,
+        'can_log_more_sets': (
+            not adjusted['is_suppressed']
+            and pain_status != 'omitted_injury'
+            and logged_count < target_sets
+        ),
+    }
+
+
 def build_mesocycle_matrix(block: 'MacrocycleBlock', day_number: int = 1) -> dict:
     """
     Construye la estructura matricial de 4 semanas (o `block.weeks_count` semanas)
@@ -299,8 +504,10 @@ def build_mesocycle_matrix(block: 'MacrocycleBlock', day_number: int = 1) -> dic
     plans_qs = (
         block.workout_plans.filter(day_number=day_number)
         .prefetch_related(
-            'planned_exercises__exercise',
+            'planned_exercises__exercise__regression_option_a',
+            'planned_exercises__exercise__regression_option_b',
             'session__logged_exercises__sets',
+            'session__logged_exercises__substituted_exercise',
         )
         .order_by('week_number', 'id')
     )
@@ -318,11 +525,11 @@ def build_mesocycle_matrix(block: 'MacrocycleBlock', day_number: int = 1) -> dic
             continue
         session = getattr(plan, 'session', None)
         logged_map = {}
+        logged_ex_map = {}
         if session is not None:
-            logged_map = {
-                le.planned_exercise_id: list(le.sets.all())
-                for le in session.logged_exercises.all()
-            }
+            for le in session.logged_exercises.select_related('substituted_exercise').all():
+                logged_map[le.planned_exercise_id] = list(le.sets.all())
+                logged_ex_map[le.planned_exercise_id] = le
 
         for pe in plan.planned_exercises.all():
             eff_block = pe.effective_session_block
@@ -341,6 +548,7 @@ def build_mesocycle_matrix(block: 'MacrocycleBlock', day_number: int = 1) -> dic
                         pe.exercise.name.lower(),
                     ),
                     'exercise': pe.exercise,
+                    'first_planned': pe,
                     'order': pe.order,
                     'focus': pe.focus,
                     'tempo': pe.tempo,
@@ -351,6 +559,7 @@ def build_mesocycle_matrix(block: 'MacrocycleBlock', day_number: int = 1) -> dic
             rows_map[row_key]['weeks_data'][w] = {
                 'planned': pe,
                 'plan': plan,
+                'logged_exercise': logged_ex_map.get(pe.id),
                 'prescribed_sets': parse_sets_count(pe.sets, default=1),
                 'logged_sets': logged_map.get(pe.id, []),
             }
@@ -385,6 +594,7 @@ def build_mesocycle_matrix(block: 'MacrocycleBlock', day_number: int = 1) -> dic
                 continue
 
             pe: 'PlannedExercise' = w_data['planned']
+            le_obj = w_data.get('logged_exercise')
             p_sets = w_data['prescribed_sets']
             logged_by_num = {s.set_number: s for s in w_data['logged_sets']}
 
@@ -401,6 +611,10 @@ def build_mesocycle_matrix(block: 'MacrocycleBlock', day_number: int = 1) -> dic
                 'week_number': w,
                 'plan': plan,
                 'planned': pe,
+                'logged_exercise': le_obj,
+                'pain_status': getattr(le_obj, 'pain_status', 'normal') if le_obj else 'normal',
+                'active_exercise': le_obj.active_exercise if le_obj else pe.exercise,
+                'active_video_url': le_obj.active_video_url if le_obj else (pe.exercise.video_url or ''),
                 'prescription': pe.am_series_prescription,
                 'fractional_intensity': pe.am_fractional_intensity,
                 'load': pe.load,
@@ -409,10 +623,23 @@ def build_mesocycle_matrix(block: 'MacrocycleBlock', day_number: int = 1) -> dic
                 'set_slots': set_slots,
             })
 
+        # Determinar el estado de dolor más reciente de la fila para mostrar en la columna izquierda
+        row_logged = next(
+            (
+                c['logged_exercise']
+                for c in reversed(cells)
+                if c.get('logged_exercise') and c.get('pain_status') != 'normal'
+            ),
+            None,
+        )
         matrix_rows.append({
             **row,
             'max_sets': max_sets,
             'cells': cells,
+            'active_logged_exercise': row_logged,
+            'row_pain_status': getattr(row_logged, 'pain_status', 'normal') if row_logged else 'normal',
+            'row_active_exercise': row_logged.active_exercise if row_logged else row['exercise'],
+            'row_active_video_url': row_logged.active_video_url if row_logged else (row['exercise'].video_url or ''),
         })
 
     week_headers = [

@@ -1,0 +1,97 @@
+{% load training_extras %}
+<div id="live-readiness-and-list" class="space-y-6">
+    {% if not plan.is_completed %}
+    <!-- Semáforo de Disposición Diaria (Sistema AM §4.2 — Niveles 1 a 5) -->
+    <section aria-label="Semáforo de Disposición Diaria" class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 sm:p-6">
+        <form method="POST"
+              action="{% url 'training:update_session_readiness' plan.id %}"
+              hx-post="{% url 'training:update_session_readiness' plan.id %}"
+              hx-target="#live-readiness-and-list"
+              hx-swap="outerHTML"
+              hx-trigger="change">
+            {% csrf_token %}
+            <fieldset class="space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <legend class="text-sm font-headline font-extrabold text-slate-900 flex items-center gap-2">
+                            <span>🚦 Semáforo de Disposición Diaria</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border
+                                {% if session.readiness_ui_meta.color == 'emerald' %}bg-emerald-50 text-emerald-800 border-emerald-200
+                                {% elif session.readiness_ui_meta.color == 'amber' %}bg-amber-50 text-amber-800 border-amber-300
+                                {% else %}bg-rose-50 text-rose-800 border-rose-300{% endif %}">
+                                {{ session.readiness_ui_meta.badge }}
+                            </span>
+                        </legend>
+                        <p class="text-xs text-slate-500 mt-1">
+                            Preconfigurado en <strong>Nivel 4</strong>. Si sientes fatiga elevada o mal sueño tras el sparring, cámbialo para adaptar las series, cargas y cardio al instante.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Radio buttons visibles (menos de 6 opciones mutuamente excluyentes) -->
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+                    {% for r in readiness_levels %}
+                    <label class="relative flex flex-col justify-between p-3 rounded-xl border cursor-pointer transition select-none
+                        {% if session.readiness_level == r.level %}
+                            {% if r.Zone == 'green' %}bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-500/25 text-emerald-950
+                            {% elif r.Zone == 'yellow' %}bg-amber-50/90 border-amber-500 ring-2 ring-amber-500/25 text-amber-950
+                            {% else %}bg-rose-50/90 border-rose-500 ring-2 ring-rose-500/25 text-rose-950{% endif %}
+                        {% else %}
+                            bg-slate-50/70 border-slate-200 hover:bg-slate-100 text-slate-700
+                        {% endif %}">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-headline font-extrabold">
+                                <span class="w-2.5 h-2.5 rounded-full
+                                    {% if r.Zone == 'green' %}bg-emerald-500
+                                    {% elif r.Zone == 'yellow' %}bg-amber-500
+                                    {% else %}bg-rose-500{% endif %}"></span>
+                                {{ r.short }}
+                            </span>
+                            <input type="radio"
+                                   name="readiness_level"
+                                   value="{{ r.level }}"
+                                   {% if session.readiness_level == r.level %}checked{% endif %}
+                                   class="h-4 w-4 accent-sky-600 focus:ring-sky-500">
+                        </div>
+                        <span class="text-[11px] leading-tight mt-1.5 opacity-80">
+                            {% if r.level == 5 %}Récord / Fresco
+                            {% elif r.level == 4 %}Preconfigurado
+                            {% elif r.level == 3 %}Cumplir pauta
+                            {% elif r.level == 2 %}-1 serie acc. / Zona 2
+                            {% else %}Suprime B2-B3 / Bombeo{% endif %}
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <!-- Banner informativo del esquema activo -->
+                <div class="p-3.5 rounded-xl border text-xs font-medium flex flex-wrap items-center justify-between gap-2
+                    {% if session.readiness_ui_meta.color == 'emerald' %}bg-emerald-50/60 border-emerald-200 text-emerald-900
+                    {% elif session.readiness_ui_meta.color == 'amber' %}bg-amber-50/80 border-amber-300 text-amber-950
+                    {% else %}bg-rose-50/90 border-rose-300 text-rose-950{% endif %}">
+                    <div>
+                        <strong class="font-headline font-bold uppercase tracking-wide mr-1.5">[{{ session.readiness_scheme }}]</strong>
+                        <span>{{ session.readiness_ui_meta.summary }}</span>
+                    </div>
+                    <noscript>
+                        <button type="submit" class="px-3 py-1 rounded-lg bg-slate-900 text-white text-xs font-bold">Aplicar nivel</button>
+                    </noscript>
+                </div>
+            </fieldset>
+        </form>
+    </section>
+    {% endif %}
+
+    <!-- Lista de ejercicios en vivo -->
+    <div id="live-workout-list" class="space-y-6" {% if session.started_at %}data-started-init="1"{% endif %}>
+        {% for item in live_items %}
+        <div id="partial-{{ item.planned.id }}">
+            {% include 'training/partials/live_exercise_card.html' with item=item planned=item.planned logged=item.logged session=session %}
+        </div>
+        {% empty %}
+            <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
+                No hay ejercicios asignados a este plan todavía. Contacta con tu entrenador.
+            </div>
+        {% endfor %}
+    </div>
+</div>

@@ -209,10 +209,11 @@ def build_supervised_dataset() -> Tuple[List[Dict], List[float]]:
 
         by_exercise: Dict = defaultdict(list)
         for s in athlete_sets:
-            by_exercise[s.logged_exercise.planned_exercise.exercise_id].append(s)
+            active_ex = s.logged_exercise.active_exercise
+            by_exercise[active_ex.id].append(s)
 
         for ex_sets in by_exercise.values():
-            exercise = ex_sets[0].logged_exercise.planned_exercise.exercise
+            exercise = ex_sets[0].logged_exercise.active_exercise
             for i, s in enumerate(ex_sets):
                 window = ex_sets[max(0, i - WINDOW_SIZE):i]
                 row = build_row(s, window, athlete, exercise, ctx, session_dates)

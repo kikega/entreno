@@ -38,11 +38,51 @@
             <a href="{% url 'training:athlete_detail' macrocycle.athlete.id %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm rounded-xl">
                 ← Volver al Expediente
             </a>
+            <a href="{% url 'training:am_visual_dashboard' macrocycle.athlete.id %}" class="w-full sm:w-auto min-h-[42px] px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-sm font-bold rounded-xl text-emerald-800 hover:bg-emerald-100 transition shadow-sm inline-flex items-center justify-center gap-1.5">
+                <span>📊 Dashboard Visual & Histórico</span>
+            </a>
             <a href="{% url 'training:trainer_mma_triage' macrocycle.athlete.id %}" class="w-full sm:w-auto min-h-[42px] px-4 py-2.5 bg-slate-900 border border-slate-700 text-sm font-bold rounded-xl text-white hover:bg-slate-800 transition shadow-sm inline-flex items-center justify-center gap-1.5">
                 <span>Triage Clínico AM</span>
             </a>
+            <form method="post" action="{% url 'training:macrocycle_generate' macrocycle.athlete.id %}" class="m-0 w-full sm:w-auto">
+                {% csrf_token %}
+                <button type="submit"
+                        class="btn-primary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm rounded-xl"
+                        {% if mma_triage and not mma_triage.approved_for_generation %}title="Activa primero el Cerrojo Manual en Triage Clínico AM"{% endif %}>
+                    ⚡ Generar / Recalcular Macrociclo (8 Módulos + {% if llm_enabled %}LLM + ML{% else %}ML{% endif %})
+                </button>
+            </form>
         </div>
     </div>
+
+    {% if am_diagnosis %}
+    <!-- Diagnóstico Algorítmico Activo (8 Módulos Sistema AM + Motor Híbrido) -->
+    <div class="bg-slate-900 text-white rounded-2xl border border-slate-800 p-5 sm:p-6 shadow-sm space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-headline font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                    Motor Activo: {% if llm_enabled %}Conector LLM (.env) + Reglas 8 Módulos + ML{% else %}8 Módulos Deterministas + ML Predictivo{% endif %}
+                </span>
+                <span class="text-xs text-slate-300">
+                    B3 Ruta: <strong class="text-white">{{ am_diagnosis.b3_route }}</strong> ·
+                    B5 Cardio: <strong class="text-white">{{ am_diagnosis.b5_protocol }}</strong>
+                </span>
+            </div>
+            <button type="button"
+                    onclick="openAmModal('recalcCalendarModal')"
+                    class="w-full sm:w-auto min-h-[36px] px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 text-xs font-headline font-bold transition">
+                📅 Módulo 8: Recalcular Calendario Pelea
+            </button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {% for rule_msg in am_diagnosis.active_rules_log %}
+                <span class="text-[11px] leading-snug px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700">
+                    {{ rule_msg }}
+                </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Panel de Publicación Progresiva: 4 Bloques Oficiales -->
     <section aria-labelledby="progressive-pub-heading" class="space-y-4">
@@ -227,7 +267,13 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="sm:col-span-2">
                     <label for="{{ prescribe_form.exercise.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.exercise.label }}</label>
-                    {{ prescribe_form.exercise }}
+                    <div hx-get="{% url 'training:exercise_xlookup_meta' %}"
+                         hx-trigger="change from:#{{ prescribe_form.exercise.id_for_label }}"
+                         hx-include="#{{ prescribe_form.exercise.id_for_label }}"
+                         hx-target="#prescribe-xlookup-preview">
+                        {{ prescribe_form.exercise }}
+                    </div>
+                    <div id="prescribe-xlookup-preview" class="mt-2 text-xs text-slate-600"></div>
                 </div>
                 <div>
                     <label for="{{ prescribe_form.session_block.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.session_block.label }}</label>
@@ -317,6 +363,53 @@
         </form>
     </div>
 </div>
+<!-- Modal: Módulo 8 Recálculo Dinámico de Calendario No Destructivo -->
+<div id="recalcCalendarModal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="recalcCalendarTitle">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeAmModal('recalcCalendarModal')"></div>
+    <div class="relative bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto animate-fade-in">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
+            <div>
+                <h3 id="recalcCalendarTitle" class="text-base font-headline font-bold text-slate-800">Módulo 8 · Recálculo Dinámico de Calendario</h3>
+                <p class="text-xs text-slate-500">Adapta {{ selected_block.title }} ante cambios de fecha de pelea sin tocar semanas ya registradas.</p>
+            </div>
+            <button type="button" onclick="closeAmModal('recalcCalendarModal')" aria-label="Cerrar" class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60">✕</button>
+        </div>
+        <form method="post" action="{% url 'training:block_recalculate_calendar' selected_block.id %}" class="p-6 space-y-4">
+            {% csrf_token %}
+            <div>
+                <label for="id_recalc_fight_date" class="block text-xs font-headline font-bold text-slate-700 mb-1">Nueva Fecha Oficial del Combate</label>
+                <input type="date"
+                       id="id_recalc_fight_date"
+                       name="next_fight_date"
+                       value="{{ macrocycle.target_fight_date|date:'Y-m-d'|default:'' }}"
+                       required
+                       class="block w-full min-h-[42px] rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900">
+            </div>
+            <div class="rounded-xl bg-slate-50 border border-slate-200 p-3.5 text-xs text-slate-600 space-y-1">
+                <p class="font-bold text-slate-800">Reglas automáticas del Módulo 8:</p>
+                <ul class="list-disc pl-4 space-y-1">
+                    <li><strong>Short-Notice (&le; 14 días):</strong> Anula fases de carga y deja solo Priming Neural (B1/B2) + RSS-P (8"/52").</li>
+                    <li><strong>Adelanto a 3 semanas:</strong> Elimina Semana 2 (S1 &rarr; S3 &rarr; S4) y fuerza RSS-P (8"/52").</li>
+                    <li><strong>Retraso a 5 semanas:</strong> Clona Semana 2 (S1 &rarr; S2 &rarr; S2 &rarr; S3 &rarr; S4).</li>
+                    <li><strong>Retraso a 6–8 semanas:</strong> Reestructura en Modelo Pendular de 2 olas de 4 semanas.</li>
+                </ul>
+            </div>
+            <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+                <button type="button" onclick="closeAmModal('recalcCalendarModal')" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2 text-sm rounded-xl">Cancelar</button>
+                <button type="submit" class="btn-primary w-full sm:w-auto min-h-[42px] px-5 py-2 text-sm rounded-xl">Aplicar Recálculo No Destructivo</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Datalist XLOOKUP para autocompletado de BD_Local_Ejercicios -->
+<datalist id="am-local-exercises-datalist">
+    {% for ex in am_catalog_exercises %}
+        <option value="{% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}">
+            {{ ex.get_session_block_display }}{% if ex.regression_option_a %} · OpA: {{ ex.regression_option_a.name }}{% endif %}{% if ex.regression_option_b %} · OpB: {{ ex.regression_option_b.name }}{% endif %}
+        </option>
+    {% endfor %}
+</datalist>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -337,7 +430,7 @@
     }
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            ['configBlockModal', 'prescribeExerciseModal'].forEach(closeAmModal);
+            ['configBlockModal', 'prescribeExerciseModal', 'recalcCalendarModal'].forEach(closeAmModal);
         }
     });
 </script>

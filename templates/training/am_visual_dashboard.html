@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Visual y Registro Histórico AM · {{ athlete.user.display_name }} | EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Cabecera del Dashboard_Visual y Registro_Historico -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-lg text-white">
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+                <span class="text-xs font-headline font-bold tracking-widest text-sky-300 uppercase bg-sky-500/15 px-3 py-1 rounded-full border border-sky-400/30">
+                    SISTEMA AM · FASE 6 · TELEMETRÍA Y AUDITORÍA HISTÓRICA
+                </span>
+                <h1 class="text-2xl sm:text-3xl font-headline font-extrabold text-white mt-3">
+                    Dashboard Visual y Registro Histórico — {{ athlete.user.display_name }}
+                </h1>
+                <p class="text-sm text-slate-300 mt-1.5">
+                    Control de Carga Interna (sRPE), Ratio Agudo:Crónico (ACWR), Tonelaje por Bloque Concurrente, Evolución 1RM (Brzycki) y Telemetría del Semáforo / Árbol de Dolor Articular.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 shrink-0">
+                <a href="{% url 'training:export_am_historical_csv' athlete.id %}?block={{ selected_block_id|default:'' }}&session_block={{ selected_session_block }}&pain_status={{ selected_pain_status }}"
+                   class="inline-flex items-center justify-center gap-2 min-h-[42px] px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-headline font-bold transition shadow-sm">
+                    <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Exportar Registro_Historico (CSV)</span>
+                </a>
+                {% if is_trainer_view %}
+                    {% if dashboard.active_macrocycle %}
+                        <a href="{% url 'training:macrocycle_control' dashboard.active_macrocycle.id %}"
+                           class="inline-flex items-center justify-center min-h-[42px] px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs sm:text-sm font-semibold transition">
+                            Panel Macrociclo
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'training:athlete_detail' athlete.id %}"
+                       class="inline-flex items-center justify-center min-h-[42px] px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs sm:text-sm font-semibold transition">
+                        ← Ficha Deportista
+                    </a>
+                {% else %}
+                    <a href="{% url 'training:athlete_active_block' %}"
+                       class="inline-flex items-center justify-center min-h-[42px] px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs sm:text-sm font-semibold transition">
+                        ← Entrenamiento Activo
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tarjetas KPI de Carga Interna, Externa y Disposición -->
+    <section aria-labelledby="kpi-summary-heading" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <h2 id="kpi-summary-heading" class="sr-only">Indicadores Clave de Rendimiento y Carga</h2>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <p class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Ratio ACWR (7d / 28d)</p>
+            <div class="mt-2 flex items-baseline justify-between gap-2">
+                <span class="text-2xl font-headline font-extrabold text-slate-900">{{ dashboard.acwr.acwr_ratio }}</span>
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold
+                    {% if dashboard.acwr.risk_status == 'optimo' %}bg-emerald-100 text-emerald-800
+                    {% elif dashboard.acwr.risk_status == 'bajo' %}bg-amber-100 text-amber-800
+                    {% else %}bg-rose-100 text-rose-800{% endif %}">
+                    {{ dashboard.acwr.risk_status|upper }}
+                </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">{{ dashboard.acwr.status_label }}</p>
+            <p class="text-[11px] text-slate-400 mt-1">Aguda: {{ dashboard.acwr.acute_load }} UA · Crónica: {{ dashboard.acwr.chronic_load }} UA</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <p class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Tonelaje Acumulado</p>
+            <p class="text-2xl font-headline font-extrabold text-sky-700 mt-2">{{ dashboard.metrics.total_volume_kg }} kg</p>
+            <p class="text-xs text-slate-500 mt-1">Volumen mecánico total (Series × Reps × Peso)</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <p class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Carga Interna Media (sRPE)</p>
+            <p class="text-2xl font-headline font-extrabold text-indigo-700 mt-2">{{ dashboard.avg_srpe }} UA</p>
+            <p class="text-xs text-slate-500 mt-1">{{ dashboard.total_sessions }} sesione{{ dashboard.total_sessions|pluralize }} completada{{ dashboard.total_sessions|pluralize }}</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <p class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Semáforo en Verde (Niv. 3-5)</p>
+            <p class="text-2xl font-headline font-extrabold text-emerald-700 mt-2">{{ dashboard.green_readiness_pct }}%</p>
+            <p class="text-xs text-slate-500 mt-1">
+                🟢 {{ dashboard.readiness_counts.green }} · 🟡 {{ dashboard.readiness_counts.yellow }} · 🔴 {{ dashboard.readiness_counts.red }}
+            </p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <p class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Árbol de Dolor Articular (⚠️)</p>
+            <p class="text-2xl font-headline font-extrabold {% if dashboard.pain_counts.omitted_injury > 0 %}text-rose-600{% elif dashboard.pain_Swap_total > 0 %}text-amber-600{% else %}text-slate-800{% endif %} mt-2">
+                {{ dashboard.pain_Swap_total }} ajuste{{ dashboard.pain_Swap_total|pluralize }}
+            </p>
+            <p class="text-xs text-slate-500 mt-1">
+                🅰️ Op.A: {{ dashboard.pain_counts.option_a }} · 🅱️ Op.B: {{ dashboard.pain_counts.option_b }} · 🛑 Omitidos: {{ dashboard.pain_counts.omitted_injury }}
+            </p>
+        </div>
+    </section>
+
+    <!-- Gráficos y Telemetría Visual -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 1. Ondulación Semanal de Tonelaje y sRPE -->
+        <section aria-labelledby="weekly-load-heading" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <div>
+                <h2 id="weekly-load-heading" class="text-base font-headline font-bold text-slate-900">
+                    Ondulación Semanal de Tonelaje (kg) y Carga Interna (sRPE)
+                </h2>
+                <p class="text-xs text-slate-500">
+                    Visualización del modelo de sobrecarga escalonada (S1 → S2 → S3 Pico) y supercompensación en descarga (S4).
+                </p>
+            </div>
+
+            {% if dashboard.weekly_series %}
+                <figure class="space-y-3">
+                    <svg role="img"
+                         aria-labelledby="svg-weekly-load-title"
+                         viewBox="0 0 560 190"
+                         class="w-full h-44 bg-slate-50 rounded-xl border border-slate-100 p-3">
+                        <title id="svg-weekly-load-title">
+                            Gráfico comparativo de Tonelaje en kilogramos y Carga Interna sRPE durante las últimas semanas registradas
+                        </title>
+                        {% for w in dashboard.weekly_series %}
+                            <g transform="translate({{ forloop.counter0|add:forloop.counter0 }}0, 0)">
+                                <!-- Barra de Tonelaje (Azul) -->
+                                <rect x="{{ forloop.counter0 }}5"
+                                      y="20"
+                                      width="18"
+                                      height="{{ w.tonnage_pct }}"
+                                      rx="4"
+                                      fill="#0284c7" />
+                                <!-- Barra de sRPE (Índigo) -->
+                                <rect x="{{ forloop.counter0 }}5"
+                                      y="125"
+                                      width="18"
+                                      height="35"
+                                      rx="3"
+                                      fill="#6366f1"
+                                      opacity="0.85" />
+                            </g>
+                        {% endfor %}
+                    </svg>
+                    <figcaption class="text-xs text-slate-500">
+                        Resumen tabular accesible por semana de entrenamiento (Tonelaje mecánico y sRPE acumulado):
+                    </figcaption>
+                </figure>
+
+                <div class="space-y-2.5 pt-1">
+                    {% for w in dashboard.weekly_series %}
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                            <div class="flex items-center justify-between text-xs font-semibold text-slate-800">
+                                <span>{{ w.label }} ({{ w.sessions_count }} ses.)</span>
+                                <span><strong class="text-sky-700">{{ w.tonnage_kg }} kg</strong> · <strong class="text-indigo-700">{{ w.srpe_total }} UA sRPE</strong></span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div class="bg-sky-600 h-full rounded-full" style="width: {{ w.tonnage_pct }}%"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-400 italic py-6 text-center">
+                    Todavía no hay sesiones completadas para graficar la ondulación semanal.
+                </p>
+            {% endif %}
+        </section>
+
+        <!-- 2. Récords 1RM (Brzycki) y Adherencia de Bloques del Macrociclo -->
+        <section aria-labelledby="strength-prs-heading" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+            <div>
+                <h2 id="strength-prs-heading" class="text-base font-headline font-bold text-slate-900">
+                    Evolución de Fuerza (1RM Estimado Brzycki) y Adherencia de Macrociclo
+                </h2>
+                <p class="text-xs text-slate-500">
+                    Mejores marcas históricas calculadas automáticamente mediante la fórmula de Brzycki sobre series reales.
+                </p>
+            </div>
+
+            {% if dashboard.pr_table %}
+                <div tabindex="0" role="region" aria-labelledby="pr-table-caption" class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-xs">
+                        <caption id="pr-table-caption" class="sr-only">Récords personales de 1RM estimado por ejercicio</caption>
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-headline font-bold">
+                            <tr>
+                                <th scope="col" class="px-4 py-2.5">Ejercicio</th>
+                                <th scope="col" class="px-4 py-2.5 text-right">Mejor 1RM (Brzycki)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for pr in dashboard.pr_table %}
+                                <tr>
+                                    <th scope="row" class="px-4 py-2.5 font-semibold text-slate-800">{{ pr.exercise_name }}</th>
+                                    <td class="px-4 py-2.5 text-right font-headline font-bold text-sky-700">{{ pr.max_1rm_kg }} kg</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-400 italic">Sin marcas de 1RM registradas todavía.</p>
+            {% endif %}
+
+            {% if dashboard.macrocycle_adherence %}
+                <div class="pt-2 border-t border-slate-100 space-y-2.5">
+                    <h3 class="text-xs font-headline font-bold uppercase tracking-wider text-slate-500">
+                        Adherencia por Bloque del Macrociclo Activo
+                    </h3>
+                    {% for item in dashboard.macrocycle_adherence %}
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+                            <div>
+                                <span class="font-headline font-bold text-slate-800">{{ item.block.title }}</span>
+                                <span class="ml-1.5 text-slate-500">({{ item.completed_plans }}/{{ item.total_plans }} sesiones)</span>
+                            </div>
+                            <span class="px-2.5 py-0.5 rounded-full font-bold
+                                {% if item.block.is_published %}bg-emerald-100 text-emerald-800{% else %}bg-slate-200 text-slate-700{% endif %}">
+                                {{ item.adherence_pct }}%
+                            </span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <!-- Registro_Historico (Libro Mayor Filtrable de Series y Sesiones) -->
+    <section aria-labelledby="historical-ledger-heading" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-200 bg-slate-50/60 flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4">
+            <div>
+                <h2 id="historical-ledger-heading" class="text-lg font-headline font-bold text-slate-900">
+                    Registro_Historico (Base de Datos Histórica de Series y Autoregulación)
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Trazabilidad completa de cada serie real ejecutada, ejercicio activo tras el Árbol de Dolor Articular (Opción A/B/Omitido) y Semáforo de Disposición.
+                </p>
+            </div>
+
+            <form method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <div>
+                    <label for="filter-session-block" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Bloque Concurrente
+                    </label>
+                    <select id="filter-session-block"
+                            name="session_block"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800">
+                        <option value="">Todos (B1 a B5)</option>
+                        {% for code, label in session_block_choices %}
+                            <option value="{{ code }}" {% if selected_session_block == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="filter-pain-status" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Estado Dolor Articular
+                    </label>
+                    <select id="filter-pain-status"
+                            name="pain_status"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800">
+                        <option value="">Todos los estados</option>
+                        {% for code, label in pain_status_choices %}
+                            <option value="{{ code }}" {% if selected_pain_status == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-headline font-bold transition">
+                        Filtrar
+                    </button>
+                    <a href="{% url 'training:am_visual_dashboard' athlete.id %}"
+                       class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition">
+                        Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        {% if historical_ledger %}
+            <div tabindex="0"
+                 role="region"
+                 aria-labelledby="ledger-table-caption"
+                 class="overflow-x-auto max-h-[540px]">
+                <table class="w-full text-left border-collapse text-xs">
+                    <caption id="ledger-table-caption" class="sr-only">
+                        Registro histórico detallado de series, pesos, repeticiones, 1RM Brzycki, Semáforo de Disposición y Árbol de Dolor Articular de {{ athlete.user.display_name }}
+                    </caption>
+                    <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-headline font-bold sticky top-0 z-10">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Fecha / Semana</th>
+                            <th scope="col" class="px-4 py-3">Bloque</th>
+                            <th scope="col" class="px-4 py-3">Ejercicio Ejecutado</th>
+                            <th scope="col" class="px-4 py-3">Semáforo</th>
+                            <th scope="col" class="px-4 py-3">Dolor (⚠️)</th>
+                            <th scope="col" class="px-4 py-3 text-center">Serie</th>
+                            <th scope="col" class="px-4 py-3 text-right">Carga × Reps</th>
+                            <th scope="col" class="px-4 py-3 text-right">RPE</th>
+                            <th scope="col" class="px-4 py-3 text-right">Tonelaje</th>
+                            <th scope="col" class="px-4 py-3 text-right">1RM Brzycki</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                        {% for row in historical_ledger %}
+                            <tr class="hover:bg-slate-50/70 transition {% if row.pain_status == 'omitted_injury' %}bg-rose-50/40{% endif %}">
+                                <td class="px-4 py-3 whitespace-nowrap text-slate-600">
+                                    <div class="font-semibold text-slate-800">{{ row.date }}</div>
+                                    <div class="text-[11px] text-slate-400">
+                                        {{ row.block_title }}{% if row.week_number %} · S{{ row.week_number }}D{{ row.day_number }}{% endif %}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-headline font-bold text-[11px] text-slate-700">
+                                        {{ row.session_block_short }}
+                                    </span>
+                                </td>
+                                <th scope="row" class="px-4 py-3 font-semibold text-slate-900">
+                                    <div>{{ row.executed_exercise }}</div>
+                                    {% if row.executed_exercise != row.prescribed_exercise %}
+                                        <div class="text-[11px] text-amber-700 font-normal">
+                                            Prescrito: <span class="line-through">{{ row.prescribed_exercise }}</span>
+                                        </div>
+                                    {% endif %}
+                                </th>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <span class="px-2 py-0.5 rounded-full text-[11px] font-bold
+                                        {% if row.readiness_level >= 3 %}bg-emerald-100 text-emerald-800
+                                        {% elif row.readiness_level == 2 %}bg-amber-100 text-amber-800
+                                        {% else %}bg-rose-100 text-rose-800{% endif %}">
+                                        Nivel {{ row.readiness_level }} ({{ row.readiness_scheme }})
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    {% if row.pain_status == 'normal' %}
+                                        <span class="text-slate-400">Normal</span>
+                                    {% elif row.pain_status == 'option_a' %}
+                                        <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[11px]">🅰️ Opción A</span>
+                                    {% elif row.pain_status == 'option_b' %}
+                                        <span class="px-2 py-0.5 rounded bg-orange-100 text-orange-900 font-bold text-[11px]">🅱️ Opción B</span>
+                                    {% else %}
+                                        <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-bold text-[11px]">🛑 OMITIDO</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-center font-bold text-slate-700">
+                                    {% if row.set_number > 0 %}#{{ row.set_number }}{% else %}—{% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-right font-semibold text-slate-900 whitespace-nowrap">
+                                    {% if row.set_number > 0 %}{{ row.weight_kg }} kg × {{ row.reps }}{% else %}—{% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-right text-slate-600">
+                                    {% if row.rpe %}{{ row.rpe }}{% else %}—{% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-right font-semibold text-sky-700 whitespace-nowrap">
+                                    {{ row.tonnage_kg }} kg
+                                </td>
+                                <td class="px-4 py-3 text-right font-headline font-bold text-indigo-700 whitespace-nowrap">
+                                    {% if row.est_1rm_kg > 0 %}{{ row.est_1rm_kg }} kg{% else %}—{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="p-12 text-center text-slate-400 text-sm">
+                No existen registros históricos que coincidan con los filtros seleccionados.
+            </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

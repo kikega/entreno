@@ -89,6 +89,47 @@ class HomeArchitectureTests(TestCase):
         user.refresh_from_db()
         self.assertTrue(user.is_trainer)
 
+    def test_menu_active_item_matches_current_section(self):
+        """
+        Cada opción del menú lateral/inferior marca únicamente la sección activa:
+        - '/' -> 'home' (Resumen)
+        - '/training/athlete/' (redirige a '/?tab=athlete') -> 'training:athlete_dashboard' (Mi entrenamiento)
+        - '/training/trainer/' (redirige a '/?tab=trainer') -> 'training:trainer_dashboard' (Mis deportistas)
+        - '/training/exercises/' -> 'training:exercise_list' (Catálogo)
+        - '/users/profile/edit/' -> 'users:profile_edit' (Mi perfil y roles)
+        """
+        user = self._user('menu_active@test.com')
+        AthleteProfile.objects.create(user=user)
+        TrainerProfile.objects.create(user=user)
+        self.client.force_login(user)
+
+        def active_names(resp):
+            return [item['url_name'] for item in resp.context['caps']['nav_items'] if item['active']]
+
+        # 1. Resumen ('/')
+        res_home = self.client.get(reverse('home'))
+        self.assertEqual(active_names(res_home), ['home'])
+
+        # 2. Mi entrenamiento ('/training/athlete/' -> '/?tab=athlete')
+        res_athlete = self.client.get(reverse('training:athlete_dashboard'), follow=True)
+        self.assertEqual(active_names(res_athlete), ['training:athlete_dashboard'])
+
+        # 3. Subvista de deportista (Triage MMA / Bloque Activo)
+        res_active_block = self.client.get(reverse('training:athlete_active_block'))
+        self.assertEqual(active_names(res_active_block), ['training:athlete_dashboard'])
+
+        # 4. Mis deportistas ('/training/trainer/' -> '/?tab=trainer')
+        res_trainer = self.client.get(reverse('training:trainer_dashboard'), follow=True)
+        self.assertEqual(active_names(res_trainer), ['training:trainer_dashboard'])
+
+        # 5. Catálogo de ejercicios ('/training/exercises/')
+        res_catalog = self.client.get(reverse('training:exercise_list'))
+        self.assertEqual(active_names(res_catalog), ['training:exercise_list'])
+
+        # 6. Mi perfil y roles ('/users/profile/edit/')
+        res_profile = self.client.get(reverse('users:profile_edit'))
+        self.assertEqual(active_names(res_profile), ['users:profile_edit'])
+
 
 class RoleManagementTests(TestCase):
     """Pruebas de definición, conmutación y gestión de roles (Deportista, Entrenador y Dual)."""

@@ -1,10 +1,20 @@
 {% load training_extras %}
-<div id="live-card-{{ planned.id }}" class="bg-white shadow-sm rounded-2xl border border-slate-200 overflow-hidden animate-fade-in" data-exercise-id="{{ planned.id }}">
+<div id="live-card-{{ planned.id }}"
+     class="bg-white shadow-sm rounded-2xl border overflow-hidden animate-fade-in
+        {% if item.is_omitted_by_injury %}border-rose-300 bg-rose-50/20
+        {% elif item.adjusted.is_suppressed %}border-slate-300 bg-slate-100/60 opacity-80
+        {% elif item.pain_status != 'normal' %}border-amber-300
+        {% else %}border-slate-200{% endif %}"
+     data-exercise-id="{{ planned.id }}">
+
     <!-- Cabecera del ejercicio -->
-    <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+    <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/60 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3 min-w-0">
-            <div class="flex-shrink-0 h-10 w-10 bg-sky-100 text-primary rounded-xl flex items-center justify-center font-headline font-bold border border-sky-200">
-                {{ planned.exercise.name|first|upper }}
+            <div class="flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center font-headline font-bold border
+                {% if item.is_omitted_by_injury %}bg-rose-100 text-rose-700 border-rose-200
+                {% elif item.pain_status != 'normal' %}bg-amber-100 text-amber-800 border-amber-200
+                {% else %}bg-sky-100 text-primary border-sky-200{% endif %}">
+                {% if item.active_exercise %}{{ item.active_exercise.name|first|upper }}{% else %}{{ planned.exercise.name|first|upper }}{% endif %}
             </div>
             <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-1.5">
@@ -13,30 +23,109 @@
                             {{ planned.session_block_short }}
                         </span>
                     {% endif %}
-                    <h4 class="text-base font-headline font-bold text-slate-800 truncate">{{ planned.exercise.name }}</h4>
-                </div>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    Prescripción:
-                    {% if planned.am_fractional_intensity %}
-                        <span class="font-semibold text-sky-800">{{ planned.sets }} Series × {{ planned.am_fractional_intensity }}</span>
-                    {% else %}
-                        <span class="font-semibold text-slate-700">{{ planned.sets }} × {{ planned.reps }}</span>
+                    <h4 class="text-base font-headline font-bold text-slate-800 truncate">
+                        {% if item.active_exercise %}{{ item.active_exercise.name }}{% else %}{{ planned.exercise.name }}{% endif %}
+                    </h4>
+                    {% if item.pain_status == 'option_a' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-headline font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            ⚠️ Opción A · Isométrica (Isopush/Isohold)
+                        </span>
+                    {% elif item.pain_status == 'option_b' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-headline font-bold bg-orange-100 text-orange-900 border border-orange-300">
+                            ⚠️ Opción B · Cambio de Vector
+                        </span>
+                    {% elif item.pain_status == 'omitted_injury' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-headline font-bold bg-rose-600 text-white">
+                            🛑 OMITIDO_POR_LESION
+                        </span>
                     {% endif %}
-                    {% if planned.load %} · {{ planned.load }}{% endif %}
+                </div>
+
+                {% if item.pain_status != 'normal' and item.active_exercise and item.active_exercise.id != planned.exercise.id %}
+                    <p class="text-[11px] text-amber-700 font-medium mt-0.5">
+                        Sustituye a: <span class="line-through">{{ planned.exercise.name }}</span>
+                    </p>
+                {% endif %}
+
+                <p class="text-xs text-slate-600 mt-0.5 flex flex-wrap items-center gap-1.5">
+                    <span>Prescripción:</span>
+                    {% if item.adjusted %}
+                        <span class="font-semibold text-sky-900">{{ item.adjusted.series_prescription }}</span>
+                        {% if item.adjusted.load %} · <span class="font-medium">{{ item.adjusted.load }}</span>{% endif %}
+                        {% if item.adjusted.scheme != 'Esquema_Normal' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold
+                                {% if item.adjusted.readiness_level == 1 %}bg-rose-100 text-rose-800 border border-rose-200
+                                {% else %}bg-amber-100 text-amber-800 border border-amber-200{% endif %}">
+                                {{ item.adjusted.scheme_badge }}
+                            </span>
+                        {% endif %}
+                    {% else %}
+                        {% if planned.am_fractional_intensity %}
+                            <span class="font-semibold text-sky-800">{{ planned.sets }} Series × {{ planned.am_fractional_intensity }}</span>
+                        {% else %}
+                            <span class="font-semibold text-slate-700">{{ planned.sets }} × {{ planned.reps }}</span>
+                        {% endif %}
+                        {% if planned.load %} · {{ planned.load }}{% endif %}
+                    {% endif %}
                 </p>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+
+        <div class="flex flex-wrap items-center gap-2">
+            {% if item.active_video_url %}
+                <a href="{{ item.active_video_url }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition shadow-sm"
+                   title="Abrir vídeo demostrativo del ejercicio activo">
+                    <span>▶ Vídeo</span>
+                </a>
+            {% endif %}
+
             {% if planned.exercise.description %}
                 <button type="button"
                         onclick="toggleGuide('guide-{{ planned.id }}')"
                         class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-primary border border-sky-200 transition shadow-sm"
-                        title="Ver guía biomecánica y anatomía generada por Gemini">
+                        title="Ver guía biomecánica y anatomía">
                     <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                     <span>Guía y Anatomía</span>
                     <svg class="w-3 h-3 transition-transform" id="guide-arrow-{{ planned.id }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
             {% endif %}
+
+            <!-- Botón de Árbol Autónomo de Sustitución por Dolor Articular (⚠️) -->
+            {% if not plan.is_completed and not item.adjusted.is_suppressed %}
+                {% if item.pain_status != 'omitted_injury' %}
+                    <button type="button"
+                            hx-post="{% url 'training:trigger_pain_tree' planned.id %}"
+                            hx-vals='{"action": "advance"}'
+                            hx-target="#live-card-{{ planned.id }}"
+                            hx-swap="outerHTML"
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-headline font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition shadow-sm"
+                            title="Árbol Autónomo de Dolor Articular: Opción A (Isométrica) → Opción B (Vector) → Omitir por lesión">
+                        <span>⚠️</span>
+                        {% if item.pain_status == 'normal' %}
+                            <span>Molestia articular</span>
+                        {% elif item.pain_status == 'option_a' %}
+                            <span>Persiste dolor → Opción B</span>
+                        {% else %}
+                            <span>Persiste dolor → Omitir</span>
+                        {% endif %}
+                    </button>
+                {% endif %}
+                {% if item.pain_status != 'normal' %}
+                    <button type="button"
+                            hx-post="{% url 'training:trigger_pain_tree' planned.id %}"
+                            hx-vals='{"action": "reset"}'
+                            hx-target="#live-card-{{ planned.id }}"
+                            hx-swap="outerHTML"
+                            class="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 transition"
+                            title="Restablecer al ejercicio principal">
+                        Restablecer
+                    </button>
+                {% endif %}
+            {% endif %}
+
             {% if logged and logged.is_started %}
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold {% if logged.is_in_progress %}bg-amber-50 text-amber-700 border border-amber-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
                     {% if logged.is_in_progress %}
@@ -50,16 +139,43 @@
     </div>
 
     <div class="px-5 py-4 space-y-4">
+        {% if item.adjusted and item.adjusted.note %}
+            <div class="p-3 rounded-xl border text-xs font-medium
+                {% if item.adjusted.readiness_level == 1 %}bg-rose-50 border-rose-200 text-rose-900
+                {% else %}bg-amber-50 border-amber-200 text-amber-900{% endif %}">
+                {{ item.adjusted.note }}
+            </div>
+        {% endif %}
+
         {% if planned.exercise.description %}
             <div id="guide-{{ planned.id }}" class="hidden bg-slate-50/90 rounded-xl p-4 sm:p-5 border border-slate-200 exercise-markdown transition animate-fade-in shadow-inner">
                 {{ planned.exercise.description|render_markdown }}
             </div>
         {% endif %}
 
-        {% if not logged or not logged.is_started %}
+        {% if item.adjusted and item.adjusted.is_suppressed %}
+            <!-- Bloque suprimido al 100 % por Nivel 1 (Colapso Sistémico) -->
+            <div class="p-4 rounded-xl bg-slate-900 text-slate-100 border border-slate-800 text-xs font-semibold flex items-center justify-between gap-3">
+                <span>⬛ BLOQUE SUPRIMIDO HOY (Semáforo Nivel 1 — Colapso Sistémico): No realizar Velocidad/Potencia neural.</span>
+                <span class="px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] font-bold uppercase">0 Series</span>
+            </div>
+
+        {% elif item.is_omitted_by_injury %}
+            <!-- Ejercicio Omitido por Lesión tras recorrer Opción A y Opción B -->
+            <div class="p-4 rounded-xl bg-rose-950 text-rose-100 border border-rose-800 text-xs font-semibold space-y-1">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="font-headline font-bold text-sm">🛑 OMITIDO_POR_LESION</span>
+                    <span class="px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] font-bold">Alerta enviada al entrenador</span>
+                </div>
+                <p class="text-rose-200/90">
+                    Persiste el dolor articular tras probar la Regresión Isométrica (Opción A) y el Cambio de Vector (Opción B). Registro de series bloqueado por seguridad articular.
+                </p>
+            </div>
+
+        {% elif not logged or not logged.is_started %}
             <!-- Estado: no iniciado -->
             <p class="text-sm text-slate-500">
-                Pulsa <strong>Iniciar ejercicio</strong> para arrancar el cronómetro y comenzar a registrar.
+                Pulsa <strong>Iniciar ejercicio</strong> para arrancar el cronómetro y comenzar a registrar ({{ item.target_sets_count }} serie{{ item.target_sets_count|pluralize }} activa{{ item.target_sets_count|pluralize }}).
             </p>
             <button type="button"
                     hx-post="{% url 'training:start_exercise' planned.id %}"
@@ -69,6 +185,17 @@
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
                 Iniciar Ejercicio
             </button>
+
+            {% if item.locked_set_numbers %}
+                <div class="space-y-1.5 pt-2">
+                    {% for locked_num in item.locked_set_numbers %}
+                        <div class="am-set-locked flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900 text-slate-300 border border-slate-800 text-xs font-semibold">
+                            <span>⬛ Serie {{ locked_num }} — Bloqueada / No realizar (Descarga / Protección SNC)</span>
+                            <span class="text-[10px] uppercase tracking-wider text-slate-400">Volumen recortado</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
 
         {% elif logged.is_in_progress %}
             <!-- Estado: en curso -->
@@ -99,49 +226,72 @@
                         </div>
                     {% endfor %}
                 {% else %}
-                    <p class="text-sm text-slate-400 italic">Sin series registradas todavía.</p>
+                    <p class="text-sm text-slate-400 italic">Sin series registradas todavía ({{ item.target_sets_count }} prescrita{{ item.target_sets_count|pluralize }}).</p>
                 {% endif %}
             </div>
 
-            <!-- Formulario de registro de serie -->
-            <form hx-post="{% url 'training:log_set_htmx' planned.id %}"
-                  hx-target="#log-{{ planned.id }}"
-                  hx-swap="beforeend">
-                {% csrf_token %}
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {% if logged.is_rm_exercise %}
-                        <div>
-                            <label for="weight-{{ planned.id }}" class="block text-xs font-bold text-slate-500 mb-1">Peso (kg)</label>
-                            <input id="weight-{{ planned.id }}" type="number" step="0.5" min="0" max="1000" name="weight_kg" value="{{ planned.load|extract_number }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:outline-none transition" required>
+            {% if item.locked_set_numbers %}
+                <div class="space-y-1.5 mb-4">
+                    {% for locked_num in item.locked_set_numbers %}
+                        <div class="am-set-locked flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900 text-slate-300 border border-slate-800 text-xs font-semibold">
+                            <span>⬛ Serie {{ locked_num }} — Bloqueada / No realizar (Descarga / Protección SNC)</span>
+                            <span class="text-[10px] uppercase tracking-wider text-slate-400">Bloqueado</span>
                         </div>
-                        <div>
-                            <label for="reps-{{ planned.id }}" class="block text-xs font-bold text-slate-500 mb-1">Repeticiones</label>
-                            <input id="reps-{{ planned.id }}" type="number" min="1" max="1000" name="reps" value="{{ planned.reps|extract_number }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:outline-none transition" required>
-                        </div>
-                    {% else %}
-                        <div class="sm:col-span-2">
-                            <label for="reps-{{ planned.id }}" class="block text-xs font-bold text-slate-500 mb-1">Repeticiones</label>
-                            <input id="reps-{{ planned.id }}" type="number" min="1" max="1000" name="reps" value="{{ planned.reps|extract_number }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:outline-none transition" required>
-                        </div>
-                    {% endif %}
-                    <div>
-                        <label for="rpe-{{ planned.id }}" class="block text-xs font-bold text-slate-500 mb-1">RPE (1-10)</label>
-                        <input id="rpe-{{ planned.id }}" type="number" step="0.5" min="1" max="10" name="rpe" value="{{ planned.rpe|extract_number|default:'8' }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:outline-none transition">
-                    </div>
+                    {% endfor %}
                 </div>
-                <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
-                    <button type="submit" class="btn-accent w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-bold rounded-xl">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-                        Registrar Serie
-                    </button>
+            {% endif %}
+
+            {% if item.can_log_more_sets %}
+                <!-- Formulario de registro de serie -->
+                <form hx-post="{% url 'training:log_set_htmx' planned.id %}"
+                      hx-target="#live-card-{{ planned.id }}"
+                      hx-swap="outerHTML">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {% if logged.is_rm_exercise %}
+                            <div>
+                                <label for="weight-{{ planned.id }}" class="block text-xs font-bold text-slate-500 mb-1">Peso (kg)</label>
+                                <input id="weight-{{ planned.id }}" type="number" step="0.5" min="0" max="1000" name="weight_kg" value="{{ item.adjusted.load|default:planned.load|extract_number }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:outline-none transition" required>
+                            </div>
+                            <div>
+                                <label for="reps-{{ planned.id }}" class="block text-xs font-bold text-slate-500 mb-1">Repeticiones</label>
+                                <input id="reps-{{ planned.id }}" type="number" min="1" max="1000" name="reps" value="{{ item.adjusted.reps|default:planned.reps|extract_number }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:outline-none transition" required>
+                            </div>
+                        {% else %}
+                            <div class="sm:col-span-2">
+                                <label for="reps-{{ planned.id }}" class="block text-xs font-bold text-slate-500 mb-1">Repeticiones</label>
+                                <input id="reps-{{ planned.id }}" type="number" min="1" max="1000" name="reps" value="{{ item.adjusted.reps|default:planned.reps|extract_number }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:outline-none transition" required>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <label for="rpe-{{ planned.id }}" class="block text-xs font-bold text-slate-500 mb-1">RPE (1-10)</label>
+                            <input id="rpe-{{ planned.id }}" type="number" step="0.5" min="1" max="10" name="rpe" value="{{ item.adjusted.rpe|default:planned.rpe|extract_number|default:'8' }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:outline-none transition">
+                        </div>
+                    </div>
+                    <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                        <button type="submit" class="btn-accent w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-bold rounded-xl">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                            Registrar Serie ({{ item.logged_sets_count|add:1 }}/{{ item.target_sets_count }})
+                        </button>
+                        <button type="button"
+                                onclick="openFinishConfirm('{{ planned.id }}', '{{ planned.exercise.name|escapejs }}')"
+                                class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-bold rounded-xl">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Terminar Ejercicio
+                        </button>
+                    </div>
+                </form>
+            {% else %}
+                <!-- Tope de series alcanzado (bloqueo de series extras para proteger el SNC) -->
+                <div class="p-3.5 rounded-xl bg-slate-900 text-slate-100 border border-slate-800 text-xs font-semibold flex flex-wrap items-center justify-between gap-3">
+                    <span>🔒 Cupo de {{ item.target_sets_count }} serie{{ item.target_sets_count|pluralize }} completado (Series adicionales bloqueadas para proteger el SNC).</span>
                     <button type="button"
                             onclick="openFinishConfirm('{{ planned.id }}', '{{ planned.exercise.name|escapejs }}')"
-                            class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm font-bold rounded-xl">
-                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            class="btn-accent px-4 py-2 text-xs font-bold rounded-lg">
                         Terminar Ejercicio
                     </button>
                 </div>
-            </form>
+            {% endif %}
 
         {% else %}
             <!-- FINALIZADO -->

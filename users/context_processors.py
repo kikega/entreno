@@ -1,26 +1,66 @@
 # Agrupa las vistas que pertenecen conceptualmente a cada sección de navegación,
-# para resaltar el elemento activo del menú aunque la URL actual sea interna.
+# para resaltar únicamente la opción de menú activa que está funcionando en la aplicación.
 SECTION_MAP = {
-    'home': {'home', 'onboarding', 'become_trainer', 'become_athlete'},
+    'home': {'onboarding', 'become_trainer', 'become_athlete'},
     'training:athlete_dashboard': {
-        'athlete_dashboard', 'live_workout',
-        'log_progress', 'log_set_htmx', 'start_exercise', 'finish_exercise',
+        'athlete_dashboard',
+        'live_workout',
+        'update_session_readiness',
+        'log_progress',
+        'log_set_htmx',
+        'trigger_pain_tree',
+        'start_exercise',
+        'finish_exercise',
         'complete_workout',
+        'athlete_mma_triage',
+        'athlete_active_block',
+        'my_am_visual_dashboard',
     },
     'training:trainer_dashboard': {
-        'trainer_dashboard', 'plan_create', 'plan_detail',
-        'athlete_detail', 'trainer_athlete_edit', 'trainer_athlete_delete',
+        'trainer_dashboard',
+        'plan_create',
+        'add_exercise',
+        'athlete_detail',
+        'trainer_mma_triage',
+        'macrocycle_init',
+        'macrocycle_generate',
+        'macrocycle_control',
+        'block_toggle_publish',
+        'block_update',
+        'block_prescribe_exercise',
+        'block_quick_swap_exercise',
+        'block_recalculate_calendar',
+        'trainer_athlete_edit',
+        'trainer_athlete_delete',
+        'mark_notification_read',
         'generate_smart_plan',
-        'exercise_list', 'exercise_create', 'exercise_edit', 'exercise_delete',
     },
-    'users:profile_edit': {'profile_edit', 'password_change', 'password_change_done'},
+    'training:exercise_list': {
+        'exercise_list',
+        'exercise_create',
+        'exercise_edit',
+        'exercise_delete',
+        'exercise_detail_modal',
+        'exercise_xlookup_meta',
+    },
+    'users:profile_edit': {
+        'profile_edit',
+        'password_change',
+        'password_change_done',
+        'create_athlete_profile',
+        'create_trainer_profile',
+        'create_dual_profile',
+        'remove_athlete_profile',
+        'remove_trainer_profile',
+    },
 }
 
 
 def capabilities(request):
     """
     Expone las capacidades del usuario autenticado y los elementos de navegación
-    disponibles a todas las plantillas, sustituyendo al antiguo rol activo de sesión.
+    disponibles a todas las plantillas, marcando como activa (`item['active'] = True`)
+    únicamente la opción del menú que corresponde a la vista o pestaña en uso.
     """
     user = request.user
 
@@ -38,15 +78,31 @@ def capabilities(request):
 
     match = getattr(request, 'resolver_match', None)
     current_url_name = getattr(match, 'url_name', None) or ''
+    requested_tab = (request.GET.get('tab') or '').strip().lower()
 
     is_trainer = user.is_trainer
     is_athlete = user.is_athlete
 
-    def _is_active(url_name):
-        if url_name == 'users:profile_edit' and current_url_name in {'profile_edit', 'password_change', 'password_change_done'}:
-            return True
-        if url_name == 'training:athlete_dashboard' and current_url_name == 'plan_detail' and is_athlete and not is_trainer:
-            return True
+    def _is_active(url_name: str) -> bool:
+        # 1. Cuando estamos en la vista raíz ('home'), distinguir entre:
+        #    - '/?tab=athlete' (seleccionado desde "Mi entrenamiento")
+        #    - '/?tab=trainer' (seleccionado desde "Mis deportistas")
+        #    - '/' sin tab (seleccionado desde "Resumen")
+        if current_url_name == 'home':
+            if requested_tab == 'athlete' and is_athlete:
+                return url_name == 'training:athlete_dashboard'
+            if requested_tab == 'trainer' and is_trainer:
+                return url_name == 'training:trainer_dashboard'
+            return url_name == 'home'
+
+        # 2. Vistas compartidas entre entrenador y deportista ('plan_detail', 'am_visual_dashboard', 'export_am_historical_csv')
+        if current_url_name in {'plan_detail', 'am_visual_dashboard', 'export_am_historical_csv'}:
+            if is_trainer:
+                return url_name == 'training:trainer_dashboard'
+            if is_athlete:
+                return url_name == 'training:athlete_dashboard'
+
+        # 3. Resto de vistas mapeadas por sección funcional
         return current_url_name in SECTION_MAP.get(url_name, {url_name})
 
     nav_items = [

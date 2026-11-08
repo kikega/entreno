@@ -31,7 +31,7 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "core.settings"
-testpaths = ["training/tests_ml.py", "training/tests.py", "training/tests_markdown.py", "training/tests_am_catalog.py", "training/tests_mma_triage.py", "training/tests_macrocycle_phase3.py", "users/tests.py"]
+testpaths = ["training/tests_ml.py", "training/tests.py", "training/tests_markdown.py", "training/tests_am_catalog.py", "training/tests_mma_triage.py", "training/tests_macrocycle_phase3.py", "training/tests_am_rules_phase4.py", "training/tests_athlete_ui_phase5.py", "training/tests_analytics_phase6.py", "users/tests.py"]
 
 
     

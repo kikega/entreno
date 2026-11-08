@@ -770,11 +770,26 @@ class PlannedExercise(models.Model):
 class WorkoutSession(models.Model):
     """
     Registro real de una sesión de entrenamiento completada por el deportista,
-    almacenando duración, calorías, frecuencia cardíaca media, RPE global y notas.
+    almacenando duración, calorías, frecuencia cardíaca media, RPE global,
+    nivel del Semáforo de Disposición Diaria (1 a 5) y notas.
     """
+
+    READINESS_CHOICES = [
+        (5, 'Nivel 5 (Verde) — Disposición Óptima · Esquema Normal'),
+        (4, 'Nivel 4 (Verde) — Buena Disposición · Esquema Normal'),
+        (3, 'Nivel 3 (Verde) — Disposición Media · Esquema Normal'),
+        (2, 'Nivel 2 (Amarillo) — Fatiga Moderada · Esquema Fatiga'),
+        (1, 'Nivel 1 (Rojo) — Colapso Sistémico · Esquema Regenerativo'),
+    ]
 
     workout_plan = models.OneToOneField(WorkoutPlan, on_delete=models.CASCADE, related_name='session', verbose_name=_('plan de entrenamiento'))
     athlete = models.ForeignKey(AthleteProfile, on_delete=models.CASCADE, related_name='sessions', verbose_name=_('deportista'))
+    readiness_level = models.PositiveSmallIntegerField(
+        _('semáforo de disposición diaria (1-5)'),
+        choices=READINESS_CHOICES,
+        default=4,
+        help_text=_('Preconfigurado en Nivel 4 (Verde). Nivel 2 activa Esquema_Fatiga y Nivel 1 activa Colapso Sistémico.'),
+    )
     date_completed = models.DateTimeField(_('fecha completado'), auto_now_add=True)
     started_at = models.DateTimeField(_('hora de inicio'), null=True, blank=True)
     duration_minutes = models.PositiveIntegerField(_('duración (minutos)'), null=True, blank=True)
@@ -787,6 +802,56 @@ class WorkoutSession(models.Model):
         verbose_name = _('sesión de entrenamiento')
         verbose_name_plural = _('sesiones de entrenamiento')
 
+    @property
+    def readiness_scheme(self) -> str:
+        """Devuelve el esquema fisiológico activo según el Semáforo de Disposición (§4.2)."""
+        lvl = int(self.readiness_level or 4)
+        if lvl <= 1:
+            return 'Esquema_Regenerativo'
+        if lvl == 2:
+            return 'Esquema_Fatiga'
+        return 'Esquema_Normal'
+
+    @property
+    def readiness_ui_meta(self) -> dict[str, str]:
+        """Metadatos visuales y mensaje clínico del Semáforo de Disposición (1 a 5)."""
+        scheme = self.readiness_scheme
+        if scheme == 'Esquema_Regenerativo':
+            return {
+                'scheme': 'Esquema Regenerativo (Colapso Sistémico)',
+                'badge': '🔴 Nivel 1 · Esquema Regenerativo',
+                'color': 'rose',
+                'badge_class': 'bg-rose-100 text-rose-900 border-rose-300',
+                'banner_class': 'bg-rose-50 border-rose-300 text-rose-950',
+                'summary': (
+                    '🔴 Nivel 1 (Colapso Sistémico): Se suprimen al 100 % los Bloques 2 y 3 (Velocidad y Potencia), '
+                    'el Bloque 4 pasa a bombeo regenerativo (RIR 5–6 con carga mínima) y el Bloque 5 a Zona 2 sin impacto.'
+                ),
+            }
+        if scheme == 'Esquema_Fatiga':
+            return {
+                'scheme': 'Esquema Fatiga (Fatiga Moderada)',
+                'badge': '🟡 Nivel 2 · Esquema Fatiga',
+                'color': 'amber',
+                'badge_class': 'bg-amber-100 text-amber-900 border-amber-300',
+                'banner_class': 'bg-amber-50 border-amber-300 text-amber-950',
+                'summary': (
+                    '🟡 Nivel 2 (Fatiga Moderada): Se amplía la movilidad en B1 (+1 serie), B2 y B3 pasan a fluidez '
+                    'técnica submáxima, se recorta 1 serie y RPE en accesorios de B4 y B5 conmuta a Zona 2 regenerativa.'
+                ),
+            }
+        return {
+            'scheme': 'Esquema Normal',
+            'badge': f'🟢 Nivel {self.readiness_level or 4} · Esquema Normal',
+            'color': 'emerald',
+            'badge_class': 'bg-emerald-100 text-emerald-900 border-emerald-300',
+            'banner_class': 'bg-emerald-50/70 border-emerald-200 text-emerald-950',
+            'summary': (
+                f'🟢 Nivel {self.readiness_level or 4} (Disposición Verde): '
+                'Esquema Normal activo con el 100 % de los bloques y cargas prescritos.'
+            ),
+        }
+
     def __str__(self):
         """Devuelve la identificación de la sesión vinculada a su plan de entrenamiento."""
         return f"Sesión: {self.workout_plan}"
@@ -794,11 +859,33 @@ class WorkoutSession(models.Model):
 
 class LoggedExercise(models.Model):
     """
-    Agrupador de series ejecutadas en una sesión de entrenamiento para un ejercicio planificado.
+    Agrupador de series ejecutadas en una sesión de entrenamiento para un ejercicio planificado,
+    incluyendo el estado del Árbol Autónomo de Sustitución por Dolor Articular (`pain_status`).
     """
+
+    PAIN_STATUS_CHOICES = [
+        ('normal', 'Sin molestia (Ejercicio principal)'),
+        ('option_a', 'Opción A (Regresión Isométrica: Isopush / Isohold)'),
+        ('option_b', 'Opción B (Cambio de Vector Mecánico)'),
+        ('omitted_injury', 'OMITIDO_POR_LESION'),
+    ]
 
     workout_session = models.ForeignKey(WorkoutSession, on_delete=models.CASCADE, related_name='logged_exercises', verbose_name=_('sesión de entrenamiento'))
     planned_exercise = models.ForeignKey(PlannedExercise, on_delete=models.CASCADE, related_name='logs', verbose_name=_('ejercicio planificado'))
+    pain_status = models.CharField(
+        _('estado de dolor articular (⚠️)'),
+        max_length=20,
+        choices=PAIN_STATUS_CHOICES,
+        default='normal',
+    )
+    substituted_exercise = models.ForeignKey(
+        Exercise,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='substituted_in_logs',
+        verbose_name=_('ejercicio activo por sustitución A/B'),
+    )
     actual_sets = models.CharField(_('series reales'), max_length=50, blank=True)
     actual_reps = models.CharField(_('repeticiones reales'), max_length=50, blank=True)
     actual_load = models.CharField(_('carga real'), max_length=50, blank=True)
@@ -814,8 +901,110 @@ class LoggedExercise(models.Model):
         verbose_name_plural = _('ejercicios registrados')
 
     @property
+    def is_omitted_by_injury(self) -> bool:
+        return self.pain_status == 'omitted_injury'
+
+    @property
+    def active_exercise(self) -> Exercise:
+        """Devuelve el ejercicio efectivamente activo (sustituto Opción A/B o el prescrito original)."""
+        if self.substituted_exercise_id and self.pain_status in ('option_a', 'option_b'):
+            return self.substituted_exercise
+        base_ex = self.planned_exercise.exercise
+        if self.pain_status == 'option_a' and base_ex.regression_option_a_id:
+            return base_ex.regression_option_a
+        if self.pain_status == 'option_b' and base_ex.regression_option_b_id:
+            return base_ex.regression_option_b
+        return base_ex
+
+    @property
+    def active_video_url(self) -> str:
+        """Devuelve la URL de vídeo correspondiente al estado actual del árbol de dolor articular."""
+        base_ex = self.planned_exercise.exercise
+        if self.pain_status == 'option_a':
+            return base_ex.effective_option_a_video_url
+        if self.pain_status == 'option_b':
+            return base_ex.effective_option_b_video_url
+        if self.pain_status == 'omitted_injury':
+            return ''
+        return base_ex.video_url or ''
+
+    def apply_pain_tree_action(self, action: str = 'advance') -> str:
+        """
+        Avanza o conmuta el Árbol Autónomo de Sustitución por Dolor Articular (§4.2):
+          - `normal` -> `option_a` (Regresión Isométrica) -> `option_b` (Cambio de Vector) -> `omitted_injury` (`OMITIDO_POR_LESION`).
+          - Si falta Opción A o B en el ejercicio base, salta automáticamente al siguiente peldaño disponible.
+          - Al llegar a `omitted_injury`, notifica automáticamente al entrenador (`TrainerNotification`).
+        """
+        base_ex = self.planned_exercise.exercise
+        opt_a = base_ex.regression_option_a
+        opt_b = base_ex.regression_option_b
+
+        req = (action or 'advance').strip().lower()
+        if req == 'reset' or req == 'normal':
+            target = 'normal'
+        elif req in ('option_a', 'option_b', 'omitted_injury'):
+            target = req
+        else:
+            # Transición progresiva automática
+            if self.pain_status == 'normal':
+                if opt_a is not None:
+                    target = 'option_a'
+                elif opt_b is not None:
+                    target = 'option_b'
+                else:
+                    target = 'omitted_injury'
+            elif self.pain_status == 'option_a':
+                if opt_b is not None:
+                    target = 'option_b'
+                else:
+                    target = 'omitted_injury'
+            elif self.pain_status == 'option_b':
+                target = 'omitted_injury'
+            else:
+                target = 'normal'
+
+        if target == 'option_a' and opt_a is None:
+            target = 'option_b' if opt_b is not None else 'omitted_injury'
+        if target == 'option_b' and opt_b is None:
+            target = 'omitted_injury'
+
+        self.pain_status = target
+        if target == 'option_a':
+            self.substituted_exercise = opt_a
+        elif target == 'option_b':
+            self.substituted_exercise = opt_b
+        else:
+            self.substituted_exercise = None
+
+        if target == 'omitted_injury':
+            now = timezone.now()
+            if self.started_at is None:
+                self.started_at = now
+            if self.finished_at is None:
+                self.finished_at = now
+            self.notes = "OMITIDO_POR_LESION (persiste molestia articular en Opción A y Opción B)"
+        self.save()
+
+        if target == 'omitted_injury':
+            plan = self.planned_exercise.workout_plan
+            if plan.trainer_id:
+                athlete_name = plan.athlete.user.display_name
+                alert_msg = (
+                    f"⚠️ OMITIDO_POR_LESION: {athlete_name} reportó dolor persistente en "
+                    f"'{base_ex.name}' ({plan.name})."
+                )
+                TrainerNotification.objects.create(
+                    trainer=plan.trainer,
+                    athlete=plan.athlete,
+                    event_type='injury_omitted',
+                    message=alert_msg[:300],
+                )
+
+        return self.pain_status
+
+    @property
     def is_in_progress(self):
-        return self.started_at is not None and self.finished_at is None
+        return self.started_at is not None and self.finished_at is None and not self.is_omitted_by_injury
 
     @property
     def is_started(self):

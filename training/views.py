@@ -7,9 +7,10 @@ from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 
+import csv
 import json
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from django.db.models import Q, Count
 from django.utils import timezone
@@ -25,7 +26,16 @@ from .forms import (
     AthleteMMATriageForm, TrainerMMATriageClinicalForm,
     MacrocycleBlockConfigForm, BlockProgressionPrescribeForm,
 )
-from .am_macrocycle import build_mesocycle_matrix
+from .am_macrocycle import (
+    build_live_exercise_item,
+    build_mesocycle_matrix,
+    compute_readiness_adjusted_prescription,
+)
+from .am_rules_engine import (
+    evaluate_am_rules,
+    AMMacrocycleGenerator,
+    AMUniversalLLMClient,
+)
 from .analytics import (
     calculate_acwr,
     get_athlete_sport_metrics,
@@ -33,6 +43,8 @@ from .analytics import (
     is_rm_based_exercise,
     estimate_1rm,
     pct_of_1rm,
+    build_am_historical_ledger,
+    build_am_visual_dashboard,
 )
 from .ml_engine import SmartPlanGenerator
 
@@ -308,11 +320,14 @@ class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
             context['session_form'] = WorkoutSessionForm()
             logged_map = {
                 le.planned_exercise_id: le
-                for le in session.logged_exercises.all()
+                for le in session.logged_exercises.select_related('substituted_exercise').prefetch_related('sets').all()
             }
             context['live_items'] = [
-                {'planned': pe, 'logged': logged_map.get(pe.id)}
-                for pe in plan.planned_exercises.all().select_related('exercise')
+                build_live_exercise_item(pe, session, logged_map.get(pe.id))
+                for pe in plan.planned_exercises.all().select_related(
+                    'exercise__regression_option_a',
+                    'exercise__regression_option_b',
+                )
             ]
 
         if plan.is_completed:
@@ -358,11 +373,21 @@ class LiveWorkoutView(AthleteRequiredMixin, DetailView):
         # Mapa ejercicio planificado -> LoggedExercise dentro de esta sesión
         logged_map = {
             le.planned_exercise_id: le
-            for le in session.logged_exercises.all()
+            for le in session.logged_exercises.select_related('substituted_exercise').prefetch_related('sets').all()
         }
         context['live_items'] = [
-            {'planned': pe, 'logged': logged_map.get(pe.id)}
-            for pe in plan.planned_exercises.all().select_related('exercise')
+            build_live_exercise_item(pe, session, logged_map.get(pe.id))
+            for pe in plan.planned_exercises.all().select_related(
+                'exercise__regression_option_a',
+                'exercise__regression_option_b',
+            )
+        ]
+        context['readiness_levels'] = [
+            {'level': 5, 'short': '5 · Óptimo', 'Zone': 'green'},
+            {'level': 4, 'short': '4 · Bien', 'Zone': 'green'},
+            {'level': 3, 'short': '3 · Normal', 'Zone': 'green'},
+            {'level': 2, 'short': '2 · Fatiga', 'Zone': 'yellow'},
+            {'level': 1, 'short': '1 · Colapso', 'Zone': 'red'},
         ]
         return context
 
@@ -410,6 +435,23 @@ def log_set_htmx(request, planned_id):
         planned_exercise=planned_exercise
     )
 
+    live_item = build_live_exercise_item(planned_exercise, session, logged_ex)
+    if live_item['is_omitted_by_injury']:
+        return HttpResponse(
+            "Ejercicio omitido por lesión articular (OMITIDO_POR_LESION).",
+            status=400,
+        )
+    if live_item['adjusted']['is_suppressed']:
+        return HttpResponse(
+            "Este bloque está suprimido hoy por Colapso Sistémico (Nivel 1).",
+            status=400,
+        )
+    if logged_ex.sets.count() >= live_item['target_sets_count']:
+        return HttpResponse(
+            "Serie bloqueada: ya has completado todas las series prescritas para esta sesión (protección de volumen/descarga).",
+            status=400,
+        )
+
     # Crear LoggedSet
     current_set_count = logged_ex.sets.count() + 1
     logged_set = LoggedSet.objects.create(
@@ -426,6 +468,12 @@ def log_set_htmx(request, planned_id):
     logged_ex.actual_load = f"{float(logged_set.weight_kg)}kg" if logged_set.weight_kg else ""
     logged_ex.actual_rpe = str(float(logged_set.rpe or 0))
     logged_ex.save()
+
+    if request.headers.get('HX-Target') == f'live-card-{planned_exercise.id}':
+        if logged_ex.started_at is None:
+            logged_ex.started_at = timezone.now()
+            logged_ex.save(update_fields=['started_at'])
+        return _render_live_card(request, planned_exercise, session)
 
     html = f"""
     <div class="flex flex-wrap justify-between items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 animate-fade-in">
@@ -513,16 +561,25 @@ def finish_exercise(request, planned_id):
 
 def _render_live_card(request, planned_exercise, session):
     """
-    Devuelve el fragmento HTML de la tarjeta de un ejercicio en el modo en vivo.
+    Devuelve el fragmento HTML de la tarjeta de un ejercicio en el modo en vivo,
+    incluyendo prescripción adaptada por el Semáforo de Disposición (1-5),
+    Árbol Autónomo de Dolor Articular (⚠️) y Bloqueo de Series en Descarga.
     """
-    logged_ex = LoggedExercise.objects.filter(
-        workout_session=session,
-        planned_exercise=planned_exercise,
-    ).first()
+    logged_ex = (
+        LoggedExercise.objects.filter(
+            workout_session=session,
+            planned_exercise=planned_exercise,
+        )
+        .select_related('substituted_exercise')
+        .prefetch_related('sets')
+        .first()
+    )
+    item = build_live_exercise_item(planned_exercise, session, logged_ex)
     return render(
         request,
         'training/partials/live_exercise_card.html',
         {
+            'item': item,
             'planned': planned_exercise,
             'logged': logged_ex,
             'session': session,
@@ -946,6 +1003,8 @@ class TrainerMMATriageReviewView(TrainerRequiredMixin, View):
             'athlete': athlete,
             'triage': triage,
             'form': form,
+            'am_diagnosis': evaluate_am_rules(triage),
+            'llm_enabled': AMUniversalLLMClient.is_enabled_and_configured(),
         })
 
     def post(self, request, pk: int, *args, **kwargs):
@@ -979,6 +1038,8 @@ class TrainerMMATriageReviewView(TrainerRequiredMixin, View):
             'athlete': athlete,
             'triage': triage,
             'form': form,
+            'am_diagnosis': evaluate_am_rules(triage),
+            'llm_enabled': AMUniversalLLMClient.is_enabled_and_configured(),
         })
 
 
@@ -1103,6 +1164,11 @@ class TrainerMacrocycleControlView(TrainerRequiredMixin, View):
                 'completed_plans': sum(1 for p in b_plans if p.is_completed),
             })
 
+        am_catalog_exercises = list(
+            Exercise.objects.select_related('regression_option_a', 'regression_option_b')
+            .order_by('code', 'name')
+        )
+
         return render(request, self.template_name, {
             'macrocycle': macrocycle,
             'blocks_info': blocks_info,
@@ -1110,6 +1176,9 @@ class TrainerMacrocycleControlView(TrainerRequiredMixin, View):
             'selected_day': selected_day,
             'matrix': matrix,
             'mma_triage': mma_triage,
+            'am_diagnosis': evaluate_am_rules(mma_triage) if mma_triage else None,
+            'llm_enabled': AMUniversalLLMClient.is_enabled_and_configured(),
+            'am_catalog_exercises': am_catalog_exercises,
             'block_config_form': MacrocycleBlockConfigForm(instance=selected_block),
             'prescribe_form': BlockProgressionPrescribeForm(initial={
                 'day_number': selected_day,
@@ -1339,6 +1408,578 @@ class AthleteActiveBlockView(AthleteRequiredMixin, View):
             'selected_day': selected_day,
             'matrix': matrix,
         })
+
+
+# ==============================================================================
+# FASE 4: MOTOR DE REGLAS ALGORÍTMICAS DE 8 MÓDULOS + ML / LLM OPCIONAL (.env)
+# ==============================================================================
+
+@login_required
+@require_POST
+def generate_am_macrocycle(request, athlete_id: int):
+    """
+    Dispara la generación o recálculo no destructivo de los 4 bloques del Macrociclo
+    Sistema AM aplicando los 8 Módulos Algorítmicos y el predictor ML de la aplicación
+    (o el conector LLM configurado en `.env` si `AM_LLM_ENABLED=True`).
+    Exige obligatoriamente el Cerrojo Manual (`approved_for_generation=True`).
+    """
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+
+    athlete = get_object_or_404(
+        AthleteProfile.objects.select_related('user').filter(
+            Q(assigned_trainer=request.user) | Q(user=request.user)
+        ),
+        pk=athlete_id,
+    )
+    triage, _ = MMATriageProfile.objects.get_or_create(
+        athlete=athlete,
+        defaults={'fasting_weight_kg': athlete.weight},
+    )
+
+    try:
+        result = AMMacrocycleGenerator.generate_or_recalculate_macrocycle(
+            triage=triage,
+            trainer=request.user.trainer_profile,
+        )
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect('training:trainer_mma_triage', pk=athlete.pk)
+
+    macrocycle = result['macrocycle']
+    engine_label = (
+        f"LLM ({result['engine_source']}) + ML"
+        if str(result['engine_source']).startswith('llm:')
+        else "Motor Determinista 8 Módulos + ML"
+    )
+    msg = (
+        f"⚡ Macrociclo generado/recalculado con {engine_label}: "
+        f"{result['generated_plans']} sesiones actualizadas "
+        f"(ML predictivo en {result['ml_predictions_used']} prescripciones)."
+    )
+    if result['preserved_plans']:
+        msg += f" Se protegieron intactas {result['preserved_plans']} sesiones con marcas reales registradas."
+    messages.success(request, msg)
+    return redirect('training:macrocycle_control', pk=macrocycle.pk)
+
+
+@login_required
+@require_POST
+def recalculate_block_calendar_view(request, block_id: int):
+    """
+    Módulo 8 (Recálculo Dinámico de Calendario No Destructivo):
+    Reestructura un bloque activo cuando cambia la fecha de pelea a mitad de bloque
+    (Adelanto a 3 semanas, Short-Notice <= 14 días, Retraso a 5 semanas o Modelo Pendular 6-8 semanas)
+    preservando el 100 % de las semanas ya completadas o con series registradas.
+    """
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+
+    block = get_object_or_404(
+        MacrocycleBlock.objects.select_related('macrocycle__athlete__user'),
+        pk=block_id,
+        macrocycle__trainer=request.user.trainer_profile,
+    )
+    athlete = block.macrocycle.athlete
+    triage = MMATriageProfile.objects.filter(athlete=athlete).first()
+
+    raw_date = (request.POST.get('next_fight_date') or '').strip()
+    new_fight_date = None
+    if raw_date:
+        try:
+            new_fight_date = date.fromisoformat(raw_date)
+        except ValueError:
+            messages.error(request, "Formato de fecha de combate inválido (usa YYYY-MM-DD).")
+            return redirect(
+                f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}"
+            )
+    elif triage and triage.next_fight_date:
+        new_fight_date = triage.next_fight_date
+    elif block.macrocycle.target_fight_date:
+        new_fight_date = block.macrocycle.target_fight_date
+
+    if new_fight_date is None:
+        messages.error(request, "Indica la nueva fecha de combate para recalcular el calendario del bloque.")
+        return redirect(
+            f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}"
+        )
+
+    result = AMMacrocycleGenerator.recalculate_block_calendar(
+        block=block,
+        new_fight_date=new_fight_date,
+        triage=triage,
+    )
+    messages.success(
+        request,
+        f"📅 Módulo 8 ({result['mode']}): {result['description']} "
+        f"(Sesiones con historial protegidas: {result['preserved_plans']})."
+    )
+    return redirect(
+        f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}"
+    )
+
+
+# ==============================================================================
+# FASE 5: SEMÁFORO DE DISPOSICIÓN DIARIA, ÁRBOL DE DOLOR ARTICULAR,
+#         BLOQUEO DE SERIES EN DESCARGA Y EDICIÓN RÁPIDA XLOOKUP
+# ==============================================================================
+
+@login_required
+@require_POST
+def update_session_readiness(request, plan_id: int):
+    """
+    Actualiza el Semáforo de Disposición Diaria (Niveles 1 a 5) en la sesión activa
+    y recalcula en tiempo real las prescripciones dinámicas:
+      - Nivel 3-5 (Verde): Esquema_Normal
+      - Nivel 2 (Amarillo): Esquema_Fatiga (+1 serie B1, B2/B3 a RPE 6, -1 serie/-1 RPE en B4 accesorio, B5 Zona 2)
+      - Nivel 1 (Rojo): Esquema_Regenerativo (suprime 100% B2/B3, B4 bombeo RIR 5-6, B5 Zona 2 sin impacto)
+    Si el atleta reporta Nivel 1 o 2, notifica al entrenador (`low_readiness`).
+    """
+    if not request.user.is_athlete:
+        return HttpResponse("No autorizado", status=403)
+
+    plan = get_object_or_404(
+        WorkoutPlan.objects.select_related('macrocycle_block', 'trainer__user', 'athlete__user'),
+        pk=plan_id,
+        athlete=request.user.athlete_profile,
+    )
+    if not plan.is_visible_to_athlete:
+        return HttpResponse("No autorizado", status=403)
+
+    raw_level = (request.POST.get('readiness_level') or '4').strip()
+    try:
+        level = max(1, min(5, int(raw_level)))
+    except ValueError:
+        level = 4
+
+    session, _ = WorkoutSession.objects.get_or_create(
+        workout_plan=plan,
+        athlete=request.user.athlete_profile,
+    )
+    previous_level = session.readiness_level
+    session.readiness_level = level
+    session.save(update_fields=['readiness_level'])
+
+    if level in (1, 2) and previous_level != level and plan.trainer_id:
+        meta = session.readiness_ui_meta
+        TrainerNotification.objects.create(
+            trainer=plan.trainer,
+            athlete=plan.athlete,
+            event_type='low_readiness',
+            message=(
+                f"{plan.athlete.user.display_name} activó '{meta['badge']}' "
+                f"en '{plan.name}' ({meta['summary']})."
+            ),
+        )
+
+    if request.headers.get('HX-Request'):
+        planned_exercises = list(
+            plan.planned_exercises.select_related(
+                'exercise',
+                'exercise__regression_option_a',
+                'exercise__regression_option_b',
+            ).order_by('order', 'id')
+        )
+        logged_dict = {
+            le.planned_exercise_id: le
+            for le in session.logged_exercises.select_related(
+                'substituted_exercise',
+            ).prefetch_related('sets')
+        }
+        live_items = [
+            build_live_exercise_item(
+                pe,
+                session=session,
+                logged=logged_dict.get(pe.id),
+            )
+            for pe in planned_exercises
+        ]
+        return render(request, 'training/partials/live_workout_list_area.html', {
+            'plan': plan,
+            'session': session,
+            'live_items': live_items,
+            'readiness_levels': [
+                {'level': 5, 'short': '5 · Óptimo', 'Zone': 'green'},
+                {'level': 4, 'short': '4 · Bien', 'Zone': 'green'},
+                {'level': 3, 'short': '3 · Normal', 'Zone': 'green'},
+                {'level': 2, 'short': '2 · Fatiga', 'Zone': 'yellow'},
+                {'level': 1, 'short': '1 · Colapso', 'Zone': 'red'},
+            ],
+        })
+
+    return redirect('training:live_workout', pk=plan.id)
+
+
+@login_required
+@require_POST
+def trigger_pain_tree(request, planned_id: int):
+    """
+    Árbol Autónomo de Sustitución por Dolor Articular (`⚠️ Molestia`):
+      normal -> option_a (Isopush/Isohold) -> option_b (Cambio de Vector) -> omitted_injury (OMITIDO_POR_LESION).
+    También admite `action='reset'`, `'option_a'`, `'option_b'`, `'omitted_injury'`.
+    """
+    if not request.user.is_athlete:
+        return HttpResponse("No autorizado", status=403)
+
+    planned_exercise = get_object_or_404(
+        PlannedExercise.objects.select_related(
+            'workout_plan__macrocycle_block',
+            'workout_plan__trainer',
+            'workout_plan__athlete__user',
+            'exercise',
+            'exercise__regression_option_a',
+            'exercise__regression_option_b',
+        ),
+        pk=planned_id,
+        workout_plan__athlete=request.user.athlete_profile,
+    )
+    plan = planned_exercise.workout_plan
+    if not plan.is_visible_to_athlete:
+        return HttpResponse("No autorizado", status=403)
+
+    session, _ = WorkoutSession.objects.get_or_create(
+        workout_plan=plan,
+        athlete=request.user.athlete_profile,
+    )
+    logged_ex, _ = LoggedExercise.objects.get_or_create(
+        workout_session=session,
+        planned_exercise=planned_exercise,
+    )
+
+    action = (request.POST.get('action') or 'advance').strip()
+    new_status = logged_ex.apply_pain_tree_action(action=action)
+
+    if request.POST.get('origin') == 'matrix':
+        status_labels = {
+            'normal': f"Ejercicio '{planned_exercise.exercise.name}' restablecido al estado original.",
+            'option_a': f"⚠️ Molestia articular: Conmutado a Opción A Isométrica ({logged_ex.active_exercise.name}).",
+            'option_b': f"⚠️ Persiste molestia: Conmutado a Opción B Cambio de Vector ({logged_ex.active_exercise.name}).",
+            'omitted_injury': f"🛑 '{planned_exercise.exercise.name}' marcado como OMITIDO_POR_LESION. Entrenador notificado.",
+        }
+        messages.warning(request, status_labels.get(new_status, "Estado articular actualizado."))
+        block_id = plan.macrocycle_block_id or ''
+        day_num = plan.day_number or 1
+        return redirect(f"{reverse('training:athlete_active_block')}?block={block_id}&day={day_num}")
+
+    return _render_live_card(request, planned_exercise, session)
+
+
+@login_required
+def exercise_xlookup_meta_view(request):
+    """
+    Endpoint XLOOKUP de `BD_Local_Ejercicios` para el Entrenador (`Panel_Control`):
+    Dado un `exercise_id`, código (`[B4P_001]`) o nombre de ejercicio, devuelve al instante
+    su vídeo demostrativo y sus regresiones enlazadas Opción A (Isométrica) y Opción B (Vector).
+    """
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+
+    raw_id = (
+        request.GET.get('exercise_id')
+        or request.GET.get('exercise')
+        or ''
+    ).strip()
+    raw_query = (
+        request.GET.get('q')
+        or request.GET.get('new_exercise_query')
+        or ''
+    ).strip()
+
+    exercise = None
+    qs = Exercise.objects.select_related('regression_option_a', 'regression_option_b')
+
+    if raw_id and raw_id.isdigit():
+        exercise = qs.filter(pk=int(raw_id)).first()
+    elif raw_query:
+        # Formato datalist: "[CODE] Nombre" o código exacto o nombre
+        if raw_query.startswith('[') and ']' in raw_query:
+            code_part = raw_query[1:raw_query.index(']')].strip()
+            exercise = qs.filter(code__iexact=code_part).first()
+        if exercise is None:
+            exercise = (
+                qs.filter(Q(code__iexact=raw_query) | Q(name__iexact=raw_query)).first()
+                or qs.filter(Q(code__icontains=raw_query) | Q(name__icontains=raw_query)).first()
+            )
+
+    if request.GET.get('format') == 'json':
+        if exercise is None:
+            return JsonResponse({'found': False})
+        return JsonResponse({
+            'found': True,
+            'id': exercise.id,
+            'code': exercise.code,
+            'name': exercise.name,
+            'session_block': exercise.session_block,
+            'video_url': exercise.video_url,
+            'option_a_name': exercise.regression_option_a.name if exercise.regression_option_a else '',
+            'option_a_video_url': exercise.effective_option_a_video_url,
+            'option_b_name': exercise.regression_option_b.name if exercise.regression_option_b else '',
+            'option_b_video_url': exercise.effective_option_b_video_url,
+        })
+
+    if exercise is None:
+        return HttpResponse(
+            '<div class="am-xlookup-preview am-xlookup-empty">'
+            'Selecciona o escribe un ejercicio del catálogo AM para previsualizar su vídeo y árbol de dolor.'
+            '</div>'
+        )
+
+    opt_a_html = (
+        f'<span class="am-xlookup-pill">🅰️ {exercise.regression_option_a.name}</span>'
+        if exercise.regression_option_a
+        else '<span class="am-xlookup-pill am-xlookup-muted">🅰️ Sin Opción A</span>'
+    )
+    opt_b_html = (
+        f'<span class="am-xlookup-pill">🅱️ {exercise.regression_option_b.name}</span>'
+        if exercise.regression_option_b
+        else '<span class="am-xlookup-pill am-xlookup-muted">🅱️ Sin Opción B</span>'
+    )
+    video_html = (
+        f'<a href="{exercise.video_url}" target="_blank" rel="noopener noreferrer" class="am-xlookup-link">'
+        f'▶ Vídeo Demo</a>'
+        if exercise.video_url
+        else '<span class="am-xlookup-muted">Sin vídeo URL</span>'
+    )
+    code_badge = f'<code>{exercise.code}</code> · ' if exercise.code else ''
+    block_badge = f'<span class="am-xlookup-pill">{exercise.get_session_block_display()}</span>' if exercise.session_block else ''
+
+    return HttpResponse(
+        f'<div class="am-xlookup-preview">'
+        f'<div class="am-xlookup-main">{code_badge}<strong>{exercise.name}</strong> {block_badge} {video_html}</div>'
+        f'<div class="am-xlookup-regressions">{opt_a_html} {opt_b_html}</div>'
+        f'</div>'
+    )
+
+
+@login_required
+@require_POST
+def quick_swap_block_exercise(request, block_id: int):
+    """
+    Edición rápida del entrenador con autocompletado XLOOKUP (`BD_Local_Ejercicios`):
+    Sustituye un ejercicio en una fila (`day_number` + `order`) a lo largo de las semanas
+    del bloque que NO tengan actividad registrada (`has_logged_activity == False`),
+    enlazando automáticamente su vídeo y sus regresiones Opción A y Opción B.
+    """
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+
+    block = get_object_or_404(
+        MacrocycleBlock.objects.select_related('macrocycle__athlete__user'),
+        pk=block_id,
+        macrocycle__trainer=request.user.trainer_profile,
+    )
+
+    raw_day = (request.POST.get('day_number') or '1').strip()
+    raw_order = (request.POST.get('order') or '1').strip()
+    raw_old_ex = (request.POST.get('old_exercise_id') or '').strip()
+    raw_new_id = (request.POST.get('new_exercise_id') or '').strip()
+    raw_query = (request.POST.get('new_exercise_query') or '').strip()
+
+    day_num = int(raw_day) if raw_day.isdigit() else 1
+    order_num = int(raw_order) if raw_order.isdigit() else 1
+
+    qs = Exercise.objects.select_related('regression_option_a', 'regression_option_b')
+    new_exercise = None
+    if raw_new_id and raw_new_id.isdigit():
+        new_exercise = qs.filter(pk=int(raw_new_id)).first()
+    elif raw_query:
+        if raw_query.startswith('[') and ']' in raw_query:
+            code_part = raw_query[1:raw_query.index(']')].strip()
+            new_exercise = qs.filter(code__iexact=code_part).first()
+        if new_exercise is None:
+            new_exercise = (
+                qs.filter(Q(code__iexact=raw_query) | Q(name__iexact=raw_query)).first()
+                or qs.filter(Q(code__icontains=raw_query) | Q(name__icontains=raw_query)).first()
+            )
+
+    if new_exercise is None:
+        messages.error(request, "No se encontró el ejercicio seleccionado en el catálogo AM.")
+        return redirect(
+            f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}&day={day_num}"
+        )
+
+    plans = list(
+        WorkoutPlan.objects.filter(
+            macrocycle_block=block,
+            day_number=day_num,
+        ).order_by('week_number')
+    )
+
+    swapped_weeks = 0
+    preserved_weeks = 0
+    for plan in plans:
+        if plan.has_logged_activity:
+            preserved_weeks += 1
+            continue
+        pe_qs = PlannedExercise.objects.filter(workout_plan=plan, order=order_num)
+        if raw_old_ex and raw_old_ex.isdigit():
+            pe_qs = pe_qs.filter(exercise_id=int(raw_old_ex)) | PlannedExercise.objects.filter(
+                workout_plan=plan, order=order_num
+            )
+        pe = pe_qs.first()
+        if pe:
+            pe.exercise = new_exercise
+            if new_exercise.session_block:
+                pe.session_block = new_exercise.session_block
+            pe.save(update_fields=['exercise', 'session_block'])
+            swapped_weeks += 1
+
+    msg = (
+        f"🔄 XLOOKUP aplicado: '{new_exercise.name}' enlazado con su vídeo y regresiones (Opción A/B) "
+        f"en {swapped_weeks} semana(s) del Día {day_num}."
+    )
+    if preserved_weeks:
+        msg += f" Se protegieron intactas {preserved_weeks} semana(s) con marcas registradas."
+    messages.success(request, msg)
+
+    return redirect(
+        f"{reverse('training:macrocycle_control', kwargs={'pk': block.macrocycle_id})}?block={block.block_number}&day={day_num}"
+    )
+
+
+# ==============================================================================
+# FASE 6: REGISTRO_HISTORICO Y DASHBOARD_VISUAL (TELEMETRÍA Y EXPORTACIÓN CSV)
+# ==============================================================================
+
+def _resolve_authorized_athlete_for_analytics(request, pk: int) -> AthleteProfile:
+    """
+    Autoriza la consulta de analítica (`Dashboard_Visual` y `Registro_Historico`)
+    únicamente al propio deportista propietario del perfil o a su entrenador asignado.
+    """
+    user = request.user
+    if user.is_athlete and getattr(user, 'athlete_profile', None) and user.athlete_profile.pk == pk:
+        return user.athlete_profile
+    if user.is_trainer:
+        return get_object_or_404(
+            AthleteProfile.objects.select_related('user').filter(
+                Q(assigned_trainer=user) | Q(user=user)
+            ),
+            pk=pk,
+        )
+    raise Http404("Perfil de deportista no autorizado.")
+
+
+class AMVisualDashboardView(LoginRequiredMixin, View):
+    """
+    Vista unificada `Dashboard_Visual` + `Registro_Historico` (Sistema AM §4.4 / Fase 6):
+    Muestra KPIs biomecánicos (ACWR, sRPE, Tonelaje semanal y por bloque B1..B5,
+    Evolución 1RM Brzycki, Semáforo de Disposición Diaria y Árbol de Dolor Articular)
+    junto con el libro mayor filtrable de series registradas.
+    """
+    template_name = 'training/am_visual_dashboard.html'
+
+    def get(self, request, pk: int, *args, **kwargs):
+        athlete = _resolve_authorized_athlete_for_analytics(request, pk)
+        raw_block = (request.GET.get('block') or '').strip()
+        block_id = int(raw_block) if raw_block.isdigit() else None
+        session_block = (request.GET.get('session_block') or '').strip() or None
+        pain_filter = (request.GET.get('pain_status') or '').strip() or None
+
+        dashboard = build_am_visual_dashboard(athlete)
+        ledger = build_am_historical_ledger(
+            athlete,
+            block_id=block_id,
+            session_block=session_block,
+            pain_filter=pain_filter,
+            limit=250,
+        )
+
+        is_trainer_view = bool(
+            request.user.is_trainer
+            and (athlete.assigned_trainer_id == request.user.id or athlete.user_id == request.user.id)
+        )
+
+        return render(request, self.template_name, {
+            'athlete': athlete,
+            'dashboard': dashboard,
+            'historical_ledger': ledger,
+            'selected_block_id': block_id,
+            'selected_session_block': session_block or '',
+            'selected_pain_status': pain_filter or '',
+            'session_block_choices': Exercise.SESSION_BLOCK_CHOICES,
+            'pain_status_choices': LoggedExercise.PAIN_STATUS_CHOICES,
+            'is_trainer_view': is_trainer_view,
+        })
+
+
+class AthleteMyAMDashboardView(AthleteRequiredMixin, View):
+    """Atajo directo del deportista autenticado hacia su propio `Dashboard_Visual` y `Registro_Historico`."""
+
+    def get(self, request, *args, **kwargs):
+        return AMVisualDashboardView.as_view()(request, pk=request.user.athlete_profile.pk)
+
+
+@login_required
+def export_am_historical_ledger_csv(request, pk: int):
+    """
+    Exporta el `Registro_Historico` completo de un deportista en formato CSV UTF-8 con BOM
+    (compatible directamente con Microsoft Excel / LibreOffice Calc).
+    """
+    athlete = _resolve_authorized_athlete_for_analytics(request, pk)
+    raw_block = (request.GET.get('block') or '').strip()
+    block_id = int(raw_block) if raw_block.isdigit() else None
+    session_block = (request.GET.get('session_block') or '').strip() or None
+    pain_filter = (request.GET.get('pain_status') or '').strip() or None
+
+    ledger = build_am_historical_ledger(
+        athlete,
+        block_id=block_id,
+        session_block=session_block,
+        pain_filter=pain_filter,
+        limit=None,
+    )
+
+    filename = f"Registro_Historico_AM_{athlete.user.first_name or 'Atleta'}_{athlete.id}.csv"
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response.write('\ufeff')  # UTF-8 BOM para apertura directa en Excel
+
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow([
+        'Fecha',
+        'Bloque_Macrociclo',
+        'Semana',
+        'Dia',
+        'Bloque_Concurrente',
+        'Ejercicio_Prescrito',
+        'Ejercicio_Ejecutado',
+        'Estado_Dolor_Articular',
+        'Semaforo_Nivel',
+        'Esquema_Fisiologico',
+        'Serie_Num',
+        'Peso_kg',
+        'Repeticiones',
+        'RPE_Real',
+        'Tonelaje_kg',
+        '1RM_Brzycki_kg',
+        'sRPE_Sesion',
+    ])
+
+    for row in ledger:
+        writer.writerow([
+            row['date'],
+            row['block_title'],
+            row['week_number'] or '',
+            row['day_number'] or '',
+            row['session_block'],
+            row['prescribed_exercise'],
+            row['executed_exercise'],
+            row['pain_status'],
+            row['readiness_level'],
+            row['readiness_scheme'],
+            row['set_number'],
+            row['weight_kg'],
+            row['reps'],
+            row['rpe'] if row['rpe'] is not None else '',
+            row['tonnage_kg'],
+            row['est_1rm_kg'],
+            row['session_srpe'],
+        ])
+
+    return response
+
+
+
 
 
 

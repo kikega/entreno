@@ -182,6 +182,24 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SESSION_COOKIE_NAME = 'entreno_sessionid'
 CSRF_COOKIE_NAME = 'entreno_csrftoken'
 
+# ==============================================================================
+# MOTOR DE GENERACIÓN SISTEMA AM (FASE 4: REGLAS + ML POR DEFECTO / LLM OPCIONAL)
+# ------------------------------------------------------------------------------
+# Por defecto (`AM_LLM_ENABLED=False`), el generador del Sistema AM utiliza
+# el motor determinista de 8 módulos en Python combinado con el predictor ML
+# de cargas de la aplicación (`predict_next_load`).
+# Si en `.env` se establece `AM_LLM_ENABLED=True` y se configura `AM_LLM_API_KEY`
+# (o `AM_LLM_BASE_URL` para un servidor local), el ensamblado final de bloques
+# se delega al proveedor LLM configurado (`openai`, `openai_compatible`,
+# `anthropic` o `gemini`) validando siempre el catálogo cerrado de ejercicios.
+# ==============================================================================
+AM_LLM_ENABLED = env.bool('AM_LLM_ENABLED', default=False)
+AM_LLM_PROVIDER = env('AM_LLM_PROVIDER', default='openai_compatible')
+AM_LLM_API_KEY = env('AM_LLM_API_KEY', default='')
+AM_LLM_MODEL = env('AM_LLM_MODEL', default='gpt-4o')
+AM_LLM_BASE_URL = env('AM_LLM_BASE_URL', default='')
+AM_LLM_TIMEOUT_SECONDS = env.int('AM_LLM_TIMEOUT_SECONDS', default=45)
+
 # --- Python 3.14 / Django 5.1 Compatibility Patch ---
 import django.template.context
 def _basecontext_copy_patch(self):

@@ -55,18 +55,8 @@
         </div>
     {% endif %}
 
-    <!-- Lista de ejercicios en vivo -->
-    <div id="live-workout-list" class="space-y-6" {% if session.started_at %}data-started-init="1"{% endif %}>
-        {% for item in live_items %}
-        <div id="partial-{{ item.planned.id }}">
-            {% include 'training/partials/live_exercise_card.html' with planned=item.planned logged=item.logged %}
-        </div>
-        {% empty %}
-            <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
-                No hay ejercicios asignados a este plan todavía. Contacta con tu entrenador.
-            </div>
-        {% endfor %}
-    </div>
+    <!-- Semáforo de Disposición Diaria + Lista de ejercicios en vivo -->
+    {% include 'training/partials/live_workout_list_area.html' %}
 
     <!-- Resumen de sesión completada -->
     {% if plan.is_completed and workout_session %}
