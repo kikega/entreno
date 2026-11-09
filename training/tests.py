@@ -541,6 +541,60 @@ class TrainingWorkflowAndSecurityTests(TestCase):
         self.client.post(del_completed_url)
         self.assertTrue(WorkoutPlan.objects.filter(pk=self.plan.pk).exists())
 
+    def test_plan_exercise_selection_category_filter(self):
+        """
+        En la confección de un plan (vista detalle, modal de añadir y edición en línea),
+        la lista de selección de ejercicios incluye el filtro por categoría y soporta
+        filtrar para que solo aparezcan los ejercicios de la categoría elegida.
+        """
+        ex_potencia = Exercise.objects.create(
+            code='B3_777',
+            name='Cargada Colgado Explosiva',
+            category='potencia',
+            movement_pattern='potencia_olimpica',
+            session_block='B3_Potencia',
+            created_by=self.trainer,
+        )
+        ex_movilidad = Exercise.objects.create(
+            code='B1_777',
+            name='Movilidad Torácica 90-90',
+            category='movilidad',
+            movement_pattern='otro',
+            session_block='B1_Movilidad',
+            created_by=self.trainer,
+        )
+
+        self.client.force_login(self.trainer_user)
+        detail_url = reverse('training:plan_detail', kwargs={'pk': self.plan.pk})
+
+        # 1. Vista sin filtro: muestra selectores de categoría y opciones con data-category
+        res = self.client.get(detail_url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'id="quick-category-filter"')
+        self.assertContains(res, 'id="modal-category-filter"')
+        self.assertContains(res, 'data-category="fuerza"')
+        self.assertContains(res, 'data-category="potencia"')
+        self.assertContains(res, 'data-category="movilidad"')
+
+        # 2. Vista filtrada por categoría (?category=potencia): solo aparecen los ejercicios de potencia
+        res_filtered = self.client.get(f"{detail_url}?category=potencia")
+        self.assertEqual(res_filtered.status_code, 200)
+        form_qs = list(res_filtered.context['exercise_form'].fields['exercise'].queryset)
+        self.assertIn(ex_potencia, form_qs)
+        self.assertNotIn(ex_movilidad, form_qs)
+        self.assertTrue(all(ex.category == 'potencia' for ex in form_qs))
+        self.assertTrue(all(ex.category == 'potencia' for ex in res_filtered.context['catalog_exercises']))
+        self.assertContains(res_filtered, 'Cargada Colgado Explosiva')
+        self.assertNotContains(res_filtered, 'Movilidad Torácica 90-90')
+
+        # 3. Edición en línea filtrada por categoría (?category=movilidad)
+        edit_url = reverse('training:edit_planned_exercise', kwargs={'planned_id': self.planned_ex.pk})
+        edit_res = self.client.get(f"{edit_url}?category=movilidad")
+        self.assertEqual(edit_res.status_code, 200)
+        self.assertContains(edit_res, f'id="edit-cat-filter-{self.planned_ex.pk}"')
+        self.assertContains(edit_res, 'Movilidad Torácica 90-90')
+        self.assertNotContains(edit_res, 'Cargada Colgado Explosiva')
+
 
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)

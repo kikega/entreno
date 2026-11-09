@@ -200,6 +200,23 @@
                                         <input type="hidden" name="day_number" value="{{ matrix.day_number }}">
                                         <input type="hidden" name="order" value="{{ row.order }}">
                                         <input type="hidden" name="old_exercise_id" value="{{ row.exercise.id }}">
+                                        <label for="xlookup-cat-{{ matrix.block.id }}-{{ row.order }}" class="block text-[10px] font-bold text-slate-600 uppercase">
+                                            Categoría (Filtro)
+                                        </label>
+                                        <select id="xlookup-cat-{{ matrix.block.id }}-{{ row.order }}"
+                                                name="category_filter"
+                                                onchange="if (typeof filterAmDatalistByCategory === 'function') filterAmDatalistByCategory(this.value, 'xlookup-swap-{{ matrix.block.id }}-{{ row.order }}')"
+                                                class="w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                                            <option value="">Todas las categorías</option>
+                                            <option value="fuerza">Fuerza</option>
+                                            <option value="potencia">Potencia</option>
+                                            <option value="movilidad">Movilidad</option>
+                                            <option value="velocidad">Velocidad</option>
+                                            <option value="pliometria">Pliometría</option>
+                                            <option value="tecnica">Técnica</option>
+                                            <option value="tactica">Táctica</option>
+                                            <option value="otro">Otro</option>
+                                        </select>
                                         <label for="xlookup-swap-{{ matrix.block.id }}-{{ row.order }}" class="block text-[10px] font-bold text-slate-600 uppercase">
                                             Buscar en BD_Local_Ejercicios
                                         </label>

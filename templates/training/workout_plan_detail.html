@@ -152,11 +152,26 @@
                   hx-post="{% url 'training:add_exercise' plan.id %}"
                   hx-target="#plan-exercises-container"
                   hx-swap="outerHTML"
-                  hx-on::after-request="if(event.detail.successful) { this.reset(); document.getElementById('quick-add-xlookup-preview').innerHTML = ''; }"
+                  hx-on::after-request="if(event.detail.successful) { this.reset(); filterQuickAddExercisesByCategory(''); document.getElementById('quick-add-xlookup-preview').innerHTML = ''; }"
                   class="space-y-3">
                 {% csrf_token %}
                 <div class="grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-12 gap-3 items-end">
-                    <div class="col-span-2 sm:col-span-6 lg:col-span-4">
+                    <div class="col-span-1 sm:col-span-2 lg:col-span-2">
+                        <label for="quick-category-filter" class="block text-xs font-headline font-bold text-slate-600 mb-1">
+                            Categoría (Filtro)
+                        </label>
+                        <select id="quick-category-filter"
+                                name="category_filter"
+                                onchange="filterQuickAddExercisesByCategory(this.value)"
+                                class="block w-full rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                            <option value="">Todas las categorías</option>
+                            {% for cat_val, cat_label in exercise_categories %}
+                                <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-span-1 sm:col-span-4 lg:col-span-3">
                         <label for="quick-ex-query" class="block text-xs font-headline font-bold text-slate-600 mb-1">
                             Ejercicio (Buscador XLOOKUP)
                         </label>
@@ -213,7 +228,7 @@
                                class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
                     </div>
 
-                    <div class="col-span-2 sm:col-span-2 lg:col-span-2">
+                    <div class="col-span-1 sm:col-span-1 lg:col-span-1">
                         <label for="quick-load" class="block text-xs font-headline font-bold text-slate-600 mb-1">Carga</label>
                         <input id="quick-load" type="text" name="load" placeholder="Ej: 80 kg"
                                class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
@@ -259,8 +274,10 @@
 
             <datalist id="plan-catalog-datalist">
                 {% for ex in catalog_exercises %}
-                    <option value="{% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}">
-                        {% if ex.session_block %}{{ ex.get_session_block_display }}{% else %}{{ ex.get_category_display }}{% endif %}
+                    <option value="{% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}"
+                            data-category="{{ ex.category }}"
+                            data-session-block="{{ ex.session_block }}">
+                        {{ ex.get_category_display }}{% if ex.session_block %} · {{ ex.get_session_block_display }}{% endif %}
                     </option>
                 {% endfor %}
             </datalist>
@@ -347,10 +364,26 @@
                       hx-post="{% url 'training:add_exercise' plan.id %}"
                       hx-target="#plan-exercises-container"
                       hx-swap="outerHTML"
-                      hx-on::after-request="if(event.detail.successful) { closeModal('addExerciseModal'); this.reset(); }">
+                      hx-on::after-request="if(event.detail.successful) { closeModal('addExerciseModal'); this.reset(); filterExerciseSelectByCategory('id_exercise', ''); }">
                     {% csrf_token %}
                     <div class="space-y-4">
                         {% for field in exercise_form %}
+                            {% if field.name == 'exercise' %}
+                                <div>
+                                    <label for="modal-category-filter" class="block text-xs font-headline font-bold text-slate-500 mb-1">
+                                        Categoría de ejercicio (Filtro)
+                                    </label>
+                                    <select id="modal-category-filter"
+                                            name="category_filter"
+                                            onchange="filterExerciseSelectByCategory('{{ field.id_for_label }}', this.value)"
+                                            class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:ring-primary focus:outline-none transition">
+                                        <option value="">Todas las categorías</option>
+                                        {% for cat_val, cat_label in exercise_categories %}
+                                            <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            {% endif %}
                             <div>
                                 <label for="{{ field.id_for_label }}" class="block text-xs font-headline font-bold text-slate-500 mb-1">{{ field.label }}</label>
                                 {{ field }}
@@ -412,6 +445,96 @@
     function togglePlanMetaPanel() {
         const panel = document.getElementById('plan-meta-edit-panel');
         if (panel) panel.classList.toggle('hidden');
+    }
+
+    function filterExerciseSelectByCategory(selectId, category) {
+        const selectEl = document.getElementById(selectId);
+        if (!selectEl) return;
+
+        if (!selectEl._allExerciseOptions) {
+            selectEl._allExerciseOptions = Array.from(selectEl.options).map(function(opt) {
+                return {
+                    value: opt.value,
+                    text: opt.text,
+                    category: opt.dataset.category || '',
+                    sessionBlock: opt.dataset.sessionBlock || '',
+                    isPlaceholder: opt.value === ''
+                };
+            });
+        }
+
+        const currentVal = selectEl.value;
+        const cat = (category || '').trim();
+        selectEl.innerHTML = '';
+
+        let currentStillAvailable = false;
+        let firstValidValue = '';
+
+        selectEl._allExerciseOptions.forEach(function(item) {
+            if (item.isPlaceholder || !cat || item.category === cat) {
+                const opt = document.createElement('option');
+                opt.value = item.value;
+                opt.text = item.text;
+                if (item.category) opt.dataset.category = item.category;
+                if (item.sessionBlock) opt.dataset.sessionBlock = item.sessionBlock;
+                if (item.value === currentVal) {
+                    opt.selected = true;
+                    currentStillAvailable = true;
+                }
+                if (!item.isPlaceholder && !firstValidValue) {
+                    firstValidValue = item.value;
+                }
+                selectEl.appendChild(opt);
+            }
+        });
+
+        if (!currentStillAvailable) {
+            selectEl.value = selectEl.options.length > 0 && selectEl.options[0].value === '' ? '' : firstValidValue;
+            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    function filterQuickAddExercisesByCategory(category) {
+        const datalistEl = document.getElementById('plan-catalog-datalist');
+        const queryInput = document.getElementById('quick-ex-query');
+        if (!datalistEl) return;
+
+        if (!datalistEl._allCatalogOptions) {
+            datalistEl._allCatalogOptions = Array.from(datalistEl.options).map(function(opt) {
+                return {
+                    value: opt.value,
+                    text: opt.textContent || opt.label || '',
+                    category: opt.dataset.category || '',
+                    sessionBlock: opt.dataset.sessionBlock || ''
+                };
+            });
+        }
+
+        const cat = (category || '').trim();
+        datalistEl.innerHTML = '';
+
+        let currentMatches = false;
+        const currentQuery = queryInput ? queryInput.value.trim() : '';
+
+        datalistEl._allCatalogOptions.forEach(function(item) {
+            if (!cat || item.category === cat) {
+                const opt = document.createElement('option');
+                opt.value = item.value;
+                opt.textContent = item.text;
+                if (item.category) opt.dataset.category = item.category;
+                if (item.sessionBlock) opt.dataset.sessionBlock = item.sessionBlock;
+                if (currentQuery && item.value === currentQuery) {
+                    currentMatches = true;
+                }
+                datalistEl.appendChild(opt);
+            }
+        });
+
+        if (queryInput && currentQuery && !currentMatches) {
+            queryInput.value = '';
+            const previewEl = document.getElementById('quick-add-xlookup-preview');
+            if (previewEl) previewEl.innerHTML = '';
+        }
     }
 
     function openModal(id) {

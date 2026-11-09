@@ -318,12 +318,25 @@ class WorkoutPlanDetailView(LoginRequiredMixin, DetailView):
         context['planned_exercises'] = planned_list
         next_order = (max((pe.order for pe in planned_list), default=0) + 1)
         context['next_order'] = next_order
-        context['exercise_form'] = PlannedExerciseForm(initial={'order': next_order})
+        selected_category = (self.request.GET.get('category') or '').strip()
+        if selected_category not in dict(Exercise.CATEGORY_CHOICES):
+            selected_category = ''
+        context['selected_category'] = selected_category
+        context['exercise_categories'] = Exercise.CATEGORY_CHOICES
+        context['exercise_form'] = PlannedExerciseForm(
+            initial={'order': next_order},
+            category=selected_category or None,
+        )
         if can_manage:
-            context['catalog_exercises'] = list(
+            all_catalog = list(
                 Exercise.objects.select_related('regression_option_a', 'regression_option_b')
                 .order_by('session_block', 'name')
             )
+            context['catalog_exercises'] = (
+                [ex for ex in all_catalog if ex.category == selected_category]
+                if selected_category else all_catalog
+            )
+            context['all_catalog_exercises'] = all_catalog
             context['session_block_choices'] = Exercise.SESSION_BLOCK_CHOICES
 
         # Para el deportista destinatario: sesión en vivo con per-exercicio (inicio/fin y peso)
@@ -922,13 +935,21 @@ def edit_planned_exercise(request, planned_id: int):
                 'training/partials/exercise_row.html',
                 {'exercise': planned_exercise, 'can_manage_plan': True},
             )
+        selected_category = (request.GET.get('category') or '').strip()
+        if selected_category not in dict(Exercise.CATEGORY_CHOICES):
+            selected_category = ''
+        catalog_qs = Exercise.objects.order_by('session_block', 'name')
+        if selected_category:
+            catalog_qs = catalog_qs.filter(category=selected_category)
         return render(
             request,
             'training/partials/exercise_row_edit.html',
             {
                 'exercise': planned_exercise,
                 'plan': plan,
-                'catalog_exercises': Exercise.objects.order_by('session_block', 'name'),
+                'catalog_exercises': catalog_qs,
+                'exercise_categories': Exercise.CATEGORY_CHOICES,
+                'selected_category': selected_category,
                 'session_block_choices': Exercise.SESSION_BLOCK_CHOICES,
             },
         )
@@ -1523,6 +1544,7 @@ class TrainerMacrocycleControlView(TrainerRequiredMixin, View):
             'am_diagnosis': evaluate_am_rules(mma_triage) if mma_triage else None,
             'llm_enabled': AMUniversalLLMClient.is_enabled_and_configured(),
             'am_catalog_exercises': am_catalog_exercises,
+            'exercise_categories': Exercise.CATEGORY_CHOICES,
             'block_config_form': MacrocycleBlockConfigForm(instance=selected_block),
             'prescribe_form': BlockProgressionPrescribeForm(initial={
                 'day_number': selected_day,

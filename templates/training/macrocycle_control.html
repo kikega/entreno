@@ -267,7 +267,21 @@
             <input type="hidden" name="editing_row_exercise_id" id="id_editing_row_exercise_id" value="">
             <input type="hidden" name="editing_row_order" id="id_editing_row_order" value="">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="sm:col-span-2">
+                <div>
+                    <label for="prescribe-category-filter" class="block text-xs font-headline font-bold text-slate-600 mb-1">
+                        Categoría de ejercicio (Filtro)
+                    </label>
+                    <select id="prescribe-category-filter"
+                            name="category_filter"
+                            onchange="filterExerciseSelectByCategory('{{ prescribe_form.exercise.id_for_label }}', this.value)"
+                            class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:ring-primary focus:outline-none transition">
+                        <option value="">Todas las categorías</option>
+                        {% for cat_val, cat_label in exercise_categories %}
+                            <option value="{{ cat_val }}">{{ cat_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
                     <label for="{{ prescribe_form.exercise.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.exercise.label }}</label>
                     <div hx-get="{% url 'training:exercise_xlookup_meta' %}"
                          hx-trigger="change from:#{{ prescribe_form.exercise.id_for_label }}"
@@ -422,8 +436,10 @@
 <!-- Datalist XLOOKUP para autocompletado de BD_Local_Ejercicios -->
 <datalist id="am-local-exercises-datalist">
     {% for ex in am_catalog_exercises %}
-        <option value="{% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}">
-            {{ ex.get_session_block_display }}{% if ex.regression_option_a %} · OpA: {{ ex.regression_option_a.name }}{% endif %}{% if ex.regression_option_b %} · OpB: {{ ex.regression_option_b.name }}{% endif %}
+        <option value="{% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}"
+                data-category="{{ ex.category }}"
+                data-session-block="{{ ex.session_block }}">
+            {{ ex.get_category_display }}{% if ex.session_block %} · {{ ex.get_session_block_display }}{% endif %}{% if ex.regression_option_a %} · OpA: {{ ex.regression_option_a.name }}{% endif %}{% if ex.regression_option_b %} · OpB: {{ ex.regression_option_b.name }}{% endif %}
         </option>
     {% endfor %}
 </datalist>
@@ -451,9 +467,98 @@
         const el = form.elements[name];
         if (el) el.value = val ?? '';
     }
+    function filterAmDatalistByCategory(category, inputId) {
+        const datalistEl = document.getElementById('am-local-exercises-datalist');
+        if (!datalistEl) return;
+
+        if (!datalistEl._allCatalogOptions) {
+            datalistEl._allCatalogOptions = Array.from(datalistEl.options).map(function(opt) {
+                return {
+                    value: opt.value,
+                    text: opt.textContent || opt.label || '',
+                    category: opt.dataset.category || '',
+                    sessionBlock: opt.dataset.sessionBlock || ''
+                };
+            });
+        }
+
+        const cat = (category || '').trim();
+        datalistEl.innerHTML = '';
+
+        let currentMatches = false;
+        const queryInput = inputId ? document.getElementById(inputId) : null;
+        const currentQuery = queryInput ? queryInput.value.trim() : '';
+
+        datalistEl._allCatalogOptions.forEach(function(item) {
+            if (!cat || item.category === cat) {
+                const opt = document.createElement('option');
+                opt.value = item.value;
+                opt.textContent = item.text;
+                if (item.category) opt.dataset.category = item.category;
+                if (item.sessionBlock) opt.dataset.sessionBlock = item.sessionBlock;
+                if (currentQuery && item.value === currentQuery) {
+                    currentMatches = true;
+                }
+                datalistEl.appendChild(opt);
+            }
+        });
+
+        if (queryInput && currentQuery && !currentMatches) {
+            queryInput.value = '';
+        }
+    }
+    function filterExerciseSelectByCategory(selectId, category) {
+        const selectEl = document.getElementById(selectId);
+        if (!selectEl) return;
+
+        if (!selectEl._allExerciseOptions) {
+            selectEl._allExerciseOptions = Array.from(selectEl.options).map(function(opt) {
+                return {
+                    value: opt.value,
+                    text: opt.text,
+                    category: opt.dataset.category || '',
+                    sessionBlock: opt.dataset.sessionBlock || '',
+                    isPlaceholder: opt.value === ''
+                };
+            });
+        }
+
+        const currentVal = selectEl.value;
+        const cat = (category || '').trim();
+        selectEl.innerHTML = '';
+
+        let currentStillAvailable = false;
+        let firstValidValue = '';
+
+        selectEl._allExerciseOptions.forEach(function(item) {
+            if (item.isPlaceholder || !cat || item.category === cat) {
+                const opt = document.createElement('option');
+                opt.value = item.value;
+                opt.text = item.text;
+                if (item.category) opt.dataset.category = item.category;
+                if (item.sessionBlock) opt.dataset.sessionBlock = item.sessionBlock;
+                if (item.value === currentVal) {
+                    opt.selected = true;
+                    currentStillAvailable = true;
+                }
+                if (!item.isPlaceholder && !firstValidValue) {
+                    firstValidValue = item.value;
+                }
+                selectEl.appendChild(opt);
+            }
+        });
+
+        if (!currentStillAvailable) {
+            selectEl.value = selectEl.options.length > 0 && selectEl.options[0].value === '' ? '' : firstValidValue;
+            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
     function openNewProgressionModal() {
         const titleEl = document.getElementById('prescribeModalTitle');
         if (titleEl) titleEl.textContent = 'Pautar Progresión en {{ selected_block.title|escapejs }}';
+        const catFilter = document.getElementById('prescribe-category-filter');
+        if (catFilter) catFilter.value = '';
+        filterExerciseSelectByCategory('{{ prescribe_form.exercise.id_for_label }}', '');
         setFieldVal('editing_row_exercise_id', '');
         setFieldVal('editing_row_order', '');
         openAmModal('prescribeExerciseModal');
@@ -464,6 +569,9 @@
         const titleEl = document.getElementById('prescribeModalTitle');
         if (titleEl) titleEl.textContent = 'Editar Progresión 4 Semanas · {{ selected_block.title|escapejs }}';
 
+        const catFilter = document.getElementById('prescribe-category-filter');
+        if (catFilter) catFilter.value = '';
+        filterExerciseSelectByCategory('{{ prescribe_form.exercise.id_for_label }}', '');
         setFieldVal('editing_row_exercise_id', d.exerciseId || '');
         setFieldVal('editing_row_order', d.order || '');
         setFieldVal('exercise', d.exerciseId || '');

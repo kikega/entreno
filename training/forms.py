@@ -45,10 +45,26 @@ class WorkoutPlanForm(forms.ModelForm):
             field.widget.attrs.update({'class': GENERIC_INPUT_CLASS})
 
 
+class CategoryAwareExerciseSelect(forms.Select):
+    """
+    Widget Select que inyecta `data-category` y `data-session-block` en cada `<option>`
+    del catálogo de ejercicios para permitir el filtrado dinámico por categoría en la confección del plan.
+    """
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        instance = getattr(value, 'instance', None)
+        if instance is not None:
+            option['attrs']['data-category'] = getattr(instance, 'category', '') or ''
+            option['attrs']['data-session-block'] = getattr(instance, 'session_block', '') or ''
+        return option
+
+
 class PlannedExerciseForm(forms.ModelForm):
     """
     Formulario para prescribir un ejercicio individual dentro de un plan de entrenamiento.
-    Permite acceder a todos los ejercicios del catálogo del sistema independientemente del creador.
+    Permite acceder a todos los ejercicios del catálogo del sistema independientemente del creador,
+    con soporte de filtrado por categoría de ejercicio.
     """
     class Meta:
 
@@ -58,13 +74,18 @@ class PlannedExerciseForm(forms.ModelForm):
             'load', 'rpe', 'rir', 'tempo', 'focus', 'rest', 'notes',
         ]
         widgets = {
+            'exercise': CategoryAwareExerciseSelect(),
             'notes': forms.Textarea(attrs={'rows': 2}),
         }
 
     def __init__(self, *args, **kwargs):
-        """Inicializa el formulario aplicando estilos CSS y cargando todos los ejercicios ordenados."""
+        """Inicializa el formulario aplicando estilos CSS y cargando los ejercicios ordenados (filtrables por categoría)."""
+        category = kwargs.pop('category', None)
         super().__init__(*args, **kwargs)
-        self.fields['exercise'].queryset = Exercise.objects.all().order_by('name')
+        qs = Exercise.objects.all().order_by('name')
+        if category and category in dict(Exercise.CATEGORY_CHOICES):
+            qs = qs.filter(category=category)
+        self.fields['exercise'].queryset = qs
         self.fields['order'].required = False
         self.fields['session_block'].required = False
         self.fields['session_block'].choices = [
@@ -453,6 +474,7 @@ class BlockProgressionPrescribeForm(forms.Form):
     exercise = forms.ModelChoiceField(
         label='Ejercicio del catálogo',
         queryset=Exercise.objects.none(),
+        widget=CategoryAwareExerciseSelect(),
     )
     session_block = forms.ChoiceField(
         label='Bloque concurrente de sesión (B1-B5)',
@@ -492,8 +514,12 @@ class BlockProgressionPrescribeForm(forms.Form):
     w4_load = forms.CharField(label='Sem 4 · Carga', max_length=30, required=False)
 
     def __init__(self, *args, **kwargs):
+        category = kwargs.pop('category', None)
         super().__init__(*args, **kwargs)
-        self.fields['exercise'].queryset = Exercise.objects.all().order_by('session_block', 'name')
+        qs = Exercise.objects.all().order_by('session_block', 'name')
+        if category and category in dict(Exercise.CATEGORY_CHOICES):
+            qs = qs.filter(category=category)
+        self.fields['exercise'].queryset = qs
         for field in self.fields.values():
             field.widget.attrs.update({'class': GENERIC_INPUT_CLASS})
 
