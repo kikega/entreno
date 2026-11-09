@@ -2105,35 +2105,31 @@ def exercise_xlookup_meta_view(request):
         })
 
     if exercise is None:
-        return HttpResponse(
-            '<div class="am-xlookup-preview am-xlookup-empty">'
-            'Selecciona o escribe un ejercicio del catálogo AM para previsualizar su vídeo y árbol de dolor.'
-            '</div>'
-        )
+        return HttpResponse("")
 
-    opt_a_html = (
-        f'<span class="am-xlookup-pill">🅰️ {exercise.regression_option_a.name}</span>'
-        if exercise.regression_option_a
-        else '<span class="am-xlookup-pill am-xlookup-muted">🅰️ Sin Opción A</span>'
-    )
-    opt_b_html = (
-        f'<span class="am-xlookup-pill">🅱️ {exercise.regression_option_b.name}</span>'
-        if exercise.regression_option_b
-        else '<span class="am-xlookup-pill am-xlookup-muted">🅱️ Sin Opción B</span>'
-    )
+    if not (exercise.video_url or exercise.regression_option_a or exercise.regression_option_b):
+        return HttpResponse("")
+
+    regressions_parts = []
+    if exercise.regression_option_a:
+        regressions_parts.append(f'<span class="am-xlookup-pill">🅰️ Opción A (Isométrica): {exercise.regression_option_a.name}</span>')
+    if exercise.regression_option_b:
+        regressions_parts.append(f'<span class="am-xlookup-pill">🅱️ Opción B (Cambio vector): {exercise.regression_option_b.name}</span>')
+
     video_html = (
         f'<a href="{exercise.video_url}" target="_blank" rel="noopener noreferrer" class="am-xlookup-link">'
         f'▶ Vídeo Demo</a>'
         if exercise.video_url
-        else '<span class="am-xlookup-muted">Sin vídeo URL</span>'
+        else ''
     )
     code_badge = f'<code>{exercise.code}</code> · ' if exercise.code else ''
     block_badge = f'<span class="am-xlookup-pill">{exercise.get_session_block_display()}</span>' if exercise.session_block else ''
+    regressions_html = f'<div class="am-xlookup-regressions">{" ".join(regressions_parts)}</div>' if regressions_parts else ''
 
     return HttpResponse(
         f'<div class="am-xlookup-preview">'
         f'<div class="am-xlookup-main">{code_badge}<strong>{exercise.name}</strong> {block_badge} {video_html}</div>'
-        f'<div class="am-xlookup-regressions">{opt_a_html} {opt_b_html}</div>'
+        f'{regressions_html}'
         f'</div>'
     )
 

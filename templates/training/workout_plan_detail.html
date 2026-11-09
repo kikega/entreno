@@ -143,7 +143,7 @@
                         Añadir ejercicio al plan sin salir de la tabla
                     </h3>
                 </div>
-                <span class="text-xs text-slate-400">Busca por nombre o código AM (ej. <code class="font-mono text-slate-600">[B4P_001]</code>)</span>
+                <span class="text-xs text-slate-400">Filtra por categoría y selecciona el ejercicio</span>
             </div>
 
             <form id="quick-add-exercise-form"
@@ -152,7 +152,7 @@
                   hx-post="{% url 'training:add_exercise' plan.id %}"
                   hx-target="#plan-exercises-container"
                   hx-swap="outerHTML"
-                  hx-on::after-request="if(event.detail.successful) { this.reset(); filterExerciseSelectByCategory('quick-ex-query', ''); document.getElementById('quick-add-xlookup-preview').innerHTML = ''; }"
+                  hx-on::after-request="if(event.detail.successful) { this.reset(); filterExerciseSelectByCategory('quick-ex-query', ''); }"
                   class="space-y-3">
                 {% csrf_token %}
                 <div class="grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-12 gap-3 items-end">
@@ -177,9 +177,6 @@
                         </label>
                         <select id="quick-ex-query"
                                 name="exercise"
-                                hx-get="{% url 'training:exercise_xlookup_meta' %}"
-                                hx-trigger="change"
-                                hx-target="#quick-add-xlookup-preview"
                                 required
                                 class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
                             <option value="">Selecciona un ejercicio...</option>
@@ -237,8 +234,6 @@
                                class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
                     </div>
                 </div>
-
-                <div id="quick-add-xlookup-preview" class="text-xs text-slate-600"></div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
                     <details class="w-full sm:w-auto flex-1">
