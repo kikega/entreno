@@ -152,7 +152,7 @@
                   hx-post="{% url 'training:add_exercise' plan.id %}"
                   hx-target="#plan-exercises-container"
                   hx-swap="outerHTML"
-                  hx-on::after-request="if(event.detail.successful) { this.reset(); filterQuickAddExercisesByCategory(''); document.getElementById('quick-add-xlookup-preview').innerHTML = ''; }"
+                  hx-on::after-request="if(event.detail.successful) { this.reset(); filterExerciseSelectByCategory('quick-ex-query', ''); document.getElementById('quick-add-xlookup-preview').innerHTML = ''; }"
                   class="space-y-3">
                 {% csrf_token %}
                 <div class="grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-12 gap-3 items-end">
@@ -162,7 +162,7 @@
                         </label>
                         <select id="quick-category-filter"
                                 name="category_filter"
-                                onchange="filterQuickAddExercisesByCategory(this.value)"
+                                onchange="filterExerciseSelectByCategory('quick-ex-query', this.value)"
                                 class="block w-full rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
                             <option value="">Todas las categorías</option>
                             {% for cat_val, cat_label in exercise_categories %}
@@ -173,21 +173,24 @@
 
                     <div class="col-span-1 sm:col-span-4 lg:col-span-3">
                         <label for="quick-ex-query" class="block text-xs font-headline font-bold text-slate-600 mb-1">
-                            Ejercicio (Buscador XLOOKUP)
+                            Ejercicio
                         </label>
-                        <input id="quick-ex-query"
-                               type="text"
-                               name="exercise_query"
-                               list="plan-catalog-datalist"
-                               autocorrect="off"
-                               autocapitalize="off"
-                               spellcheck="false"
-                               placeholder="Escribe para buscar ejercicio..."
-                               hx-get="{% url 'training:exercise_xlookup_meta' %}"
-                               hx-trigger="input changed delay:200ms, change"
-                               hx-target="#quick-add-xlookup-preview"
-                               required
-                               class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                        <select id="quick-ex-query"
+                                name="exercise"
+                                hx-get="{% url 'training:exercise_xlookup_meta' %}"
+                                hx-trigger="change"
+                                hx-target="#quick-add-xlookup-preview"
+                                required
+                                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none">
+                            <option value="">Selecciona un ejercicio...</option>
+                            {% for ex in catalog_exercises %}
+                                <option value="{{ ex.id }}"
+                                        data-category="{{ ex.category }}"
+                                        data-session-block="{{ ex.session_block }}">
+                                    {% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
                     </div>
 
                     <div class="col-span-1 sm:col-span-2 lg:col-span-2">
@@ -276,9 +279,7 @@
                 {% for ex in catalog_exercises %}
                     <option value="{% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}"
                             data-category="{{ ex.category }}"
-                            data-session-block="{{ ex.session_block }}">
-                        {{ ex.get_category_display }}{% if ex.session_block %} · {{ ex.get_session_block_display }}{% endif %}
-                    </option>
+                            data-session-block="{{ ex.session_block }}"></option>
                 {% endfor %}
             </datalist>
         </section>
@@ -477,7 +478,7 @@
                 opt.text = item.text;
                 if (item.category) opt.dataset.category = item.category;
                 if (item.sessionBlock) opt.dataset.sessionBlock = item.sessionBlock;
-                if (item.value === currentVal) {
+                if (item.value === currentVal && (!cat || !item.isPlaceholder)) {
                     opt.selected = true;
                     currentStillAvailable = true;
                 }
@@ -489,7 +490,11 @@
         });
 
         if (!currentStillAvailable) {
-            selectEl.value = selectEl.options.length > 0 && selectEl.options[0].value === '' ? '' : firstValidValue;
+            if (cat && firstValidValue) {
+                selectEl.value = firstValidValue;
+            } else {
+                selectEl.value = selectEl.options.length > 0 && selectEl.options[0].value === '' ? '' : firstValidValue;
+            }
             selectEl.dispatchEvent(new Event('change', { bubbles: true }));
         }
     }
@@ -503,7 +508,6 @@
             datalistEl._allCatalogOptions = Array.from(datalistEl.options).map(function(opt) {
                 return {
                     value: opt.value,
-                    text: opt.textContent || opt.label || '',
                     category: opt.dataset.category || '',
                     sessionBlock: opt.dataset.sessionBlock || ''
                 };
@@ -520,7 +524,6 @@
             if (!cat || item.category === cat) {
                 const opt = document.createElement('option');
                 opt.value = item.value;
-                opt.textContent = item.text;
                 if (item.category) opt.dataset.category = item.category;
                 if (item.sessionBlock) opt.dataset.sessionBlock = item.sessionBlock;
                 if (currentQuery && item.value === currentQuery) {

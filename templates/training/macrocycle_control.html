@@ -438,9 +438,7 @@
     {% for ex in am_catalog_exercises %}
         <option value="{% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}"
                 data-category="{{ ex.category }}"
-                data-session-block="{{ ex.session_block }}">
-            {{ ex.get_category_display }}{% if ex.session_block %} · {{ ex.get_session_block_display }}{% endif %}{% if ex.regression_option_a %} · OpA: {{ ex.regression_option_a.name }}{% endif %}{% if ex.regression_option_b %} · OpB: {{ ex.regression_option_b.name }}{% endif %}
-        </option>
+                data-session-block="{{ ex.session_block }}"></option>
     {% endfor %}
 </datalist>
 {% endblock %}
@@ -475,7 +473,6 @@
             datalistEl._allCatalogOptions = Array.from(datalistEl.options).map(function(opt) {
                 return {
                     value: opt.value,
-                    text: opt.textContent || opt.label || '',
                     category: opt.dataset.category || '',
                     sessionBlock: opt.dataset.sessionBlock || ''
                 };
@@ -493,7 +490,6 @@
             if (!cat || item.category === cat) {
                 const opt = document.createElement('option');
                 opt.value = item.value;
-                opt.textContent = item.text;
                 if (item.category) opt.dataset.category = item.category;
                 if (item.sessionBlock) opt.dataset.sessionBlock = item.sessionBlock;
                 if (currentQuery && item.value === currentQuery) {
@@ -537,7 +533,7 @@
                 opt.text = item.text;
                 if (item.category) opt.dataset.category = item.category;
                 if (item.sessionBlock) opt.dataset.sessionBlock = item.sessionBlock;
-                if (item.value === currentVal) {
+                if (item.value === currentVal && (!cat || !item.isPlaceholder)) {
                     opt.selected = true;
                     currentStillAvailable = true;
                 }
@@ -549,7 +545,11 @@
         });
 
         if (!currentStillAvailable) {
-            selectEl.value = selectEl.options.length > 0 && selectEl.options[0].value === '' ? '' : firstValidValue;
+            if (cat && firstValidValue) {
+                selectEl.value = firstValidValue;
+            } else {
+                selectEl.value = selectEl.options.length > 0 && selectEl.options[0].value === '' ? '' : firstValidValue;
+            }
             selectEl.dispatchEvent(new Event('change', { bubbles: true }));
         }
     }

@@ -575,6 +575,12 @@ class TrainingWorkflowAndSecurityTests(TestCase):
         self.assertContains(res, 'data-category="fuerza"')
         self.assertContains(res, 'data-category="potencia"')
         self.assertContains(res, 'data-category="movilidad"')
+        self.assertContains(
+            res,
+            '<option value="[B3_777] Cargada Colgado Explosiva"\n'
+            '                            data-category="potencia"\n'
+            '                            data-session-block="B3_Potencia"></option>',
+        )
 
         # 2. Vista filtrada por categoría (?category=potencia): solo aparecen los ejercicios de potencia
         res_filtered = self.client.get(f"{detail_url}?category=potencia")
