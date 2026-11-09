@@ -3,43 +3,49 @@
 {% block title %}Resumen - EntrenoPro{% endblock %}
 
 {% block content %}
-<div class="flex flex-col space-y-8">
+<div class="flex flex-col space-y-6 sm:space-y-8">
     <!-- Cabecera del espacio de trabajo unificado -->
-    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-lg text-white">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.14),transparent_45%)]"></div>
-        <div class="relative z-10 flex flex-col lg:flex-row justify-between lg:items-center gap-6">
-            <div class="min-w-0">
+    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 p-5 sm:p-7 lg:p-8 rounded-2xl border border-slate-800 shadow-lg text-white">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.16),transparent_50%)] pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col lg:flex-row justify-between lg:items-center gap-5 lg:gap-6">
+            <div class="min-w-0 flex-1">
                 {% if active_tab == 'trainer' %}
-                    <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-primary/15 px-3 py-1 rounded-full border border-primary/25">Espacio Entrenador: Gestión y Alumnos</span>
+                    <span class="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-headline font-bold tracking-wider text-sky-200 uppercase bg-sky-500/15 px-3 py-1 rounded-full border border-sky-400/30 leading-snug">
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
+                        <span>Espacio Entrenador: Gestión y Alumnos</span>
+                    </span>
                 {% else %}
-                    <span class="text-xs font-headline font-bold tracking-widest text-accent uppercase bg-accent/10 px-3 py-1 rounded-full border border-accent/25">Espacio Deportista: Mi Entrenamiento</span>
+                    <span class="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-headline font-bold tracking-wider text-sky-200 uppercase bg-accent/15 px-3 py-1 rounded-full border border-accent/30 leading-snug">
+                        <span class="w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>
+                        <span>Espacio Deportista: Mi Entrenamiento</span>
+                    </span>
                 {% endif %}
-                <h1 class="text-2xl sm:text-3xl md:text-4xl font-headline font-extrabold text-white mt-3">¡Hola, {{ request.user.display_name }}!</h1>
+                <h1 class="text-2xl sm:text-3xl lg:text-4xl font-headline font-extrabold text-white mt-3 tracking-tight break-words">¡Hola, {{ request.user.display_name }}!</h1>
                 {% if active_tab == 'trainer' %}
-                    <p class="text-sm sm:text-base text-slate-300 mt-2 max-w-xl">Supervisión de deportistas asignados, asignación de planes y biblioteca de ejercicios.</p>
+                    <p class="text-sm sm:text-base text-slate-300 mt-1.5 max-w-2xl leading-relaxed">Supervisión de deportistas asignados, asignación de planes y biblioteca de ejercicios.</p>
                 {% else %}
-                    <p class="text-sm sm:text-base text-slate-300 mt-2 max-w-xl">Tus sesiones personales en curso, registro en vivo de series y evolución física.</p>
+                    <p class="text-sm sm:text-base text-slate-300 mt-1.5 max-w-2xl leading-relaxed">Tus sesiones personales en curso, registro en vivo de series y evolución física.</p>
                 {% endif %}
             </div>
 
             <!-- Conmutador de contexto (solo usuarios con doble capacidad) -->
             {% if caps.is_dual %}
-                <div class="flex flex-col items-start lg:items-end gap-2 shrink-0">
-                    <nav aria-label="Cambiar de contexto" class="inline-flex bg-white/10 border border-white/15 rounded-xl p-1 backdrop-blur shrink-0 shadow-sm">
+                <div class="flex flex-col items-stretch sm:items-start lg:items-end gap-2 shrink-0">
+                    <nav aria-label="Cambiar de contexto" class="grid grid-cols-2 sm:inline-flex bg-white/10 border border-white/15 rounded-xl p-1 backdrop-blur shadow-sm">
                         <a href="?tab=athlete" aria-current="{% if active_tab == 'athlete' %}page{% else %}false{% endif %}"
-                           class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition
+                           class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap
                                   {% if active_tab == 'athlete' %}bg-white text-slate-900 shadow-md font-bold{% else %}text-slate-300 hover:text-white hover:bg-white/10{% endif %}">
-                            <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <svg class="w-4 h-4 text-accent shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                             <span>Mi Entreno</span>
                         </a>
                         <a href="?tab=trainer" aria-current="{% if active_tab == 'trainer' %}page{% else %}false{% endif %}"
-                           class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition
+                           class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap
                                   {% if active_tab == 'trainer' %}bg-white text-slate-900 shadow-md font-bold{% else %}text-slate-300 hover:text-white hover:bg-white/10{% endif %}">
-                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                             <span>Deportistas</span>
                         </a>
                     </nav>
-                    <span class="text-[11px] text-slate-300/80">
+                    <span class="text-[11px] text-slate-300/80 text-center sm:text-left lg:text-right">
                         {% if active_tab == 'athlete' %}
                             Vista activa: Rutina personal y seguimiento físico
                         {% else %}

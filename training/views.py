@@ -93,8 +93,12 @@ def build_trainer_context(user):
 
     athletes_metrics = []
     pending_triage_count = 0
+    acwr_distribution = {'emerald': 0, 'amber': 0, 'orange': 0, 'rose': 0}
     for athlete in athletes:
         metrics = get_athlete_sport_metrics(athlete)
+        status_color = metrics['acwr'].get('status_color')
+        if status_color in acwr_distribution:
+            acwr_distribution[status_color] += 1
         triage = getattr(athlete, 'mma_triage', None)
         if triage and triage.review_status == 'pendiente_revision':
             pending_triage_count += 1
@@ -118,6 +122,7 @@ def build_trainer_context(user):
         'total_exercises': Exercise.objects.count(),
         'unread_notifications': unread_notifications,
         'pending_triage_count': pending_triage_count,
+        'acwr_distribution': acwr_distribution,
     }
 
 

@@ -1,59 +1,61 @@
 {% comment %} Panel de contexto entrenador: se renderiza dentro del espacio unificado (home.html) {% endcomment %}
-<div class="flex flex-col space-y-8 trainer-theme animate-fade-in">
+<div class="flex flex-col space-y-6 sm:space-y-8 trainer-theme animate-fade-in">
     <!-- Acciones principales -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h2 class="text-lg font-headline font-extrabold text-slate-800">Gestión y planificación</h2>
+        <div class="min-w-0">
+            <h2 class="text-lg sm:text-xl font-headline font-extrabold text-slate-800 tracking-tight">Gestión y planificación</h2>
             <p class="text-sm text-slate-500 mt-0.5">Supervisa la carga de tus deportistas (ACWR) y genera planes asistidos por ML.</p>
         </div>
-        <a href="{% url 'training:plan_create' %}" class="btn-primary w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-sm shrink-0">
+        <a href="{% url 'training:plan_create' %}" class="btn-primary w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm shrink-0">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-            Planificar manualmente
+            <span>Planificar manualmente</span>
         </a>
     </div>
 
     <!-- Widgets de Estadísticas -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-        <div class="relative bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 transition hover:shadow-md overflow-hidden">
-            <span class="absolute top-0 left-0 right-0 h-1 bg-sky-500/70"></span>
-            <div class="p-3.5 bg-sky-50 text-primary rounded-xl border border-sky-100 flex-shrink-0">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+        <div class="relative bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between transition hover:shadow-md overflow-hidden">
+            <span class="absolute top-0 inset-x-0 h-1 bg-sky-500/80"></span>
+            <div class="flex items-start justify-between gap-3">
+                <dt class="text-[11px] font-headline font-bold text-slate-400 uppercase tracking-wider leading-snug">Deportistas Activos</dt>
+                <div class="w-10 h-10 bg-sky-50 text-primary rounded-xl border border-sky-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                </div>
             </div>
-            <div class="min-w-0">
-                <dt class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Deportistas Activos</dt>
-                <dd class="text-3xl font-headline font-extrabold text-slate-800 mt-1">{{ total_athletes|default:"0" }}</dd>
-                <dd class="text-xs text-slate-400 mt-1">Asignados a tu gestión</dd>
-            </div>
+            <dd class="text-2xl sm:text-3xl font-headline font-extrabold text-slate-900 tabular-nums tracking-tight mt-3">{{ total_athletes|default:"0" }}</dd>
+            <dd class="mt-2 pt-2.5 border-t border-slate-100 text-xs text-slate-400">Asignados a tu gestión</dd>
         </div>
 
-        <div class="relative bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 transition hover:shadow-md overflow-hidden">
-            <span class="absolute top-0 left-0 right-0 h-1 bg-sky-500/70"></span>
-            <div class="p-3.5 bg-sky-50 text-accent rounded-xl border border-sky-100 flex-shrink-0">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+        <div class="relative bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between transition hover:shadow-md overflow-hidden">
+            <span class="absolute top-0 inset-x-0 h-1 bg-sky-500/80"></span>
+            <div class="flex items-start justify-between gap-3">
+                <dt class="text-[11px] font-headline font-bold text-slate-400 uppercase tracking-wider leading-snug">Planes Creados</dt>
+                <div class="w-10 h-10 bg-sky-50 text-accent rounded-xl border border-sky-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                </div>
             </div>
-            <div class="min-w-0">
-                <dt class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Planes Creados</dt>
-                <dd class="text-3xl font-headline font-extrabold text-slate-800 mt-1">{{ total_plans|default:"0" }}</dd>
-                <dd class="text-xs text-slate-400 mt-1">Total históricos</dd>
-            </div>
+            <dd class="text-2xl sm:text-3xl font-headline font-extrabold text-slate-900 tabular-nums tracking-tight mt-3">{{ total_plans|default:"0" }}</dd>
+            <dd class="mt-2 pt-2.5 border-t border-slate-100 text-xs text-slate-400">Total históricos</dd>
         </div>
 
-        <div class="relative bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 transition hover:shadow-md overflow-hidden">
-            <span class="absolute top-0 left-0 right-0 h-1 bg-amber-500/70"></span>
-            <div class="p-3.5 bg-amber-50 text-amber-500 rounded-xl border border-amber-100 flex-shrink-0">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+        <div class="relative bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between transition hover:shadow-md overflow-hidden">
+            <span class="absolute top-0 inset-x-0 h-1 bg-amber-500/80"></span>
+            <div class="flex items-start justify-between gap-3">
+                <dt class="text-[11px] font-headline font-bold text-slate-400 uppercase tracking-wider leading-snug">Ejercicios en Catálogo</dt>
+                <div class="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl border border-amber-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                </div>
             </div>
-            <div class="min-w-0 flex-1">
-                <dt class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">Ejercicios en Catálogo</dt>
-                <dd class="text-3xl font-headline font-extrabold text-slate-800 mt-1">{{ total_exercises|default:"0" }}</dd>
-                <dd class="text-xs text-slate-400 mt-1">Disponibles para tus planes</dd>
-                <a href="{% url 'training:exercise_list' %}" class="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-sky-700 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
-                    Gestionar catálogo
+            <dd class="text-2xl sm:text-3xl font-headline font-extrabold text-slate-900 tabular-nums tracking-tight mt-3">{{ total_exercises|default:"0" }}</dd>
+            <dd class="mt-2 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                <span class="text-slate-400">Disponibles para tus planes</span>
+                <a href="{% url 'training:exercise_list' %}" class="inline-flex items-center gap-1 font-bold text-primary hover:text-sky-700 transition shrink-0">
+                    Gestionar
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </a>
-            </div>
+            </dd>
         </div>
-    </div>
+    </dl>
 
     <!-- Alertas operativas Sistema AM -->
     {% if unread_notifications %}
@@ -89,18 +91,18 @@
     {% endif %}
 
     <!-- Grid de Deportistas y Actividad Reciente -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
         <!-- Listado de Deportistas con métricas de rendimiento -->
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 col-span-1 lg:col-span-2 overflow-hidden">
-            <div class="px-5 sm:px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-wrap justify-between items-center gap-3">
-                <h3 class="text-lg font-headline font-bold text-slate-800">Deportistas Asignados & Métricas</h3>
-                <span class="text-xs text-slate-400 font-medium">MMA · Karate · BJJ · CrossFit · Hyrox · Pérdida Peso</span>
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 col-span-1 lg:col-span-2 overflow-hidden min-w-0">
+            <div class="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/60 flex flex-wrap justify-between items-center gap-2">
+                <h3 class="text-base sm:text-lg font-headline font-bold text-slate-800">Deportistas Asignados & Métricas</h3>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-sky-50 border border-sky-200/80 text-xs font-semibold text-sky-800 tabular-nums">{{ total_athletes|default:"0" }} activo{{ total_athletes|pluralize }}</span>
             </div>
             {% if athletes_metrics %}
                 <ul class="divide-y divide-slate-100">
                     {% for item in athletes_metrics %}
                         {% with athlete=item.athlete m=item.metrics %}
-                        <li class="px-5 sm:px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition">
+                        <li class="px-5 sm:px-6 py-5 flex flex-col gap-4 hover:bg-slate-50/50 transition">
                             <div class="flex items-start gap-4 min-w-0">
                                 {% if athlete.user.profile_picture %}
                                     <img src="{{ athlete.user.profile_picture.url }}" alt="{{ athlete.user.display_name }}" class="flex-shrink-0 h-12 w-12 rounded-xl object-cover border border-sky-200 shadow-sm">
@@ -111,24 +113,26 @@
                                         </svg>
                                     </div>
                                 {% endif %}
-                                <div class="space-y-1 min-w-0">
+                                <div class="space-y-1 min-w-0 flex-1">
                                     <div class="flex flex-wrap items-center gap-2">
-                                        <h4 class="text-base font-bold text-slate-800 truncate">{{ athlete.user.first_name }} {{ athlete.user.last_name }}</h4>
-                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">
+                                        <h4 class="text-sm sm:text-base font-bold text-slate-800 truncate max-w-full">{{ athlete.user.display_name }}</h4>
+                                        <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-700 leading-snug">
                                             {{ m.sport }}
                                         </span>
                                     </div>
-                                    <p class="text-xs text-slate-400 truncate">{{ athlete.user.email }} • Nivel: {{ m.experience_level }}</p>
+                                    <p class="text-xs text-slate-400 truncate" title="{{ athlete.user.email }}">{{ athlete.user.email }} · Nivel: {{ m.experience_level }}</p>
 
                                     <!-- Status ACWR de Lesiones/Carga -->
                                     <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
                                         <span class="font-medium text-slate-500">Estado ACWR:</span>
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold
+                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold leading-snug max-w-full
                                             {% if m.acwr.status_color == 'emerald' %}bg-emerald-100 text-emerald-800
                                             {% elif m.acwr.status_color == 'amber' %}bg-amber-100 text-amber-800
                                             {% elif m.acwr.status_color == 'orange' %}bg-orange-100 text-orange-800
                                             {% else %}bg-rose-100 text-rose-800{% endif %}">
-                                            Ratio {{ m.acwr.acwr_ratio }} - {{ m.acwr.status_label }}
+                                            <span class="tabular-nums shrink-0">{{ m.acwr.acwr_ratio }}</span>
+                                            <span class="opacity-40" aria-hidden="true">·</span>
+                                            <span class="truncate">{{ m.acwr.status_label }}</span>
                                         </span>
                                     </div>
                                     {% if item.mma_triage %}
@@ -146,7 +150,7 @@
                                 </div>
                             </div>
 
-                            <div class="action-toolbar shrink-0">
+                            <div class="action-toolbar sm:pl-16">
                                 <form action="{% url 'training:generate_smart_plan' athlete.id %}" method="POST" class="m-0 inline-flex">
                                     {% csrf_token %}
                                     <button type="submit" class="btn-primary min-h-[38px] px-3.5 py-2 text-xs rounded-xl">
@@ -206,35 +210,69 @@
         </div>
 
         <!-- Panel de Actividad Reciente y Plantillas Soportadas -->
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 sm:p-6 flex flex-col space-y-6">
-            <h3 class="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-3">Motor de Sugerencias por Deporte</h3>
-
-            <div class="space-y-3 text-xs">
-                <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2">
-                    <span class="font-bold text-slate-800">🥋 MMA / Karate / BJJ</span>
-                    <span class="text-sky-600 font-semibold text-right">Potencia & Agarre</span>
-                </div>
-                <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2">
-                    <span class="font-bold text-slate-800">🏋️ CrossFit / Hyrox</span>
-                    <span class="text-sky-600 font-semibold text-right">Resistencia Intermitente</span>
-                </div>
-                <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2">
-                    <span class="font-bold text-slate-800">🔥 Pérdida de Peso</span>
-                    <span class="text-amber-600 font-semibold text-right">Circuitos HIIPA</span>
-                </div>
+        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 sm:p-6 flex flex-col gap-5 min-w-0">
+            <div>
+                <h3 class="text-xs font-headline font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-3 mb-4">Distribución de Carga (ACWR)</h3>
+                <ul class="space-y-2.5 text-xs">
+                    <li class="flex items-center justify-between gap-3 p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                        <span class="flex items-center gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span class="min-w-0">
+                                <span class="block font-bold text-slate-800 truncate">Zona óptima</span>
+                                <span class="block text-[11px] text-slate-500">0.8 – 1.3</span>
+                            </span>
+                        </span>
+                        <span class="text-lg font-headline font-extrabold text-emerald-700 tabular-nums">{{ acwr_distribution.emerald|default:"0" }}</span>
+                    </li>
+                    <li class="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-50/60 border border-amber-100">
+                        <span class="flex items-center gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                            <span class="min-w-0">
+                                <span class="block font-bold text-slate-800 truncate">Subentrenamiento</span>
+                                <span class="block text-[11px] text-slate-500">&lt; 0.8</span>
+                            </span>
+                        </span>
+                        <span class="text-lg font-headline font-extrabold text-amber-700 tabular-nums">{{ acwr_distribution.amber|default:"0" }}</span>
+                    </li>
+                    <li class="flex items-center justify-between gap-3 p-3 rounded-xl bg-orange-50/60 border border-orange-100">
+                        <span class="flex items-center gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0"></span>
+                            <span class="min-w-0">
+                                <span class="block font-bold text-slate-800 truncate">Carga elevada</span>
+                                <span class="block text-[11px] text-slate-500">1.3 – 1.5</span>
+                            </span>
+                        </span>
+                        <span class="text-lg font-headline font-extrabold text-orange-700 tabular-nums">{{ acwr_distribution.orange|default:"0" }}</span>
+                    </li>
+                    <li class="flex items-center justify-between gap-3 p-3 rounded-xl bg-rose-50/60 border border-rose-100">
+                        <span class="flex items-center gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
+                            <span class="min-w-0">
+                                <span class="block font-bold text-slate-800 truncate">Alto riesgo</span>
+                                <span class="block text-[11px] text-slate-500">≥ 1.5</span>
+                            </span>
+                        </span>
+                        <span class="text-lg font-headline font-extrabold text-rose-700 tabular-nums">{{ acwr_distribution.rose|default:"0" }}</span>
+                    </li>
+                </ul>
             </div>
 
             <div class="border-t border-slate-100 pt-4">
-                <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Alertas de Carga Reciente</h4>
-                <div class="relative pl-6 border-l-2 border-slate-100 space-y-4 text-xs">
-                    <div class="relative">
-                        <span class="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-emerald-50 border-2 border-emerald-400 flex items-center justify-center">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                        </span>
-                        <h4 class="font-bold text-slate-800">Carga Óptima de Trabajo</h4>
-                        <p class="text-slate-400 mt-0.5">Atletas en ratio seguro (0.8 - 1.3 ACWR)</p>
-                    </div>
-                </div>
+                <h4 class="text-xs font-headline font-bold text-slate-500 uppercase tracking-wider mb-3">Motor de Sugerencias por Deporte</h4>
+                <ul class="space-y-2 text-xs">
+                    <li class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3">
+                        <span class="font-bold text-slate-800 min-w-0 truncate">🥋 MMA / Karate / BJJ</span>
+                        <span class="text-sky-700 font-semibold text-right shrink-0">Potencia & Agarre</span>
+                    </li>
+                    <li class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3">
+                        <span class="font-bold text-slate-800 min-w-0 truncate">🏋️ CrossFit / Hyrox</span>
+                        <span class="text-sky-700 font-semibold text-right shrink-0">Resistencia</span>
+                    </li>
+                    <li class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3">
+                        <span class="font-bold text-slate-800 min-w-0 truncate">🔥 Pérdida de Peso</span>
+                        <span class="text-amber-700 font-semibold text-right shrink-0">Circuitos HIIPA</span>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>

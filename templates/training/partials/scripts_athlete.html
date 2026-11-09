@@ -1,7 +1,9 @@
 {% comment %} Scripts Chart.js del panel deportista (evolución física y 1RM) {% endcomment %}
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('evolutionChart').getContext('2d');
+        const evoCanvas = document.getElementById('evolutionChart');
+        if (!evoCanvas) return;
+        const ctx = evoCanvas.getContext('2d');
 
         const labels = {{ chart_labels|safe }};
         const weights = {{ chart_weights|safe }};
@@ -11,68 +13,81 @@
 
         const hasData = labels && labels.length > 0;
 
-        // Creamos los gradientes de color de fondo para las líneas de la composición física
-        const weightGradient = ctx.createLinearGradient(0, 0, 0, 400);
-        weightGradient.addColorStop(0, 'rgba(37, 99, 235, 0.16)');
-        weightGradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+        // Calculamos el rango real de peso para ajustar el eje izquierdo con precisión sin que se aplane la línea
+        const validWeights = (weights || []).filter(function(v) { return v !== null && v !== undefined && v > 0; });
+        const minWeight = validWeights.length ? Math.floor(Math.min.apply(null, validWeights) - 3) : 50;
+        const maxWeight = validWeights.length ? Math.ceil(Math.max.apply(null, validWeights) + 3) : 95;
+
+        const weightGradient = ctx.createLinearGradient(0, 0, 0, 360);
+        weightGradient.addColorStop(0, 'rgba(41, 132, 209, 0.18)');
+        weightGradient.addColorStop(1, 'rgba(41, 132, 209, 0.0)');
 
         const chartData = {
             labels: hasData ? labels : ['Sin datos registrados'],
             datasets: [
                 {
                     label: 'Peso (kg)',
-                    data: hasData ? weights : [0],
-                    borderColor: '#2984d1', // sky-600
+                    data: hasData ? weights : [null],
+                    borderColor: '#2984d1',
                     backgroundColor: weightGradient,
                     type: 'line',
                     yAxisID: 'y',
-                    tension: 0.45,
+                    tension: 0.35,
+                    spanGaps: true,
                     fill: true,
-                    borderWidth: 3.5,
+                    borderWidth: 3,
                     pointRadius: 4,
-                    pointHoverRadius: 7,
+                    pointHoverRadius: 6,
                     pointBackgroundColor: '#2984d1',
                     pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2
+                    pointBorderWidth: 2,
+                    order: 1
                 },
                 {
                     label: 'Masa Grasa (%)',
-                    data: hasData ? fats : [0],
-                    borderColor: '#ea580c', // orange-600
+                    data: hasData ? fats : [null],
+                    borderColor: '#ea580c',
                     backgroundColor: '#ea580c',
                     type: 'line',
-                    yAxisID: 'y',
-                    tension: 0.4,
+                    yAxisID: 'y1',
+                    tension: 0.35,
+                    spanGaps: true,
                     fill: false,
                     borderWidth: 2,
                     borderDash: [5, 4],
                     pointRadius: 3,
-                    pointHoverRadius: 5
+                    pointHoverRadius: 5,
+                    order: 2
                 },
                 {
                     label: 'Masa Magra (%)',
-                    data: hasData ? leans : [0],
-                    borderColor: '#34a6f4', // sky-500
+                    data: hasData ? leans : [null],
+                    borderColor: '#34a6f4',
                     backgroundColor: '#34a6f4',
                     type: 'line',
-                    yAxisID: 'y',
-                    tension: 0.4,
+                    yAxisID: 'y1',
+                    tension: 0.35,
+                    spanGaps: true,
                     fill: false,
                     borderWidth: 2,
                     borderDash: [3, 3],
                     pointRadius: 3,
-                    pointHoverRadius: 5
+                    pointHoverRadius: 5,
+                    order: 3
                 },
                 {
                     label: 'Duración (min)',
                     data: hasData ? durations : [0],
-                    backgroundColor: 'rgba(219, 234, 254, 0.6)', // light blue bar
-                    borderColor: '#93c5fd',
+                    backgroundColor: 'rgba(184, 230, 254, 0.55)',
+                    borderColor: '#74d4ff',
                     type: 'bar',
                     yAxisID: 'y1',
                     borderWidth: 1,
-                    barThickness: 28,
-                    borderRadius: 6
+                    maxBarThickness: 24,
+                    barPercentage: 0.65,
+                    categoryPercentage: 0.75,
+                    borderRadius: 6,
+                    order: 4
                 }
             ]
         };
@@ -82,34 +97,37 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 8, right: 4, bottom: 0, left: 0 }
+                },
                 interaction: {
                     mode: 'index',
                     intersect: false,
                 },
                 plugins: {
                     legend: {
-                        display: false // Usamos nuestra propia leyenda superior estilizada en HTML
+                        display: false
                     },
                     tooltip: {
                         backgroundColor: '#0f172a',
                         titleColor: '#ffffff',
-                        titleFont: { family: 'Montserrat', size: 13, weight: 'bold' },
+                        titleFont: { family: 'Montserrat', size: 12, weight: 'bold' },
                         bodyFont: { family: 'Inter', size: 12 },
                         padding: 12,
-                        cornerRadius: 12,
+                        cornerRadius: 10,
                         borderColor: 'rgba(255,255,255,0.1)',
                         borderWidth: 1,
-                        boxPadding: 4,
+                        boxPadding: 5,
                         callbacks: {
                             label: function(context) {
+                                if (context.parsed.y === null || context.parsed.y === undefined) {
+                                    return null;
+                                }
                                 let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += context.parsed.y + (context.dataset.type === 'bar' ? ' min' : (context.dataset.label.includes('%') ? '%' : ' kg'));
-                                }
-                                return label;
+                                const unit = context.dataset.type === 'bar'
+                                    ? ' min'
+                                    : (label.includes('%') ? '%' : ' kg');
+                                return label + ': ' + context.parsed.y + unit;
                             }
                         }
                     }
@@ -123,36 +141,54 @@
                             color: '#f1f5f9'
                         },
                         border: {
-                            dash: [5, 5]
+                            display: false
                         },
                         ticks: {
                             font: { family: 'Inter', size: 11, weight: '500' },
-                            color: '#64748b'
+                            color: '#475569',
+                            padding: 6,
+                            callback: function(value) {
+                                return value + ' kg';
+                            }
                         },
-                        suggestedMin: 50,
-                        suggestedMax: 95
+                        suggestedMin: minWeight,
+                        suggestedMax: maxWeight
                     },
                     y1: {
                         type: 'linear',
                         display: true,
                         position: 'right',
                         grid: {
-                            drawOnChartArea: false, // Evita superposición de rejillas
+                            drawOnChartArea: false,
+                        },
+                        border: {
+                            display: false
                         },
                         ticks: {
                             font: { family: 'Inter', size: 11, weight: '500' },
-                            color: '#64748b'
+                            color: '#64748b',
+                            padding: 6,
+                            callback: function(value) {
+                                return value + ' % / min';
+                            }
                         },
                         beginAtZero: true,
-                        suggestedMax: 120
+                        suggestedMax: 100
                     },
                     x: {
                         grid: {
                             display: false
                         },
+                        border: {
+                            color: '#e2e8f0'
+                        },
                         ticks: {
                             font: { family: 'Inter', size: 11, weight: '500' },
-                            color: '#64748b'
+                            color: '#64748b',
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 8,
+                            padding: 6
                         }
                     }
                 }
@@ -167,7 +203,7 @@
 
         const names = {{ rm_chart_labels|safe }};
         const data = {{ rm_chart_data|safe }};
-        const colorList = ['#2984d1', '#34a6f4', '#f97316', '#8b5cf6', '#ef4444', '#0891b2', '#d97706'];
+        const colorList = ['#2984d1', '#0d9488', '#ea580c', '#7c3aed', '#e11d48', '#0284c7', '#d97706'];
 
         const datasets = names.map(function(name, idx) {
             return {
@@ -177,6 +213,7 @@
                 backgroundColor: colorList[idx % colorList.length],
                 fill: false,
                 tension: 0.35,
+                spanGaps: true,
                 borderWidth: 2.5,
                 pointRadius: 3.5,
                 pointHoverRadius: 6
@@ -201,13 +238,67 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 8, right: 8, bottom: 0, left: 0 }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
-                    legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 } } },
-                    tooltip: { backgroundColor: '#0f172a', titleColor: '#fff', padding: 12, cornerRadius: 12 }
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 8,
+                            boxHeight: 8,
+                            padding: 14,
+                            font: { family: 'Inter', size: 11, weight: '600' },
+                            color: '#475569'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleColor: '#ffffff',
+                        bodyFont: { family: 'Inter', size: 12 },
+                        padding: 12,
+                        cornerRadius: 10,
+                        boxPadding: 5,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.parsed.y === null || context.parsed.y === undefined) return null;
+                                return (context.dataset.label || '') + ': ' + context.parsed.y + ' kg';
+                            }
+                        }
+                    }
                 },
                 scales: {
-                    y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#64748b' } },
-                    x: { display: false }
+                    y: {
+                        grid: { color: '#f1f5f9' },
+                        border: { display: false },
+                        ticks: {
+                            font: { family: 'Inter', size: 11, weight: '500' },
+                            color: '#64748b',
+                            padding: 6,
+                            callback: function(value) {
+                                return value + ' kg';
+                            }
+                        }
+                    },
+                    x: {
+                        display: true,
+                        grid: { display: false },
+                        border: { color: '#e2e8f0' },
+                        ticks: {
+                            font: { family: 'Inter', size: 11, weight: '500' },
+                            color: '#64748b',
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 8,
+                            padding: 6
+                        }
+                    }
                 }
             }
         });
