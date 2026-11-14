@@ -99,7 +99,7 @@
 
 {% if user.is_authenticated %}
     <!-- ===== Sidebar (desktop) ===== -->
-    <aside class="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-sky-950 text-white z-40 border-r border-white/5">
+    <aside aria-label="Barra lateral de navegación" class="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-sky-950 text-white z-40 border-r border-white/5">
         <div class="h-16 flex items-center px-5 border-b border-white/10 shrink-0">
             <a href="/" class="flex items-center gap-3 group" aria-label="Ir al resumen">
                 <div class="bg-primary/10 p-2 rounded-xl border border-primary/20 group-hover:border-primary/50 transition">
@@ -284,22 +284,148 @@
 
 <!-- Contenido principal (único bloque para ambas ramas) -->
 <main class="flex-grow w-full min-w-0 animate-fade-in {% if user.is_authenticated %}lg:pl-64{% endif %}">
-    <div class="w-full max-w-7xl min-w-0 mx-auto px-2.5 sm:px-4 lg:px-6 py-6 lg:py-8 {% if user.is_authenticated %}pb-28 lg:pb-12{% else %}py-8{% endif %}">
+    <div class="w-full max-w-7xl min-w-0 mx-auto px-2.5 sm:px-4 lg:px-6 py-6 lg:py-8 {% if user.is_authenticated %}pb-10 lg:pb-12{% else %}py-8{% endif %}">
         {% block breadcrumbs %}{% endblock %}
         {% block content %}{% endblock %}
     </div>
 </main>
 
-
-{% if not user.is_authenticated %}
-    <footer class="bg-white border-t border-slate-100 py-8 text-center text-slate-400 text-sm flex flex-col items-center justify-center">
-        <div class="flex items-center gap-2 mb-4">
-            <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            <span class="font-headline font-bold text-lg text-slate-800">EntrenoPro</span>
+<footer class="bg-white border-t border-slate-200/80 text-slate-600 text-xs sm:text-sm {% if user.is_authenticated %}lg:pl-64 py-5 pb-24 lg:pb-6{% else %}py-7{% endif %}">
+    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+            <svg class="w-5 h-5 text-accent shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <span class="font-headline font-bold text-slate-800">EntrenoPro</span>
+            <span aria-hidden="true" class="text-slate-300">·</span>
+            <span>&copy; {% now "Y" %} Todos los derechos reservados.</span>
         </div>
-        <p>&copy; {% now "Y" %} EntrenoPro. Todos los derechos reservados.</p>
-    </footer>
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
+                <svg class="w-3.5 h-3.5 text-emerald-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <span>Sin rastreo comercial</span>
+            </span>
+            <a href="{% url 'cookies_policy' %}" class="inline-flex items-center min-h-[36px] px-1 font-semibold text-slate-700 hover:text-primary underline underline-offset-2 transition">
+                Aviso de Cookies
+            </a>
+            <button type="button" command="show-modal" commandfor="cookieDetailsDialog" class="inline-flex items-center min-h-[36px] px-1 font-semibold text-slate-700 hover:text-primary underline underline-offset-2 transition cursor-pointer">
+                Ver cookies utilizadas
+            </button>
+        </div>
+    </div>
+</footer>
+
+<!-- ===== Aviso informativo de cookies (Primera capa LSSI-CE / RGPD) ===== -->
+{% if not cookie_notice_dismissed %}
+<aside id="cookieNoticeBanner"
+       aria-labelledby="cookieBannerTitle"
+       class="cookie-banner-transition fixed inset-x-3 sm:inset-x-auto sm:right-5 sm:max-w-xl z-50 {% if user.is_authenticated %}bottom-[4.75rem] lg:bottom-5 lg:left-72 lg:right-6 lg:ml-auto{% else %}bottom-3 sm:bottom-5{% endif %}">
+    <div class="relative overflow-hidden bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.22)]">
+        <div class="h-1 w-full bg-gradient-to-r from-primary via-sky-500 to-accent" aria-hidden="true"></div>
+        <div class="p-4 sm:p-5 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-7 h-7 rounded-lg bg-sky-50 border border-sky-200 text-primary flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </span>
+                    <h2 id="cookieBannerTitle" class="font-headline font-bold text-sm sm:text-base text-slate-900">
+                        Aviso sobre el uso de cookies
+                    </h2>
+                </div>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    <svg class="w-3 h-3 text-emerald-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Sin rastreo comercial</span>
+                </span>
+            </div>
+
+            <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                EntrenoPro utiliza únicamente <strong>cookies técnicas estrictamente necesarias</strong> (sesión de acceso, protección de formularios CSRF y avisos temporales de estado).
+                <strong>No se utilizan cookies para ningún tipo de rastreo comercial</strong>, publicidad ni analítica de terceros (art. 22.2 LSSI-CE).
+            </p>
+
+            <div class="flex flex-wrap items-center gap-2 pt-0.5">
+                <form id="cookieNoticeForm"
+                      method="post"
+                      action="{% url 'dismiss_cookie_notice' %}"
+                      hx-boost="false"
+                      data-cookie-name="{{ cookie_notice_cookie_name|default:'entreno_cookie_notice' }}"
+                      data-cookie-max-age="{{ cookie_notice_max_age|default:'31536000' }}"
+                      class="m-0">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path|default:'/' }}">
+                    <button type="submit" class="btn-primary px-4 py-2 text-xs sm:text-sm rounded-xl min-h-[40px]">
+                        Entendido
+                    </button>
+                </form>
+
+                <button type="button"
+                        command="show-modal"
+                        commandfor="cookieDetailsDialog"
+                        class="btn-secondary px-3.5 py-2 text-xs sm:text-sm rounded-xl min-h-[40px]">
+                    Ver cookies utilizadas
+                </button>
+
+                <a href="{% url 'cookies_policy' %}"
+                   class="inline-flex items-center justify-center px-3 py-2 text-xs sm:text-sm font-semibold text-primary hover:text-primary-hover underline underline-offset-2 min-h-[40px]">
+                    Aviso de Cookies
+                </a>
+            </div>
+        </div>
+    </div>
+</aside>
 {% endif %}
+
+<!-- ===== Diálogo nativo con el detalle de cookies utilizadas ===== -->
+<dialog id="cookieDetailsDialog" closedby="any" aria-labelledby="cookieDetailsDialogTitle" class="w-full max-w-3xl rounded-2xl shadow-2xl">
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[calc(100dvh-2.5rem)]">
+        <div class="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3 shrink-0">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-8 h-8 rounded-lg bg-sky-50 border border-sky-200 text-primary flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </span>
+                <h2 id="cookieDetailsDialogTitle" class="font-headline font-bold text-base sm:text-lg text-slate-900 truncate">
+                    Cookies utilizadas en EntrenoPro
+                </h2>
+            </div>
+            <button type="button" commandfor="cookieDetailsDialog" command="close" autofocus aria-label="Cerrar detalle de cookies"
+                    class="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 transition cursor-pointer min-w-[36px] min-h-[36px] inline-flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <div class="p-5 space-y-4 overflow-y-auto">
+            <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 flex items-start gap-2.5 text-xs sm:text-sm text-emerald-950">
+                <svg class="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <p class="leading-relaxed">
+                    <strong>Sin rastreo comercial:</strong> EntrenoPro no emplea cookies publicitarias, de perfilado ni de analítica comercial.
+                    Solo utiliza cookies técnicas propias exentas de consentimiento conforme al art. 22.2 de la LSSI-CE y el RGPD.
+                </p>
+            </div>
+
+            {% include 'partials/cookie_inventory_table.html' with caption_id='cookieModalTableCaption' %}
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                No se utilizan <code>localStorage</code>, <code>sessionStorage</code> ni reproductores incrustados con seguimiento comercial.
+                Las tipografías y librerías técnicas de interfaz se cargan exclusivamente para el funcionamiento visual e interactivo.
+            </p>
+        </div>
+
+        <div class="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2.5 shrink-0">
+            <a href="{% url 'cookies_policy' %}" class="inline-flex items-center justify-center sm:justify-start min-h-[40px] px-2 text-xs sm:text-sm font-semibold text-primary hover:text-primary-hover underline underline-offset-2">
+                Aviso de Cookies
+            </a>
+            <form method="dialog" class="m-0 flex justify-end">
+                <button type="submit" value="close" class="btn-primary w-full sm:w-auto px-5 py-2 text-xs sm:text-sm rounded-xl min-h-[40px]">
+                    Cerrar
+                </button>
+            </form>
+        </div>
+    </div>
+</dialog>
 
 <!-- ===== Avisos flotantes (toasts) ===== -->
 {% include 'partials/messages.html' %}
@@ -330,7 +456,20 @@
 
 <script type="module">
     if (!('commandForElement' in HTMLButtonElement.prototype)) {
-        import('https://esm.run/invokers-polyfill');
+        import('https://esm.run/invokers-polyfill').catch(function() {
+            document.addEventListener('click', function(e) {
+                const btn = e.target.closest('button[commandfor][command]');
+                if (!btn) return;
+                const target = document.getElementById(btn.getAttribute('commandfor'));
+                if (!target) return;
+                const cmd = btn.getAttribute('command');
+                if (cmd === 'show-modal' && typeof target.showModal === 'function') {
+                    target.showModal();
+                } else if (cmd === 'close' && typeof target.close === 'function') {
+                    target.close();
+                }
+            });
+        });
     }
     if (!('popover' in HTMLElement.prototype)) {
         import('https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js');
@@ -339,6 +478,38 @@
 
 <script>
     (function() {
+        // Cierre inmediato del aviso informativo de cookies guardando cookie técnica (con respaldo POST sin JS)
+        const cookieForm = document.getElementById('cookieNoticeForm');
+        const cookieBanner = document.getElementById('cookieNoticeBanner');
+        if (cookieForm && cookieBanner) {
+            cookieForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = cookieForm.dataset.cookieName || 'entreno_cookie_notice';
+                const maxAge = cookieForm.dataset.cookieMaxAge || '31536000';
+                const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+                document.cookie = name + '=1; path=/; max-age=' + maxAge + '; SameSite=Lax' + secureFlag;
+
+                const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if (prefersReducedMotion) {
+                    cookieBanner.remove();
+                    return;
+                }
+                cookieBanner.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                cookieBanner.style.opacity = '0';
+                cookieBanner.style.transform = 'translateY(8px)';
+                setTimeout(function() {
+                    cookieBanner.remove();
+                }, 210);
+            });
+        }
+
+        // Reseteo seguro de returnValue en el diálogo de cookies
+        const cookieDialog = document.getElementById('cookieDetailsDialog');
+        if (cookieDialog) {
+            cookieDialog.addEventListener('close', function() {
+                cookieDialog.returnValue = '';
+            });
+        }
         // Light-dismiss fallback cuando closedby no está soportado por el navegador
         if (!('closedBy' in HTMLDialogElement.prototype)) {
             const isOutside = (e, dialog) => {

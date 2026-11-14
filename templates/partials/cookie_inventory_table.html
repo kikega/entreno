@@ -1,0 +1,49 @@
+{% comment %}
+Tabla semántica y responsiva del inventario real de cookies técnicas de EntrenoPro.
+Parámetros opcionales:
+- caption_id: identificador único para el elemento <caption> (evita colisiones de ID si se incluye en múltiples lugares).
+{% endcomment %}
+<div tabindex="0"
+     role="region"
+     aria-labelledby="{{ caption_id|default:'cookieInventoryCaption' }}"
+     class="cookie-table-wrapper rounded-xl border border-slate-200 bg-white shadow-sm">
+    <table class="cookie-inventory-table w-full text-left text-xs sm:text-sm text-slate-700">
+        <caption id="{{ caption_id|default:'cookieInventoryCaption' }}" class="sr-only">
+            Inventario detallado de cookies técnicas utilizadas en EntrenoPro (sin cookies comerciales)
+        </caption>
+        <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-headline font-bold uppercase tracking-wider text-slate-600">
+                <th scope="col" class="px-4 py-3">Cookie</th>
+                <th scope="col" class="px-4 py-3">Titular</th>
+                <th scope="col" class="px-4 py-3">Categoría</th>
+                <th scope="col" class="px-4 py-3">Finalidad</th>
+                <th scope="col" class="px-4 py-3">Duración</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cookie in cookie_inventory %}
+                <tr class="border-t border-slate-100 align-top">
+                    <th scope="row" class="px-4 py-3.5 font-semibold text-slate-900">
+                        <code class="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-900 border border-slate-200 font-mono text-xs font-bold break-all">
+                            {{ cookie.name }}
+                        </code>
+                        <div class="mt-1.5 text-[11px] font-normal text-slate-600 leading-snug">
+                            {{ cookie.attributes }}
+                        </div>
+                    </th>
+                    <td class="px-4 py-3.5 text-slate-700">{{ cookie.owner }}</td>
+                    <td class="px-4 py-3.5">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <svg class="w-3.5 h-3.5 text-emerald-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>{{ cookie.category }}</span>
+                        </span>
+                    </td>
+                    <td class="px-4 py-3.5 text-slate-700 leading-relaxed">{{ cookie.purpose }}</td>
+                    <td class="px-4 py-3.5 text-slate-700 leading-snug">{{ cookie.duration }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

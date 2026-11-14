@@ -96,6 +96,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "users.context_processors.capabilities",
+                "core.context_processors.cookie_notice_info",
             ],
         },
     },

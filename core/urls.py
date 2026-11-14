@@ -21,11 +21,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from users.views import HomeView
+from .views import CookiesPolicyView, dismiss_cookie_notice
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("users/", include('users.urls')),
     path("training/", include('training.urls')),
+    path("cookies/", CookiesPolicyView.as_view(), name='cookies_policy'),
+    path("cookies/dismiss/", dismiss_cookie_notice, name='dismiss_cookie_notice'),
     path("", HomeView.as_view(), name='home'),
 ]
 

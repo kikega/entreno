@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}Aviso y Política de Cookies - EntrenoPro{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+    <!-- Cabecera principal -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-lg text-white">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(52,166,244,0.18),transparent_55%)] pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <span class="inline-flex items-center gap-2 text-[11px] font-headline font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-200 px-3 py-1 rounded-full border border-emerald-400/30">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    <span>Sin rastreo comercial · Solo cookies técnicas</span>
+                </span>
+                <h1 class="text-2xl sm:text-3xl font-headline font-extrabold text-white mt-3 tracking-tight">
+                    Aviso y Política de Cookies
+                </h1>
+                <p class="mt-2 text-sm sm:text-base text-slate-200 max-w-2xl leading-relaxed">
+                    Información transparente sobre el uso real de cookies y almacenamiento local en EntrenoPro,
+                    conforme al artículo 22.2 de la Ley 34/2002 (LSSI-CE), el RGPD y la guía de la AEPD.
+                </p>
+            </div>
+            <div class="shrink-0">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'home' %}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-headline font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition min-h-[44px]">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        <span>Volver al resumen</span>
+                    </a>
+                {% else %}
+                    <a href="{% url 'users:login' %}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-headline font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition min-h-[44px]">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        <span>Volver al inicio de sesión</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Declaración expresa de NO rastreo comercial -->
+    <section aria-labelledby="no-tracking-heading" class="rounded-2xl bg-emerald-50/90 border border-emerald-200 p-5 sm:p-6 shadow-sm">
+        <div class="flex items-start gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 shrink-0 mt-0.5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div class="min-w-0 flex-1 space-y-2">
+                <h2 id="no-tracking-heading" class="text-base sm:text-lg font-headline font-extrabold text-emerald-950">
+                    Compromiso de privacidad: no se utilizan cookies para ningún tipo de rastreo comercial
+                </h2>
+                <p class="text-sm text-emerald-950/90 leading-relaxed">
+                    En EntrenoPro <strong>no utilizamos cookies ni tecnologías equivalentes para ningún tipo de rastreo comercial</strong>,
+                    publicidad comportamental, elaboración de perfiles de marketing, retargeting ni analítica de terceros.
+                    Tu actividad dentro de la plataforma no se vende, cede ni comparte con redes publicitarias o intermediarios comerciales.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Marco legal y exención de consentimiento -->
+    <article class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8">
+        <div class="space-y-3">
+            <h2 class="text-lg sm:text-xl font-headline font-extrabold text-slate-900">
+                1. ¿Qué son las cookies y qué normativa aplica?
+            </h2>
+            <p class="text-sm sm:text-base text-slate-700 leading-relaxed">
+                Una cookie es un pequeño archivo de texto que el servidor web o el navegador guarda en tu dispositivo
+                cuando visitas una página o utilizas una aplicación web. En España, su uso está regulado por el
+                <strong>artículo 22.2 de la Ley 34/2002 (LSSI-CE)</strong>, el
+                <strong>Reglamento (UE) 2016/679 General de Protección de Datos (RGPD)</strong>, la
+                <strong>Ley Orgánica 3/2018 (LOPDGDD)</strong> y las directrices de la
+                <strong>Agencia Española de Protección de Datos (AEPD)</strong>.
+            </p>
+            <p class="text-sm sm:text-base text-slate-700 leading-relaxed">
+                De acuerdo con el citado artículo 22.2 de la LSSI-CE y la Guía sobre el uso de las cookies de la AEPD,
+                están <strong>exceptuadas de recabar consentimiento previo</strong> aquellas cookies técnicas
+                estrictamente necesarias para permitir la comunicación con el servidor o prestar el servicio expresamente
+                solicitado por el usuario (como iniciar sesión de forma segura o proteger los formularios). Al no usar
+                cookies publicitarias, analíticas ni de rastreo comercial, no es necesario mostrarte selectores de
+                aceptación o rechazo publicitario, pero mantenemos esta información accesible de forma permanente
+                para tu completo conocimiento.
+            </p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <h2 class="text-lg sm:text-xl font-headline font-extrabold text-slate-900">
+                    2. Revisión de las cookies utilizadas en EntrenoPro
+                </h2>
+                <p class="mt-2 text-sm sm:text-base text-slate-700 leading-relaxed">
+                    Tras auditar el funcionamiento real de la aplicación, las únicas cookies propias que EntrenoPro
+                    puede almacenar en tu navegador son estrictamente técnicas y necesarias:
+                </p>
+            </div>
+
+            {% include 'partials/cookie_inventory_table.html' with caption_id='cookiesPolicyTableCaption' %}
+        </div>
+
+        <div class="space-y-4">
+            <h2 class="text-lg sm:text-xl font-headline font-extrabold text-slate-900">
+                3. Almacenamiento local y recursos técnicos externos
+            </h2>
+            <ul class="space-y-3 text-sm sm:text-base text-slate-700 leading-relaxed list-disc pl-5">
+                <li>
+                    <strong>Almacenamiento local del navegador (<code>localStorage</code> / <code>sessionStorage</code>):</strong>
+                    EntrenoPro no almacena datos en <code>localStorage</code>, <code>sessionStorage</code> ni
+                    <code>IndexedDB</code> para rastreo, analítica ni fines comerciales.
+                </li>
+                <li>
+                    <strong>Librerías y tipografías técnicas (CDNs):</strong> Para renderizar correctamente la interfaz,
+                    las gráficas de entrenamiento y las interacciones dinámicas, la aplicación carga fuentes web
+                    (Google Fonts: <em>Inter</em> y <em>Montserrat</em>) y librerías técnicas de interfaz
+                    (Tailwind CSS, HTMX, Chart.js y, solo si tu navegador lo necesita, polyfills de accesibilidad UI).
+                    Ninguno de estos recursos realiza seguimiento publicitario, aunque la petición HTTP estándar a dichos
+                    servidores conlleva la transmisión técnica habitual de tu dirección IP y cabeceras del navegador.
+                </li>
+                <li>
+                    <strong>Enlaces externos a vídeos de ejercicios:</strong> El catálogo puede incluir enlaces externos
+                    (por ejemplo, a YouTube) añadidos por el entrenador. EntrenoPro <strong>no incrusta reproductores
+                    ni <code>&lt;iframe&gt;</code> de terceros</strong> dentro de la aplicación, por lo que no se instalan
+                    cookies de plataformas de vídeo mientras navegas por EntrenoPro; únicamente quedarás sujeto a la
+                    política del sitio externo si decides abrir el enlace en una nueva pestaña.
+                </li>
+                <li>
+                    <strong>Asistencia algorítmica / LLM opcional:</strong> Cuando está habilitada por el administrador,
+                    se ejecuta exclusivamente de servidor a servidor para generar recomendaciones de entrenamiento,
+                    sin instalar cookies ni rastreadores en el navegador.
+                </li>
+            </ul>
+        </div>
+
+        <div class="space-y-3">
+            <h2 class="text-lg sm:text-xl font-headline font-extrabold text-slate-900">
+                4. Cómo consultar, bloquear o eliminar las cookies desde tu navegador
+            </h2>
+            <p class="text-sm sm:text-base text-slate-700 leading-relaxed">
+                Puedes consultar, restringir o eliminar en cualquier momento las cookies almacenadas en tu dispositivo
+                desde la configuración de privacidad y seguridad de tu navegador:
+            </p>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-700">
+                <li class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <strong class="block text-slate-900 font-headline">Google Chrome</strong>
+                    <span class="text-xs sm:text-sm text-slate-600">Configuración → Privacidad y seguridad → Cookies de terceros / Datos de sitios.</span>
+                </li>
+                <li class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <strong class="block text-slate-900 font-headline">Mozilla Firefox</strong>
+                    <span class="text-xs sm:text-sm text-slate-600">Ajustes → Privacidad y seguridad → Cookies y datos del sitio.</span>
+                </li>
+                <li class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <strong class="block text-slate-900 font-headline">Apple Safari</strong>
+                    <span class="text-xs sm:text-sm text-slate-600">Ajustes / Preferencias → Privacidad → Gestionar datos de sitios web.</span>
+                </li>
+                <li class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <strong class="block text-slate-900 font-headline">Microsoft Edge</strong>
+                    <span class="text-xs sm:text-sm text-slate-600">Configuración → Cookies y permisos de sitio → Administrar y eliminar cookies.</span>
+                </li>
+            </ul>
+            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1">
+                Ten en cuenta que, al tratarse exclusivamente de cookies técnicas esenciales, bloquear o eliminar
+                las cookies de sesión y de seguridad CSRF detalladas en la tabla anterior impedirá mantener tu sesión
+                iniciada o enviar formularios por razones de seguridad.
+            </p>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-slate-200">
+            <h2 class="text-lg sm:text-xl font-headline font-extrabold text-slate-900">
+                5. Actualizaciones de este aviso
+            </h2>
+            <p class="text-sm sm:text-base text-slate-700 leading-relaxed">
+                Si en el futuro se incorporasen cookies no exentas (como analítica de uso o personalización avanzada),
+                este aviso se actualizaría con carácter previo y se solicitaría tu consentimiento explícito antes de
+                instalarlas conforme a la legislación vigente.
+            </p>
+        </div>
+    </article>
+</div>
+{% endblock %}

@@ -715,8 +715,144 @@ dialog::backdrop {
     .btn-accent,
     .btn-secondary,
     .btn-danger,
-    .btn-warning {
+    .btn-warning,
+    .cookie-banner-transition {
         transition: none !important;
         animation: none !important;
+    }
+}
+
+/* ===== Tabla responsiva del inventario de cookies ===== */
+.cookie-table-wrapper {
+    overflow: auto;
+    max-inline-size: 100%;
+    max-block-size: min(560px, 75dvh);
+    container-type: inline-size;
+}
+
+.cookie-inventory-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    --label-2: "Titular";
+    --label-3: "Categoría";
+    --label-4: "Finalidad";
+    --label-5: "Duración";
+}
+
+.cookie-inventory-table thead {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+    background-color: #f8fafc;
+}
+
+.cookie-inventory-table tbody th {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    background-color: #ffffff;
+    border-inline-end: 1px solid #f1f5f9;
+    min-inline-size: 11rem;
+    max-inline-size: 15rem;
+}
+
+@container (width < 640px) {
+    .cookie-inventory-table,
+    .cookie-inventory-table thead,
+    .cookie-inventory-table tbody,
+    .cookie-inventory-table tr,
+    .cookie-inventory-table th,
+    .cookie-inventory-table td {
+        display: block;
+    }
+
+    .cookie-inventory-table thead {
+        display: none;
+    }
+
+    .cookie-inventory-table tbody tr {
+        margin: 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.875rem;
+        overflow: hidden;
+        background-color: #ffffff;
+    }
+
+    .cookie-inventory-table tbody th {
+        position: sticky;
+        inset-block-start: 0;
+        inset-inline-start: auto;
+        z-index: 2;
+        background-color: #f8fafc;
+        border-inline-end: 0;
+        border-block-end: 1px solid #e2e8f0;
+        min-inline-size: 0;
+        max-inline-size: none;
+    }
+
+    .cookie-inventory-table tbody td {
+        border-block-end: 1px solid #f1f5f9;
+        padding-block: 0.65rem;
+    }
+
+    .cookie-inventory-table tbody td:last-child {
+        border-block-end: 0;
+    }
+
+    .cookie-inventory-table td:nth-child(2)::before {
+        content: var(--label-2) ": ";
+        display: block;
+        font-family: var(--font-headline);
+        font-size: 0.6875rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #475569;
+        margin-block-end: 0.25rem;
+    }
+
+    .cookie-inventory-table td:nth-child(3)::before {
+        content: var(--label-3) ": ";
+        display: block;
+        font-family: var(--font-headline);
+        font-size: 0.6875rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #475569;
+        margin-block-end: 0.25rem;
+    }
+
+    .cookie-inventory-table td:nth-child(4)::before {
+        content: var(--label-4) ": ";
+        display: block;
+        font-family: var(--font-headline);
+        font-size: 0.6875rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #475569;
+        margin-block-end: 0.25rem;
+    }
+
+    .cookie-inventory-table td:nth-child(5)::before {
+        content: var(--label-5) ": ";
+        display: block;
+        font-family: var(--font-headline);
+        font-size: 0.6875rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #475569;
+        margin-block-end: 0.25rem;
+    }
+}
+
+@media (forced-colors: active) {
+    #cookieNoticeBanner,
+    .cookie-table-wrapper,
+    .cookie-inventory-table tbody tr {
+        border: 1px solid CanvasText;
     }
 }
