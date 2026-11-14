@@ -1,16 +1,16 @@
 <div class="flex flex-col space-y-6 sm:space-y-8 trainer-theme animate-fade-in">
     <!-- Barra superior de acciones rápidas -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div class="min-w-0">
-            <h2 class="text-lg sm:text-xl font-headline font-extrabold text-slate-800 tracking-tight">Panel de Dirección Técnica</h2>
+        <div class="flex-1 w-full min-w-0">
+            <h2 class="text-balance-heading text-lg sm:text-xl font-headline font-extrabold text-slate-800 tracking-tight">Panel de Dirección Técnica</h2>
             <p class="text-sm text-slate-500 mt-0.5">Filtra por atleta, detecta alertas de fatiga o triage al instante y accede a su planificación en un clic.</p>
         </div>
         <div class="action-toolbar w-full lg:w-auto lg:justify-end">
-            <a href="{% url 'training:exercise_list' %}" class="btn-secondary w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm shrink-0">
+            <a href="{% url 'training:exercise_list' %}" class="btn-secondary w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm">
                 <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"></path></svg>
                 <span>Catálogo ({{ total_exercises|default:"0" }})</span>
             </a>
-            <a href="{% url 'training:plan_create' %}" class="btn-primary w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm shrink-0">
+            <a href="{% url 'training:plan_create' %}" class="btn-primary w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span>+ Asignar Nuevo Plan</span>
             </a>

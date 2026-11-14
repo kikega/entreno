@@ -15,8 +15,8 @@
 {% block content %}
 <div class="space-y-8">
     <!-- Cabecera del Macrociclo (Panel_Control) -->
-    <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-6 md:p-8 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
-        <div class="min-w-0 space-y-2">
+    <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 sm:p-6 md:p-8 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+        <div class="flex-1 w-full min-w-0 space-y-2">
             <div class="flex flex-wrap items-center gap-2">
                 <span class="text-xs font-headline font-bold tracking-widest text-primary uppercase bg-sky-50 px-3 py-1 rounded-full border border-sky-100">
                     PANEL DE CONTROL · SISTEMA AM V2.1
@@ -33,7 +33,7 @@
                     {% endif %}
                 {% endif %}
             </div>
-            <h2 class="text-2xl font-headline font-extrabold text-slate-900 break-words">{{ macrocycle.name }}</h2>
+            <h2 class="text-balance-heading text-2xl font-headline font-extrabold text-slate-900">{{ macrocycle.name }}</h2>
             <p class="text-sm text-slate-500">
                 Deportista: <strong class="text-slate-800">{{ macrocycle.athlete.user.display_name }}</strong>
                 {% if macrocycle.target_fight_date %}
@@ -44,20 +44,20 @@
             </p>
         </div>
 
-        <div class="action-toolbar w-full xl:w-auto xl:justify-end shrink-0">
+        <div class="action-toolbar w-full xl:w-auto xl:max-w-[55%] xl:justify-end">
             <a href="{% url 'training:athlete_detail' macrocycle.athlete.id %}" class="btn-secondary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm rounded-xl">
                 ← Volver al Expediente
             </a>
-            <a href="{% url 'training:am_visual_dashboard' macrocycle.athlete.id %}" class="w-full sm:w-auto min-h-[42px] px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-sm font-bold rounded-xl text-emerald-800 hover:bg-emerald-100 transition shadow-sm inline-flex items-center justify-center gap-1.5">
+            <a href="{% url 'training:am_visual_dashboard' macrocycle.athlete.id %}" class="w-full sm:w-auto min-h-[42px] px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-sm font-bold rounded-xl text-emerald-800 hover:bg-emerald-100 transition shadow-sm inline-flex items-center justify-center gap-1.5 text-center">
                 <span>📊 Dashboard Visual & Histórico</span>
             </a>
-            <a href="{% url 'training:trainer_mma_triage' macrocycle.athlete.id %}" class="w-full sm:w-auto min-h-[42px] px-4 py-2.5 bg-slate-900 border border-slate-700 text-sm font-bold rounded-xl text-white hover:bg-slate-800 transition shadow-sm inline-flex items-center justify-center gap-1.5">
+            <a href="{% url 'training:trainer_mma_triage' macrocycle.athlete.id %}" class="w-full sm:w-auto min-h-[42px] px-4 py-2.5 bg-slate-900 border border-slate-700 text-sm font-bold rounded-xl text-white hover:bg-slate-800 transition shadow-sm inline-flex items-center justify-center gap-1.5 text-center">
                 <span>Triage Clínico AM</span>
             </a>
             <form method="post" action="{% url 'training:macrocycle_generate' macrocycle.athlete.id %}" class="m-0 w-full sm:w-auto">
                 {% csrf_token %}
                 <button type="submit"
-                        class="btn-primary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm rounded-xl"
+                        class="btn-primary w-full sm:w-auto min-h-[42px] px-4 py-2.5 text-sm rounded-xl whitespace-normal text-center"
                         {% if mma_triage and not mma_triage.approved_for_generation %}title="Activa primero el Cerrojo Manual en Triage Clínico AM"{% endif %}>
                     ⚡ Generar / Recalcular Macrociclo (8 Módulos + {% if llm_enabled %}LLM + ML{% else %}ML{% endif %})
                 </button>
@@ -190,7 +190,7 @@
     <!-- Matriz de Mesociclo del Bloque Seleccionado -->
     <section aria-labelledby="active-matrix-heading" class="bg-white shadow-sm rounded-2xl border border-slate-200 overflow-hidden">
         <div class="p-5 sm:p-6 border-b border-slate-200 bg-slate-50/60 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div class="space-y-1">
+            <div class="flex-1 w-full min-w-0 space-y-1">
                 <div class="flex flex-wrap items-center gap-2">
                     <h3 id="active-matrix-heading" class="text-lg font-headline font-extrabold text-slate-900">
                         {{ selected_block.title }}
@@ -212,7 +212,7 @@
                 {% endif %}
             </div>
 
-            <div class="action-toolbar shrink-0">
+            <div class="action-toolbar w-full lg:w-auto lg:justify-end">
                 <button type="button"
                         onclick="openAmModal('configBlockModal')"
                         class="btn-secondary w-full sm:w-auto min-h-[40px] px-4 py-2 text-xs font-semibold rounded-xl">

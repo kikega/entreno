@@ -27,14 +27,14 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
-                <div class="sm:col-span-1 lg:col-span-2">
+                <div class="sm:col-span-1 lg:col-span-2 min-w-0">
                     <label for="edit-cat-filter-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
                         Categoría (Filtro)
                     </label>
                     <select id="edit-cat-filter-{{ exercise.id }}"
                             name="category_filter"
                             onchange="if (typeof filterExerciseSelectByCategory === 'function') filterExerciseSelectByCategory('edit-ex-select-{{ exercise.id }}', this.value)"
-                            class="block w-full rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                            class="block w-full max-w-full min-w-0 rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
                         <option value="">Todas las categorías</option>
                         {% for cat_val, cat_label in exercise_categories %}
                             <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_label }}</option>
@@ -42,13 +42,13 @@
                     </select>
                 </div>
 
-                <div class="sm:col-span-1 lg:col-span-3">
+                <div class="sm:col-span-1 lg:col-span-3 min-w-0">
                     <label for="edit-ex-select-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
                         Ejercicio del catálogo
                     </label>
                     <select id="edit-ex-select-{{ exercise.id }}"
                             name="exercise"
-                            class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                            class="block w-full max-w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
                         {% for ex in catalog_exercises %}
                             <option value="{{ ex.id }}" data-category="{{ ex.category }}" data-session-block="{{ ex.session_block }}" {% if ex.id == exercise.exercise_id %}selected{% endif %}>
                                 {% if ex.code %}[{{ ex.code }}] {% endif %}{{ ex.name }}{% if ex.session_block %} ({{ ex.get_session_block_display }}){% endif %}
@@ -57,13 +57,13 @@
                     </select>
                 </div>
 
-                <div class="lg:col-span-2">
+                <div class="lg:col-span-2 min-w-0">
                     <label for="edit-block-{{ exercise.id }}" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
                         Bloque (B1-B5)
                     </label>
                     <select id="edit-block-{{ exercise.id }}"
                             name="session_block"
-                            class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
+                            class="block w-full max-w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-primary focus:outline-none">
                         <option value="">Automático</option>
                         {% for val, label in session_block_choices %}
                             <option value="{{ val }}" {% if exercise.session_block == val %}selected{% endif %}>{{ label }}</option>

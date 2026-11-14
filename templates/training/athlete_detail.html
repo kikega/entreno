@@ -14,7 +14,7 @@
 <div class="flex flex-col space-y-6 sm:space-y-8 animate-fade-in">
     <!-- Cabecera del Expediente -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-        <div class="flex items-center gap-4 min-w-0">
+        <div class="flex items-center gap-4 flex-1 w-full min-w-0">
             {% if athlete.user.has_profile_picture %}
                 <img src="{{ athlete.user.profile_picture.url }}" alt="{{ athlete.user.display_name }}" class="h-16 w-16 rounded-2xl object-cover border border-sky-200 shrink-0 shadow-sm">
             {% else %}
@@ -43,7 +43,7 @@
         </div>
 
         <!-- Barra de acciones ordenada -->
-        <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+        <div class="action-toolbar w-full lg:w-auto lg:justify-end">
             <a href="{% url 'training:plan_create' %}?athlete={{ athlete.id }}"
                class="btn-primary min-h-[42px] px-4 py-2.5 rounded-xl text-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>

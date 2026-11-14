@@ -6,12 +6,12 @@
 <div class="space-y-6 athlete-theme">
     <!-- Cabecera Entrenamiento Activo -->
     <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-6 md:p-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
-        <div class="space-y-2 min-w-0">
+        <div class="space-y-2 flex-1 w-full min-w-0">
             <span class="text-xs font-headline font-bold tracking-widest text-accent uppercase bg-sky-50 px-3 py-1 rounded-full border border-sky-100">
                 ENTRENAMIENTO ACTIVO · SISTEMA AM
             </span>
             {% if selected_block %}
-                <h2 class="text-2xl font-headline font-extrabold text-slate-900 break-words">{{ selected_block.title }}</h2>
+                <h2 class="text-balance-heading text-2xl font-headline font-extrabold text-slate-900">{{ selected_block.title }}</h2>
                 <p class="text-sm text-slate-500">
                     Fase actual: <strong class="text-slate-800">{{ selected_block.get_phase_type_display }}</strong>
                     {% if selected_block.subphase != 'none' %}
@@ -20,12 +20,12 @@
                     · Mesociclo de <strong>{{ selected_block.weeks_count }} semanas</strong>
                 </p>
             {% else %}
-                <h2 class="text-2xl font-headline font-extrabold text-slate-900">Sin bloque publicado todavía</h2>
+                <h2 class="text-balance-heading text-2xl font-headline font-extrabold text-slate-900">Sin bloque publicado todavía</h2>
                 <p class="text-sm text-slate-500">Tu entrenador está auditando tu próximo bloque antes de activarlo aquí.</p>
             {% endif %}
         </div>
 
-        <div class="action-toolbar w-full lg:w-auto lg:justify-end shrink-0">
+        <div class="action-toolbar w-full lg:w-auto lg:justify-end">
             <a href="{% url 'training:my_am_visual_dashboard' %}" class="w-full sm:w-auto min-h-[42px] px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-sm font-bold rounded-xl text-emerald-800 hover:bg-emerald-100 transition shadow-sm inline-flex items-center justify-center gap-1.5">
                 <span>📊 Mi Dashboard & Registro Histórico</span>
             </a>
