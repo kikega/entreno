@@ -1,279 +1,561 @@
-{% comment %} Panel de contexto entrenador: se renderiza dentro del espacio unificado (home.html) {% endcomment %}
 <div class="flex flex-col space-y-6 sm:space-y-8 trainer-theme animate-fade-in">
-    <!-- Acciones principales -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <!-- Barra superior de acciones rápidas -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div class="min-w-0">
-            <h2 class="text-lg sm:text-xl font-headline font-extrabold text-slate-800 tracking-tight">Gestión y planificación</h2>
-            <p class="text-sm text-slate-500 mt-0.5">Supervisa la carga de tus deportistas (ACWR) y genera planes asistidos por ML.</p>
+            <h2 class="text-lg sm:text-xl font-headline font-extrabold text-slate-800 tracking-tight">Panel de Dirección Técnica</h2>
+            <p class="text-sm text-slate-500 mt-0.5">Filtra por atleta, detecta alertas de fatiga o triage al instante y accede a su planificación en un clic.</p>
         </div>
-        <a href="{% url 'training:plan_create' %}" class="btn-primary w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm shrink-0">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-            <span>Planificar manualmente</span>
-        </a>
+        <div class="action-toolbar w-full lg:w-auto lg:justify-end">
+            <a href="{% url 'training:exercise_list' %}" class="btn-secondary w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm shrink-0">
+                <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"></path></svg>
+                <span>Catálogo ({{ total_exercises|default:"0" }})</span>
+            </a>
+            <a href="{% url 'training:plan_create' %}" class="btn-primary w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>+ Asignar Nuevo Plan</span>
+            </a>
+        </div>
     </div>
 
-    <!-- Widgets de Estadísticas -->
-    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+    <!-- KPI Cards -->
+    <dl class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
         <div class="relative bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between transition hover:shadow-md overflow-hidden">
-            <span class="absolute top-0 inset-x-0 h-1 bg-sky-500/80"></span>
+            <span class="absolute top-0 inset-x-0 h-1 bg-primary/80"></span>
             <div class="flex items-start justify-between gap-3">
                 <dt class="text-[11px] font-headline font-bold text-slate-400 uppercase tracking-wider leading-snug">Deportistas Activos</dt>
                 <div class="w-10 h-10 bg-sky-50 text-primary rounded-xl border border-sky-100 flex items-center justify-center shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 </div>
             </div>
             <dd class="text-2xl sm:text-3xl font-headline font-extrabold text-slate-900 tabular-nums tracking-tight mt-3">{{ total_athletes|default:"0" }}</dd>
-            <dd class="mt-2 pt-2.5 border-t border-slate-100 text-xs text-slate-400">Asignados a tu gestión</dd>
+            <dd class="mt-2 pt-2.5 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between gap-2">
+                <span>Sin sesión pendiente</span>
+                <span class="font-bold {% if athletes_without_pending_count %}text-amber-700{% else %}text-emerald-700{% endif %} tabular-nums">{{ athletes_without_pending_count|default:"0" }}</span>
+            </dd>
         </div>
 
         <div class="relative bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between transition hover:shadow-md overflow-hidden">
-            <span class="absolute top-0 inset-x-0 h-1 bg-sky-500/80"></span>
+            <span class="absolute top-0 inset-x-0 h-1 bg-indigo-500/80"></span>
             <div class="flex items-start justify-between gap-3">
                 <dt class="text-[11px] font-headline font-bold text-slate-400 uppercase tracking-wider leading-snug">Planes Creados</dt>
-                <div class="w-10 h-10 bg-sky-50 text-accent rounded-xl border border-sky-100 flex items-center justify-center shrink-0">
+                <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100 flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                 </div>
             </div>
             <dd class="text-2xl sm:text-3xl font-headline font-extrabold text-slate-900 tabular-nums tracking-tight mt-3">{{ total_plans|default:"0" }}</dd>
-            <dd class="mt-2 pt-2.5 border-t border-slate-100 text-xs text-slate-400">Total históricos</dd>
+            <dd class="mt-2 pt-2.5 border-t border-slate-100 text-xs flex items-center justify-between gap-2">
+                <span class="text-slate-400">Sesiones y bloques</span>
+                <a href="{% url 'training:plan_create' %}" class="font-bold text-primary hover:underline">+ Nuevo</a>
+            </dd>
         </div>
 
-        <div class="relative bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between transition hover:shadow-md overflow-hidden">
-            <span class="absolute top-0 inset-x-0 h-1 bg-amber-500/80"></span>
+        <a href="{% url 'training:exercise_list' %}" class="group relative bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between transition hover:shadow-md hover:border-sky-300 overflow-hidden">
+            <span class="absolute top-0 inset-x-0 h-1 bg-sky-400/80"></span>
             <div class="flex items-start justify-between gap-3">
                 <dt class="text-[11px] font-headline font-bold text-slate-400 uppercase tracking-wider leading-snug">Ejercicios en Catálogo</dt>
-                <div class="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl border border-amber-100 flex items-center justify-center shrink-0">
+                <div class="w-10 h-10 bg-sky-50 text-accent rounded-xl border border-sky-100 flex items-center justify-center shrink-0 group-hover:bg-sky-100 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                 </div>
             </div>
             <dd class="text-2xl sm:text-3xl font-headline font-extrabold text-slate-900 tabular-nums tracking-tight mt-3">{{ total_exercises|default:"0" }}</dd>
             <dd class="mt-2 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
-                <span class="text-slate-400">Disponibles para tus planes</span>
-                <a href="{% url 'training:exercise_list' %}" class="inline-flex items-center gap-1 font-bold text-primary hover:text-sky-700 transition shrink-0">
-                    Gestionar
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </a>
+                <span class="text-slate-400">Guías AM y vídeos</span>
+                <span class="font-bold text-primary group-hover:text-sky-700 inline-flex items-center gap-1">Explorar →</span>
             </dd>
-        </div>
+        </a>
+
+        <button type="button" data-quick-filter="attention"
+                class="text-left group relative bg-white p-5 rounded-2xl border {% if pending_triage_count or unread_notifications_count %}border-amber-200 bg-amber-50/30{% else %}border-slate-200/80{% endif %} shadow-sm flex flex-col justify-between transition hover:shadow-md overflow-hidden cursor-pointer">
+            <span class="absolute top-0 inset-x-0 h-1 {% if pending_triage_count or unread_notifications_count %}bg-amber-500{% else %}bg-emerald-500{% endif %}"></span>
+            <div class="flex items-start justify-between gap-3 w-full">
+                <span class="text-[11px] font-headline font-bold text-slate-400 uppercase tracking-wider leading-snug">Requieren Atención</span>
+                <div class="w-10 h-10 {% if pending_triage_count or unread_notifications_count %}bg-amber-100 text-amber-700 border-amber-200{% else %}bg-emerald-50 text-emerald-600 border-emerald-100{% endif %} rounded-xl border flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86l-7.5 13A1 1 0 003.65 18h16.7a1 1 0 00.86-1.5l-7.5-13a1 1 0 00-1.72 0z"></path></svg>
+                </div>
+            </div>
+            <dd class="text-2xl sm:text-3xl font-headline font-extrabold text-slate-900 tabular-nums tracking-tight mt-3">
+                {{ pending_triage_count|default:"0" }} <span class="text-xs font-bold text-slate-500 font-sans">triages</span>
+            </dd>
+            <dd class="mt-2 pt-2.5 border-t border-slate-200/60 w-full flex items-center justify-between gap-2 text-xs">
+                <span class="text-slate-500">{{ unread_notifications_count|default:"0" }} alertas activas</span>
+                <span class="font-bold text-primary group-hover:underline">Filtrar lista</span>
+            </dd>
+        </button>
     </dl>
 
-    <!-- Alertas operativas Sistema AM -->
+    <!-- Bandeja de Alertas Operativas -->
     {% if unread_notifications %}
-        <section aria-labelledby="am-alerts-title" class="bg-white shadow-sm rounded-2xl border border-amber-200 overflow-hidden">
-            <div class="px-5 sm:px-6 py-4 border-b border-amber-100 bg-amber-50 flex items-center justify-between gap-3">
-                <h3 id="am-alerts-title" class="text-base font-headline font-bold text-amber-900">
-                    <span aria-hidden="true">🔔</span> Alertas pendientes ({{ unread_notifications|length }})
-                </h3>
-                {% if pending_triage_count %}
-                    <span class="text-xs font-bold text-amber-800">{{ pending_triage_count }} ficha{{ pending_triage_count|pluralize }} MMA por revisar</span>
-                {% endif %}
+        <div id="trainer-notifications-box" class="bg-amber-50/90 border border-amber-200 rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-amber-200/70 text-amber-900 text-sm shrink-0" aria-hidden="true">🔔</span>
+                    <div>
+                        <h3 class="text-sm font-headline font-bold text-amber-950">
+                            Alertas operativas sin leer ({{ unread_notifications_count|default:unread_notifications|length }})
+                        </h3>
+                        <p class="text-[11px] text-amber-800">Actualizaciones de triage, molestias articulares o fatiga comunicadas por tus deportistas.</p>
+                    </div>
+                </div>
+                <form method="post" action="{% url 'training:mark_all_notifications_read' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="min-h-[34px] px-3 py-1.5 rounded-lg border border-amber-300 bg-white text-xs font-bold text-amber-900 hover:bg-amber-100 transition cursor-pointer">
+                        Marcar todas como leídas
+                    </button>
+                </form>
             </div>
-            <ul class="divide-y divide-slate-100">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 {% for notif in unread_notifications %}
-                    <li id="notif-{{ notif.pk }}" class="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div id="notif-{{ notif.pk }}" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-amber-200/90 rounded-xl px-4 py-3 shadow-xs">
                         <div class="min-w-0">
-                            <p class="text-sm font-semibold text-slate-800">{{ notif.message }}</p>
-                            <p class="text-xs text-slate-400 mt-0.5">{{ notif.get_event_type_display }} · {{ notif.created_at|date:"d M Y H:i" }}</p>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-headline font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-900">
+                                    {{ notif.get_event_type_display }}
+                                </span>
+                                <span class="text-[11px] text-slate-400 tabular-nums">{{ notif.created_at|date:"d/m H:i" }}</span>
+                            </div>
+                            <p class="text-xs sm:text-sm font-semibold text-slate-800 mt-1 break-words">{{ notif.message }}</p>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2 shrink-0">
+                        <div class="flex items-center gap-2 shrink-0">
                             {% if notif.event_type == 'triage_updated' %}
-                                <a href="{% url 'training:trainer_mma_triage' notif.athlete_id %}" class="btn-primary min-h-[36px] px-3.5 py-2 rounded-xl text-xs">Revisar ficha</a>
+                                <a href="{% url 'training:trainer_mma_triage' notif.athlete_id %}" class="btn-primary min-h-[34px] px-3 py-1.5 rounded-lg text-xs">Revisar ficha</a>
+                            {% else %}
+                                <a href="{% url 'training:athlete_detail' notif.athlete_id %}" class="btn-primary min-h-[34px] px-3 py-1.5 rounded-lg text-xs">Ver expediente</a>
                             {% endif %}
                             <form method="post" action="{% url 'training:mark_notification_read' notif.pk %}" hx-post="{% url 'training:mark_notification_read' notif.pk %}" hx-target="#notif-{{ notif.pk }}" hx-swap="outerHTML" class="m-0 inline-flex">
                                 {% csrf_token %}
-                                <button type="submit" class="btn-secondary min-h-[36px] px-3.5 py-2 rounded-xl text-xs">Marcar leída</button>
+                                <button type="submit" class="btn-secondary min-h-[34px] px-3 py-1.5 rounded-lg text-xs" title="Descartar aviso">Leída</button>
                             </form>
                         </div>
-                    </li>
+                    </div>
                 {% endfor %}
-            </ul>
-        </section>
+            </div>
+        </div>
     {% endif %}
 
-    <!-- Grid de Deportistas y Actividad Reciente -->
+    <!-- Sección Principal -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
-        <!-- Listado de Deportistas con métricas de rendimiento -->
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 col-span-1 lg:col-span-2 overflow-hidden min-w-0">
-            <div class="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/60 flex flex-wrap justify-between items-center gap-2">
-                <h3 class="text-base sm:text-lg font-headline font-bold text-slate-800">Deportistas Asignados & Métricas</h3>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-sky-50 border border-sky-200/80 text-xs font-semibold text-sky-800 tabular-nums">{{ total_athletes|default:"0" }} activo{{ total_athletes|pluralize }}</span>
-            </div>
-            {% if athletes_metrics %}
-                <ul class="divide-y divide-slate-100">
-                    {% for item in athletes_metrics %}
-                        {% with athlete=item.athlete m=item.metrics %}
-                        <li class="px-5 sm:px-6 py-5 flex flex-col gap-4 hover:bg-slate-50/50 transition">
-                            <div class="flex items-start gap-4 min-w-0">
-                                {% if athlete.user.profile_picture %}
-                                    <img src="{{ athlete.user.profile_picture.url }}" alt="{{ athlete.user.display_name }}" class="flex-shrink-0 h-12 w-12 rounded-xl object-cover border border-sky-200 shadow-sm">
-                                {% else %}
-                                    <div class="flex-shrink-0 h-12 w-12 bg-sky-100 text-sky-600 rounded-xl flex items-center justify-center border border-sky-200" title="Usuario">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                        </svg>
-                                    </div>
-                                {% endif %}
-                                <div class="space-y-1 min-w-0 flex-1">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <h4 class="text-sm sm:text-base font-bold text-slate-800 truncate max-w-full">{{ athlete.user.display_name }}</h4>
-                                        <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-700 leading-snug">
-                                            {{ m.sport }}
-                                        </span>
-                                    </div>
-                                    <p class="text-xs text-slate-400 truncate" title="{{ athlete.user.email }}">{{ athlete.user.email }} · Nivel: {{ m.experience_level }}</p>
+        <!-- Columna Izquierda (2/3): Cartera de Deportistas con Búsqueda y Filtros -->
+        <div class="lg:col-span-2 bg-white shadow-sm rounded-2xl border border-slate-200 overflow-hidden min-w-0">
+            <div class="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/70 space-y-3.5">
+                <div class="flex flex-wrap justify-between items-center gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <h3 class="text-base sm:text-lg font-headline font-bold text-slate-800">Mis Deportistas</h3>
+                        <span id="athlete-filter-counter" class="text-xs font-bold text-slate-500 bg-white px-2.5 py-0.5 rounded-full border border-slate-200 tabular-nums">
+                            {{ athletes_metrics|length }} asignados
+                        </span>
+                    </div>
+                    <button type="button" id="trainer-clear-filters" class="hidden text-xs font-bold text-primary hover:underline cursor-pointer">
+                        Limpiar filtros
+                    </button>
+                </div>
 
-                                    <!-- Status ACWR de Lesiones/Carga -->
-                                    <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                                        <span class="font-medium text-slate-500">Estado ACWR:</span>
-                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold leading-snug max-w-full
-                                            {% if m.acwr.status_color == 'emerald' %}bg-emerald-100 text-emerald-800
-                                            {% elif m.acwr.status_color == 'amber' %}bg-amber-100 text-amber-800
-                                            {% elif m.acwr.status_color == 'orange' %}bg-orange-100 text-orange-800
-                                            {% else %}bg-rose-100 text-rose-800{% endif %}">
-                                            <span class="tabular-nums shrink-0">{{ m.acwr.acwr_ratio }}</span>
-                                            <span class="opacity-40" aria-hidden="true">·</span>
-                                            <span class="truncate">{{ m.acwr.status_label }}</span>
-                                        </span>
-                                    </div>
-                                    {% if item.mma_triage %}
-                                        <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                                            <span class="font-medium text-slate-500">Ficha MMA:</span>
-                                            {% if item.mma_triage.review_status == 'aprobado' %}
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800">✔ Aprobada</span>
-                                            {% elif item.mma_triage.review_status == 'pendiente_revision' %}
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">⏳ Pendiente de revisión</span>
-                                            {% else %}
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600">Borrador</span>
-                                            {% endif %}
+                {% if athletes_metrics %}
+                    <!-- Buscador + Select deporte -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <div class="sm:col-span-2 relative">
+                            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <input id="trainer-athlete-search" type="search" autocomplete="off"
+                                   placeholder="Buscar deportista por nombre, email o disciplina..."
+                                   aria-label="Buscar deportista por nombre, email o disciplina"
+                                   class="w-full min-h-[40px] pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+                        </div>
+                        <select id="trainer-sport-filter" aria-label="Filtrar por deporte"
+                                class="w-full min-h-[40px] px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 bg-white text-slate-700 font-medium">
+                            <option value="">Todas las disciplinas</option>
+                            {% for sp in sports_filter_options %}
+                                <option value="{{ sp.value }}">{{ sp.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Chips rápidos -->
+                    <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtros rápidos de deportistas">
+                        <button type="button" data-filter-chip="all" aria-pressed="true"
+                                class="trainer-filter-chip px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white transition cursor-pointer">
+                            Todos ({{ athletes_metrics|length }})
+                        </button>
+                        <button type="button" data-filter-chip="triage_pending" aria-pressed="false"
+                                class="trainer-filter-chip px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50 transition cursor-pointer">
+                            Triage pendiente ({{ pending_triage_count|default:"0" }})
+                        </button>
+                        <button type="button" data-filter-chip="no_pending_plan" aria-pressed="false"
+                                class="trainer-filter-chip px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-sky-300 hover:bg-sky-50 transition cursor-pointer">
+                            Sin plan pendiente ({{ athletes_without_pending_count|default:"0" }})
+                        </button>
+                        <button type="button" data-filter-chip="acwr_risk" aria-pressed="false"
+                                class="trainer-filter-chip px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-rose-300 hover:bg-rose-50 transition cursor-pointer">
+                            Riesgo / Precaución ACWR
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if athletes_metrics %}
+                <div id="trainer-athletes-list" class="divide-y divide-slate-100">
+                    {% for item in athletes_metrics %}
+                        {% with athlete=item.athlete metrics=item.metrics %}
+                        <article class="trainer-athlete-card p-5 sm:p-6 hover:bg-slate-50/70 transition flex flex-col gap-4"
+                                 data-name="{{ athlete.user.display_name|lower }} {{ athlete.user.email|lower }} {{ item.sport_label|lower }}"
+                                 data-sport="{{ item.sport_code }}"
+                                 data-acwr="{{ metrics.acwr.status_color|default:'amber' }}"
+                                 data-triage-pending="{% if item.mma_triage and item.mma_triage.review_status == 'pendiente_revision' %}1{% else %}0{% endif %}"
+                                 data-no-plan="{% if item.pending_plans_count == 0 %}1{% else %}0{% endif %}">
+
+                            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                                <!-- Identidad clickable directa al expediente -->
+                                <a href="{% url 'training:athlete_detail' athlete.id %}" class="flex items-start gap-3.5 min-w-0 group">
+                                    {% if athlete.user.has_profile_picture %}
+                                        <img src="{{ athlete.user.profile_picture.url }}" alt="{{ athlete.user.display_name }}" class="shrink-0 h-12 w-12 rounded-xl object-cover border border-sky-200 shadow-xs">
+                                    {% else %}
+                                        <div class="shrink-0 h-12 w-12 rounded-xl bg-gradient-to-br from-sky-50 to-sky-100 flex items-center justify-center text-primary font-headline font-bold text-lg border border-sky-200 shadow-xs group-hover:border-primary/40 transition">
+                                            {{ athlete.user.first_name|first|default:athlete.user.email|first|upper }}
                                         </div>
                                     {% endif %}
-                                </div>
-                            </div>
 
-                            <div class="action-toolbar sm:pl-16">
-                                <form action="{% url 'training:generate_smart_plan' athlete.id %}" method="POST" class="m-0 inline-flex">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn-primary min-h-[38px] px-3.5 py-2 text-xs rounded-xl">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                        <span>Borrador ML {{ athlete.get_sport_display }}</span>
-                                    </button>
-                                </form>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="font-headline font-bold text-base text-slate-900 group-hover:text-primary transition truncate">
+                                                {{ athlete.user.display_name }}
+                                            </span>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-600">
+                                                {{ item.sport_label }}
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-slate-500 mt-0.5 truncate">
+                                            {{ athlete.get_experience_level_display }} · {{ athlete.user.email }}
+                                        </p>
 
-                                <a href="{% url 'training:athlete_detail' athlete.id %}" class="btn-secondary min-h-[38px] px-3.5 py-2 text-xs rounded-xl">
-                                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"></path></svg>
-                                    <span>Expediente</span>
+                                        <!-- Tira rápida de estado clínico y planificación -->
+                                        <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
+                                            <!-- ACWR -->
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold
+                                                {% if metrics.acwr.status_color == 'emerald' %}bg-emerald-50 text-emerald-800 border border-emerald-200
+                                                {% elif metrics.acwr.status_color == 'amber' %}bg-amber-50 text-amber-800 border border-amber-200
+                                                {% elif metrics.acwr.status_color == 'orange' %}bg-orange-50 text-orange-800 border border-orange-200
+                                                {% else %}bg-rose-50 text-rose-800 border border-rose-200{% endif %}"
+                                                title="Ratio Carga Aguda/Crónica">
+                                                <span class="w-1.5 h-1.5 rounded-full
+                                                    {% if metrics.acwr.status_color == 'emerald' %}bg-emerald-500
+                                                    {% elif metrics.acwr.status_color == 'amber' %}bg-amber-500
+                                                    {% elif metrics.acwr.status_color == 'orange' %}bg-orange-500
+                                                    {% else %}bg-rose-500{% endif %}"></span>
+                                                ACWR {{ metrics.acwr.acwr_ratio|floatformat:2 }}
+                                            </span>
+
+                                            <!-- Estado Triage -->
+                                            {% if item.mma_triage %}
+                                                {% if item.mma_triage.review_status == 'pendiente_revision' %}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                                        ⏳ Triage pendiente
+                                                    </span>
+                                                {% else %}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                        ✓ Triage aprobado
+                                                    </span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500">
+                                                    Sin triage MMA
+                                                </span>
+                                            {% endif %}
+
+                                            <!-- Macrociclo -->
+                                            {% if item.active_macrocycle %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                                    Macrociclo activo
+                                                </span>
+                                            {% endif %}
+
+                                            <!-- Próximo plan -->
+                                            {% if item.next_plan %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-800 border border-sky-200">
+                                                    Próximo: {{ item.next_plan.target_date|date:"d M" }} ({{ item.pending_plans_count }} pend.)
+                                                </span>
+                                            {% else %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                                                    Sin sesiones pendientes
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 </a>
 
-                                {% if athlete.sport == 'mma' or item.mma_triage %}
-                                    <a href="{% url 'training:trainer_mma_triage' athlete.id %}" class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 border border-slate-700 text-xs font-bold rounded-xl text-white bg-slate-900 hover:bg-slate-800 transition shadow-sm">
-                                        <svg class="w-3.5 h-3.5 text-sky-400 shrink-0 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                                        <span>Triage AM</span>
+                                <!-- Barra limpia de acciones (máximo 3 visibles + Popover) -->
+                                <div class="flex flex-wrap items-center gap-2 shrink-0 pt-1">
+                                    <a href="{% url 'training:athlete_detail' athlete.id %}"
+                                       class="btn-primary min-h-[38px] px-3.5 py-2 text-xs rounded-xl">
+                                        Expediente
                                     </a>
-                                    {% if item.active_macrocycle %}
-                                        <a href="{% url 'training:macrocycle_control' item.active_macrocycle.id %}" class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-xs font-bold rounded-xl text-indigo-800 hover:bg-indigo-100 transition shadow-sm">
-                                            <span>Macrociclo</span>
+
+                                    {% if item.mma_triage and item.mma_triage.review_status == 'pendiente_revision' %}
+                                        <a href="{% url 'training:trainer_mma_triage' athlete.id %}"
+                                           class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition">
+                                            Revisar Triage
+                                        </a>
+                                    {% elif item.active_macrocycle %}
+                                        <a href="{% url 'training:macrocycle_control' item.active_macrocycle.id %}"
+                                           class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-xs font-bold rounded-xl text-indigo-800 hover:bg-indigo-100 transition">
+                                            Macrociclo
                                         </a>
                                     {% else %}
-                                        <form method="post" action="{% url 'training:macrocycle_init' athlete.id %}" class="m-0 inline-flex">
+                                        <a href="{% url 'training:plan_create' %}?athlete={{ athlete.id }}"
+                                           class="btn-secondary min-h-[38px] px-3.5 py-2 text-xs rounded-xl">
+                                            + Plan
+                                        </a>
+                                    {% endif %}
+
+                                    <button type="button"
+                                            commandfor="athlete-actions-{{ athlete.id }}"
+                                            command="toggle-popover"
+                                            aria-label="Más acciones para {{ athlete.user.display_name }}"
+                                            class="btn-secondary min-h-[38px] px-2.5 py-2 text-xs rounded-xl">
+                                        <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"></path></svg>
+                                        <span>Más</span>
+                                    </button>
+                                    <div id="athlete-actions-{{ athlete.id }}" popover="auto" class="action-popover">
+                                        <a href="{% url 'training:plan_create' %}?athlete={{ athlete.id }}" class="action-popover-item">
+                                            <span>📋 Asignar plan manual</span>
+                                        </a>
+                                        <form action="{% url 'training:generate_smart_plan' athlete.id %}" method="POST" class="m-0">
                                             {% csrf_token %}
-                                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-xs font-bold rounded-xl text-indigo-800 hover:bg-indigo-100 transition shadow-sm cursor-pointer">
-                                                <span>+ Macrociclo</span>
+                                            <button type="submit" class="action-popover-item">
+                                                <span>⚡ Sugerencia inteligente</span>
                                             </button>
                                         </form>
-                                    {% endif %}
-                                {% endif %}
-
-                                <a href="{% url 'training:trainer_athlete_edit' athlete.id %}" class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 bg-sky-50 border border-sky-200 text-xs font-bold rounded-xl text-sky-700 hover:bg-sky-100 transition shadow-sm" title="Editar deportista">
-                                    <svg class="w-3.5 h-3.5 shrink-0 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                    <span>Editar</span>
-                                </a>
-
-                                <a href="{% url 'training:trainer_athlete_delete' athlete.id %}" class="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-2 bg-amber-50 border border-amber-200 text-xs font-bold rounded-xl text-amber-700 hover:bg-amber-100 transition shadow-sm" title="Desasignar deportista">
-                                    <svg class="w-3.5 h-3.5 shrink-0 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"></path></svg>
-                                    <span>Desasignar</span>
-                                </a>
+                                        {% if item.active_macrocycle %}
+                                            <a href="{% url 'training:macrocycle_control' item.active_macrocycle.id %}" class="action-popover-item">
+                                                <span>📆 Control Macrociclo AM</span>
+                                            </a>
+                                        {% else %}
+                                            <form method="post" action="{% url 'training:macrocycle_init' athlete.id %}" class="m-0">
+                                                {% csrf_token %}
+                                                <button type="submit" class="action-popover-item">
+                                                    <span>📆 Iniciar Macrociclo AM</span>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        <a href="{% url 'training:trainer_mma_triage' athlete.id %}" class="action-popover-item">
+                                            <span>🩺 Triage Clínico AM</span>
+                                        </a>
+                                        <a href="{% url 'training:am_visual_dashboard' athlete.id %}" class="action-popover-item">
+                                            <span>📊 Dashboard Visual e Histórico</span>
+                                        </a>
+                                        <div class="my-1 border-t border-slate-100"></div>
+                                        <a href="{% url 'training:trainer_athlete_edit' athlete.id %}" class="action-popover-item">
+                                            <span>✏️ Editar Perfil Deportivo</span>
+                                        </a>
+                                        <a href="{% url 'training:trainer_athlete_delete' athlete.id %}" class="action-popover-item action-popover-item-danger">
+                                            <span>Desasignar Deportista</span>
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
-                        </li>
+                        </article>
                         {% endwith %}
                     {% endfor %}
-                </ul>
+                </div>
+
+                <!-- Estado vacío al filtrar en cliente -->
+                <div id="trainer-athlete-empty-filter" class="hidden p-10 text-center text-slate-500">
+                    <p class="font-bold text-slate-700 text-sm">Ningún deportista coincide con el filtro actual.</p>
+                    <p class="text-xs text-slate-400 mt-1">Prueba otro término de búsqueda o restablece los filtros.</p>
+                    <button type="button" id="trainer-reset-empty-btn" class="mt-4 btn-secondary px-4 py-2 text-xs rounded-xl">
+                        Mostrar todos los deportistas
+                    </button>
+                </div>
             {% else %}
-                <div class="p-12 text-center text-slate-400 text-base">
-                    <svg class="mx-auto h-16 w-16 text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path></svg>
-                    <p class="font-semibold text-slate-600">Aún no tienes deportistas asignados.</p>
-                    <p class="text-sm mt-1 max-w-sm mx-auto">Cuando un deportista te seleccione como su entrenador y confirmes la asignación, aparecerá aquí con sus métricas.</p>
+                <div class="p-10 sm:p-12 text-center text-slate-400">
+                    <svg class="mx-auto h-12 w-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <p class="font-semibold text-slate-600 text-sm sm:text-base">Aún no tienes deportistas asignados.</p>
+                    <p class="text-xs sm:text-sm mt-1">Mientras tanto, puedes preparar tu biblioteca de ejercicios y plantillas.</p>
                     <a href="{% url 'training:exercise_list' %}" class="mt-5 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 text-primary text-sm font-bold border border-sky-100 hover:bg-sky-100 transition">
-                        Prepara tu catálogo de ejercicios mientras tanto
+                        Explorar catálogo de ejercicios
                     </a>
                 </div>
             {% endif %}
         </div>
 
-        <!-- Panel de Actividad Reciente y Plantillas Soportadas -->
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 sm:p-6 flex flex-col gap-5 min-w-0">
-            <div>
-                <h3 class="text-xs font-headline font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-3 mb-4">Distribución de Carga (ACWR)</h3>
-                <ul class="space-y-2.5 text-xs">
-                    <li class="flex items-center justify-between gap-3 p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
-                        <span class="flex items-center gap-2 min-w-0">
+        <!-- Columna Derecha (1/3): Distribución de Carga Interactiva y Foco de Trabajo -->
+        <div class="space-y-6 lg:space-y-8 min-w-0">
+            <!-- Distribución ACWR clicable para filtrar -->
+            <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-5 sm:p-6">
+                <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 mb-4">
+                    <h3 class="text-xs font-headline font-bold text-slate-500 uppercase tracking-wider">Distribución de Carga</h3>
+                    <span class="text-[11px] font-semibold text-primary">Clic para filtrar</span>
+                </div>
+                <div class="space-y-2.5 tabular-nums">
+                    <button type="button" data-acwr-filter="emerald" aria-pressed="false"
+                            class="acwr-zone-btn w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 hover:border-emerald-300 transition text-left cursor-pointer">
+                        <div class="flex items-center gap-2.5 min-w-0">
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
-                            <span class="min-w-0">
-                                <span class="block font-bold text-slate-800 truncate">Zona óptima</span>
-                                <span class="block text-[11px] text-slate-500">0.8 – 1.3</span>
-                            </span>
-                        </span>
-                        <span class="text-lg font-headline font-extrabold text-emerald-700 tabular-nums">{{ acwr_distribution.emerald|default:"0" }}</span>
-                    </li>
-                    <li class="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-50/60 border border-amber-100">
-                        <span class="flex items-center gap-2 min-w-0">
+                            <span class="text-xs sm:text-sm font-semibold text-slate-700 truncate">Óptimo (0.8 - 1.3)</span>
+                        </div>
+                        <span class="text-lg font-headline font-extrabold text-emerald-700">{{ acwr_distribution.emerald|default:"0" }}</span>
+                    </button>
+
+                    <button type="button" data-acwr-filter="amber" aria-pressed="false"
+                            class="acwr-zone-btn w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-50/70 border border-amber-100 hover:border-amber-300 transition text-left cursor-pointer">
+                        <div class="flex items-center gap-2.5 min-w-0">
                             <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
-                            <span class="min-w-0">
-                                <span class="block font-bold text-slate-800 truncate">Subentrenamiento</span>
-                                <span class="block text-[11px] text-slate-500">&lt; 0.8</span>
-                            </span>
-                        </span>
-                        <span class="text-lg font-headline font-extrabold text-amber-700 tabular-nums">{{ acwr_distribution.amber|default:"0" }}</span>
-                    </li>
-                    <li class="flex items-center justify-between gap-3 p-3 rounded-xl bg-orange-50/60 border border-orange-100">
-                        <span class="flex items-center gap-2 min-w-0">
+                            <span class="text-xs sm:text-sm font-semibold text-slate-700 truncate">Subentrenamiento (&lt; 0.8)</span>
+                        </div>
+                        <span class="text-lg font-headline font-extrabold text-amber-700">{{ acwr_distribution.amber|default:"0" }}</span>
+                    </button>
+
+                    <button type="button" data-acwr-filter="orange" aria-pressed="false"
+                            class="acwr-zone-btn w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-orange-50/70 border border-orange-100 hover:border-orange-300 transition text-left cursor-pointer">
+                        <div class="flex items-center gap-2.5 min-w-0">
                             <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0"></span>
-                            <span class="min-w-0">
-                                <span class="block font-bold text-slate-800 truncate">Carga elevada</span>
-                                <span class="block text-[11px] text-slate-500">1.3 – 1.5</span>
-                            </span>
-                        </span>
-                        <span class="text-lg font-headline font-extrabold text-orange-700 tabular-nums">{{ acwr_distribution.orange|default:"0" }}</span>
-                    </li>
-                    <li class="flex items-center justify-between gap-3 p-3 rounded-xl bg-rose-50/60 border border-rose-100">
-                        <span class="flex items-center gap-2 min-w-0">
+                            <span class="text-xs sm:text-sm font-semibold text-slate-700 truncate">Precaución (1.3 - 1.5)</span>
+                        </div>
+                        <span class="text-lg font-headline font-extrabold text-orange-700">{{ acwr_distribution.orange|default:"0" }}</span>
+                    </button>
+
+                    <button type="button" data-acwr-filter="rose" aria-pressed="false"
+                            class="acwr-zone-btn w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-rose-50/70 border border-rose-100 hover:border-rose-300 transition text-left cursor-pointer">
+                        <div class="flex items-center gap-2.5 min-w-0">
                             <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
-                            <span class="min-w-0">
-                                <span class="block font-bold text-slate-800 truncate">Alto riesgo</span>
-                                <span class="block text-[11px] text-slate-500">≥ 1.5</span>
-                            </span>
-                        </span>
-                        <span class="text-lg font-headline font-extrabold text-rose-700 tabular-nums">{{ acwr_distribution.rose|default:"0" }}</span>
-                    </li>
-                </ul>
+                            <span class="text-xs sm:text-sm font-semibold text-slate-700 truncate">Sobrecarga (&gt; 1.5)</span>
+                        </div>
+                        <span class="text-lg font-headline font-extrabold text-rose-700">{{ acwr_distribution.rose|default:"0" }}</span>
+                    </button>
+                </div>
             </div>
 
-            <div class="border-t border-slate-100 pt-4">
-                <h4 class="text-xs font-headline font-bold text-slate-500 uppercase tracking-wider mb-3">Motor de Sugerencias por Deporte</h4>
-                <ul class="space-y-2 text-xs">
-                    <li class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3">
-                        <span class="font-bold text-slate-800 min-w-0 truncate">🥋 MMA / Karate / BJJ</span>
-                        <span class="text-sky-700 font-semibold text-right shrink-0">Potencia & Agarre</span>
-                    </li>
-                    <li class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3">
-                        <span class="font-bold text-slate-800 min-w-0 truncate">🏋️ CrossFit / Hyrox</span>
-                        <span class="text-sky-700 font-semibold text-right shrink-0">Resistencia</span>
-                    </li>
-                    <li class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3">
-                        <span class="font-bold text-slate-800 min-w-0 truncate">🔥 Pérdida de Peso</span>
-                        <span class="text-amber-700 font-semibold text-right shrink-0">Circuitos HIIPA</span>
-                    </li>
-                </ul>
+            <!-- Herramientas rápidas del entrenador -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 sm:p-6 text-white shadow-md space-y-4">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="inline-flex items-center gap-1.5 text-[11px] font-headline font-bold uppercase tracking-wider text-sky-300">
+                        Flujo de Trabajo AM
+                    </span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Flujo recomendado para cada nuevo deportista:
+                </p>
+                <ol class="space-y-2 text-xs text-slate-200 list-decimal list-inside">
+                    <li>Audita su <strong class="text-white">Triage Clínico AM</strong> y desbloquea generación.</li>
+                    <li>Configura su <strong class="text-white">Macrociclo de 4 Bloques</strong> y publica bloque a bloque.</li>
+                    <li>Supervisa adherencia y dolor articular en el <strong class="text-white">Dashboard Visual</strong>.</li>
+                </ol>
+                <div class="pt-2 border-t border-slate-800 flex flex-wrap gap-2">
+                    <a href="{% url 'training:plan_create' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition">
+                        + Crear Plan
+                    </a>
+                    <a href="{% url 'training:exercise_create' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-100 text-xs font-semibold transition">
+                        + Nuevo Ejercicio
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    (function() {
+        const cards = Array.from(document.querySelectorAll('.trainer-athlete-card'));
+        if (!cards.length) return;
+
+        const searchInput = document.getElementById('trainer-athlete-search');
+        const sportSelect = document.getElementById('trainer-sport-filter');
+        const chipBtns = Array.from(document.querySelectorAll('[data-filter-chip]'));
+        const acwrBtns = Array.from(document.querySelectorAll('[data-acwr-filter]'));
+        const attentionCardBtn = document.querySelector('[data-quick-filter="attention"]');
+        const clearBtn = document.getElementById('trainer-clear-filters');
+        const resetEmptyBtn = document.getElementById('trainer-reset-empty-btn');
+        const emptyBox = document.getElementById('trainer-athlete-empty-filter');
+        const counterEl = document.getElementById('athlete-filter-counter');
+
+        let activeChip = 'all';
+        let activeAcwr = '';
+
+        function updateChipStyles() {
+            chipBtns.forEach((btn) => {
+                const isActive = btn.dataset.filterChip === activeChip;
+                btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                btn.className = isActive
+                    ? 'trainer-filter-chip px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white transition cursor-pointer'
+                    : 'trainer-filter-chip px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-sky-300 hover:bg-sky-50 transition cursor-pointer';
+            });
+            acwrBtns.forEach((btn) => {
+                const isActive = btn.dataset.acwrFilter === activeAcwr;
+                btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                btn.classList.toggle('ring-2', isActive);
+                btn.classList.toggle('ring-primary', isActive);
+            });
+        }
+
+        function applyFilters() {
+            const q = (searchInput?.value || '').trim().toLowerCase();
+            const sport = sportSelect?.value || '';
+            let visible = 0;
+
+            cards.forEach((card) => {
+                const matchSearch = !q || (card.dataset.name || '').includes(q);
+                const matchSport = !sport || card.dataset.sport === sport;
+                const matchAcwr = !activeAcwr || card.dataset.acwr === activeAcwr;
+
+                let matchChip = true;
+                if (activeChip === 'triage_pending') {
+                    matchChip = card.dataset.triagePending === '1';
+                } else if (activeChip === 'no_pending_plan') {
+                    matchChip = card.dataset.noPlan === '1';
+                } else if (activeChip === 'acwr_risk') {
+                    matchChip = card.dataset.acwr === 'orange' || card.dataset.acwr === 'rose';
+                } else if (activeChip === 'attention') {
+                    matchChip = card.dataset.triagePending === '1' || card.dataset.noPlan === '1' || card.dataset.acwr === 'rose';
+                }
+
+                const show = matchSearch && matchSport && matchAcwr && matchChip;
+                card.classList.toggle('hidden', !show);
+                if (show) visible += 1;
+            });
+
+            const hasFilter = Boolean(q || sport || activeAcwr || activeChip !== 'all');
+            clearBtn?.classList.toggle('hidden', !hasFilter);
+            emptyBox?.classList.toggle('hidden', visible > 0);
+            if (counterEl) {
+                counterEl.textContent = hasFilter
+                    ? `${visible} de ${cards.length} deportistas`
+                    : `${cards.length} asignados`;
+            }
+            updateChipStyles();
+        }
+
+        function resetAll() {
+            if (searchInput) searchInput.value = '';
+            if (sportSelect) sportSelect.value = '';
+            activeChip = 'all';
+            activeAcwr = '';
+            applyFilters();
+        }
+
+        searchInput?.addEventListener('input', applyFilters);
+        sportSelect?.addEventListener('change', applyFilters);
+        clearBtn?.addEventListener('click', resetAll);
+        resetEmptyBtn?.addEventListener('click', resetAll);
+
+        chipBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                activeChip = btn.dataset.filterChip || 'all';
+                applyFilters();
+            });
+        });
+
+        acwrBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const zone = btn.dataset.acwrFilter || '';
+                activeAcwr = (activeAcwr === zone) ? '' : zone;
+                applyFilters();
+                document.getElementById('trainer-athletes-list')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+        });
+
+        attentionCardBtn?.addEventListener('click', () => {
+            activeChip = (activeChip === 'attention') ? 'all' : 'attention';
+            activeAcwr = '';
+            applyFilters();
+            document.getElementById('trainer-athletes-list')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    })();
+</script>

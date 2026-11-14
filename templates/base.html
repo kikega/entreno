@@ -118,12 +118,38 @@
                     <svg class="w-5 h-5 shrink-0 {% if item.active %}text-accent{% else %}text-slate-400 group-hover:text-accent transition{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="{{ item.icon_path }}"></path>
                     </svg>
-                    {{ item.label }}
-                    {% if item.active %}
+                    <span class="truncate">{{ item.label }}</span>
+                    {% if item.badge %}
+                        <span class="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[11px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/40" title="{{ item.badge }} alertas sin leer">
+                            {{ item.badge }}
+                        </span>
+                    {% elif item.active %}
                         <span class="ml-auto w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true"></span>
                     {% endif %}
                 </a>
             {% endfor %}
+
+            {% if caps.is_trainer %}
+                <div class="mt-5 pt-4 border-t border-white/10 space-y-1.5">
+                    <p class="px-3.5 text-[10px] font-headline font-bold uppercase tracking-widest text-slate-400">
+                        Acciones Entrenador
+                    </p>
+                    <a href="{% url 'training:plan_create' %}"
+                       class="group flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-sky-200 hover:text-white bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/20 transition">
+                        <svg class="w-4 h-4 text-accent shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        <span>Asignar Nuevo Plan</span>
+                    </a>
+                    <a href="{% url 'training:exercise_create' %}"
+                       class="group flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-accent shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        <span>Añadir Ejercicio al Catálogo</span>
+                    </a>
+                </div>
+            {% endif %}
 
             {% if user.is_staff or user.is_superuser %}
                 <a href="/admin/" class="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition mt-2 pt-4 border-t border-white/10">
@@ -220,11 +246,18 @@
             {% for item in caps.nav_items %}
                 <a href="{% url item.url_name %}"
                    aria-current="{% if item.active %}page{% else %}false{% endif %}"
-                   class="flex flex-col items-center justify-center gap-1 py-2 min-h-[56px] min-w-0 text-[10px] sm:text-[11px] font-semibold transition
+                   class="relative flex flex-col items-center justify-center gap-1 py-2 min-h-[56px] min-w-0 text-[10px] sm:text-[11px] font-semibold transition
                           {% if item.active %}text-primary{% else %}text-slate-400 hover:text-slate-600 active:text-primary{% endif %}">
-                    <svg class="w-5 h-5 block shrink-0 {% if item.active %}scale-110{% endif %} transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="{% if item.active %}2.2{% else %}1.8{% endif %}" d="{{ item.icon_path }}"></path>
-                    </svg>
+                    <span class="relative inline-flex">
+                        <svg class="w-5 h-5 block shrink-0 {% if item.active %}scale-110{% endif %} transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="{% if item.active %}2.2{% else %}1.8{% endif %}" d="{{ item.icon_path }}"></path>
+                        </svg>
+                        {% if item.badge %}
+                            <span class="absolute -top-1 -right-1.5 min-w-[0.95rem] h-[0.95rem] px-1 rounded-full bg-amber-500 text-white text-[9px] font-extrabold leading-[0.95rem] text-center">
+                                {{ item.badge }}
+                            </span>
+                        {% endif %}
+                    </span>
                     <span class="truncate max-w-full px-1 leading-tight">{{ item.label }}</span>
                 </a>
             {% endfor %}
@@ -252,6 +285,7 @@
 <!-- Contenido principal (único bloque para ambas ramas) -->
 <main class="flex-grow w-full animate-fade-in {% if user.is_authenticated %}lg:pl-64{% endif %}">
     <div class="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-6 py-6 lg:py-8 {% if user.is_authenticated %}pb-28 lg:pb-12{% else %}py-8{% endif %}">
+        {% block breadcrumbs %}{% endblock %}
         {% block content %}{% endblock %}
     </div>
 </main>
@@ -269,6 +303,133 @@
 
 <!-- ===== Avisos flotantes (toasts) ===== -->
 {% include 'partials/messages.html' %}
+
+<!-- ===== Diálogo nativo de confirmación segura ===== -->
+<dialog id="confirmActionDialog" closedby="any" aria-labelledby="confirmDialogTitle" class="w-full max-w-md rounded-2xl shadow-2xl">
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between gap-3">
+            <h2 id="confirmDialogTitle" class="font-headline font-bold text-base text-slate-900">Confirmar acción</h2>
+            <button type="button" commandfor="confirmActionDialog" command="close" aria-label="Cerrar diálogo"
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="p-5">
+            <p id="confirmDialogMessage" class="text-sm text-slate-600 leading-relaxed"></p>
+            <form method="dialog" class="mt-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+                <button type="submit" value="cancel" autofocus class="btn-secondary px-4 py-2 text-xs sm:text-sm rounded-xl">
+                    Cancelar
+                </button>
+                <button id="confirmDialogConfirmBtn" type="submit" value="confirm" class="btn-danger px-4 py-2 text-xs sm:text-sm rounded-xl">
+                    Confirmar
+                </button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<script type="module">
+    if (!('commandForElement' in HTMLButtonElement.prototype)) {
+        import('https://esm.run/invokers-polyfill');
+    }
+    if (!('popover' in HTMLElement.prototype)) {
+        import('https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js');
+    }
+</script>
+
+<script>
+    (function() {
+        // Light-dismiss fallback cuando closedby no está soportado por el navegador
+        if (!('closedBy' in HTMLDialogElement.prototype)) {
+            const isOutside = (e, dialog) => {
+                const r = dialog.getBoundingClientRect();
+                return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+            };
+            const attachLightDismiss = (dialog) => {
+                if (dialog.dataset.lightDismissBound) return;
+                dialog.dataset.lightDismissBound = '1';
+                let pressedOutside = false;
+                dialog.addEventListener('pointerdown', (e) => {
+                    pressedOutside = isOutside(e, dialog);
+                });
+                dialog.addEventListener('pointerup', (e) => {
+                    if (pressedOutside && isOutside(e, dialog)) dialog.close();
+                });
+            };
+            document.querySelectorAll('dialog[closedby="any"]').forEach(attachLightDismiss);
+            document.addEventListener('htmx:afterSwap', () => {
+                document.querySelectorAll('dialog[closedby="any"]').forEach(attachLightDismiss);
+            });
+        }
+
+        // Posicionamiento fallback para popovers contextuales si Anchor Positioning CSS no está disponible
+        if (!window.CSS || !CSS.supports || !CSS.supports('position-area', 'block-end span-inline-end')) {
+            document.addEventListener('toggle', function(e) {
+                const pop = e.target;
+                if (!pop || !pop.matches || !pop.matches('.action-popover') || e.newState !== 'open') return;
+                const trigger = document.querySelector('[popovertarget="' + pop.id + '"], [commandfor="' + pop.id + '"]');
+                if (!trigger) return;
+                const rect = trigger.getBoundingClientRect();
+                const popW = pop.offsetWidth || 224;
+                const popH = pop.offsetHeight || 180;
+                let top = rect.bottom + 6;
+                if (top + popH > window.innerHeight - 12 && rect.top - popH - 6 > 12) {
+                    top = rect.top - popH - 6;
+                }
+                let left = rect.right - popW;
+                if (left < 12) left = Math.min(rect.left, window.innerWidth - popW - 12);
+                if (left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
+                pop.style.position = 'fixed';
+                pop.style.inset = 'auto';
+                pop.style.top = Math.max(12, top) + 'px';
+                pop.style.left = Math.max(12, left) + 'px';
+            }, true);
+        }
+
+        // Diálogo global de confirmación para formularios destructivos con data-confirm-message
+        const confirmDialog = document.getElementById('confirmActionDialog');
+        const confirmTitle = document.getElementById('confirmDialogTitle');
+        const confirmMsg = document.getElementById('confirmDialogMessage');
+        const confirmBtn = document.getElementById('confirmDialogConfirmBtn');
+        let pendingForm = null;
+
+        if (confirmDialog) {
+            document.addEventListener('submit', function(e) {
+                const form = e.target;
+                if (!form || !form.matches || !form.dataset.confirmMessage) return;
+                if (form.dataset.confirmed === '1') {
+                    delete form.dataset.confirmed;
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                pendingForm = form;
+                confirmTitle.textContent = form.dataset.confirmTitle || 'Confirmar acción';
+                confirmMsg.textContent = form.dataset.confirmMessage;
+                confirmBtn.textContent = form.dataset.confirmLabel || 'Confirmar';
+                confirmBtn.className = (form.dataset.confirmTone === 'primary' ? 'btn-primary' : 'btn-danger') + ' px-4 py-2 text-xs sm:text-sm rounded-xl';
+                confirmDialog.showModal();
+            }, true);
+
+            confirmDialog.addEventListener('close', function() {
+                const res = confirmDialog.returnValue;
+                confirmDialog.returnValue = '';
+                if (res === 'confirm' && pendingForm) {
+                    const formToSubmit = pendingForm;
+                    pendingForm = null;
+                    formToSubmit.dataset.confirmed = '1';
+                    if (typeof formToSubmit.requestSubmit === 'function') {
+                        formToSubmit.requestSubmit();
+                    } else {
+                        formToSubmit.submit();
+                    }
+                } else {
+                    pendingForm = null;
+                }
+            });
+        }
+    })();
+</script>
 
 {% block extra_scripts %}{% endblock %}
 </body>

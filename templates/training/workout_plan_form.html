@@ -2,8 +2,20 @@
 
 {% block title %}Nuevo Plan de Entrenamiento - EntrenoPro{% endblock %}
 
+{% block breadcrumbs %}
+<nav aria-label="Ruta de navegación" class="trainer-breadcrumbs">
+    <a href="{% url 'training:trainer_dashboard' %}">Mis deportistas</a>
+    {% if preselected_athlete %}
+        <span aria-hidden="true" class="text-slate-300">/</span>
+        <a href="{% url 'training:athlete_detail' preselected_athlete.pk %}">{{ preselected_athlete.user.display_name }}</a>
+    {% endif %}
+    <span aria-hidden="true" class="text-slate-300">/</span>
+    <span class="text-slate-800 font-bold" aria-current="page">Nuevo Plan</span>
+</nav>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-xl mx-auto py-8">
+<div class="max-w-xl mx-auto py-4 sm:py-6">
     <div class="bg-white shadow-md rounded-2xl border border-slate-200 overflow-hidden animate-fade-in">
         <!-- Encabezado del Formulario -->
         <div class="px-6 py-6 border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white relative">
@@ -34,6 +46,15 @@
                             {{ field.label }}
                         </label>
                         {{ field }}
+                        {% if field.name == 'target_date' %}
+                            <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                <span class="text-[11px] font-semibold text-slate-400 mr-1">Fecha rápida:</span>
+                                <button type="button" data-date-offset="0" class="quick-date-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-sky-100 hover:text-primary text-xs font-bold text-slate-600 transition cursor-pointer">Hoy</button>
+                                <button type="button" data-date-offset="1" class="quick-date-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-sky-100 hover:text-primary text-xs font-bold text-slate-600 transition cursor-pointer">Mañana</button>
+                                <button type="button" data-date-offset="2" class="quick-date-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-sky-100 hover:text-primary text-xs font-bold text-slate-600 transition cursor-pointer">+2 días</button>
+                                <button type="button" data-date-offset="7" class="quick-date-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-sky-100 hover:text-primary text-xs font-bold text-slate-600 transition cursor-pointer">+7 días</button>
+                            </div>
+                        {% endif %}
                         {% if field.errors %}
                             <p class="mt-1 text-sm text-red-600 font-medium">{{ field.errors.0 }}</p>
                         {% endif %}
@@ -63,4 +84,22 @@
         </div>
     </div>
 </div>
+
+<script>
+    (function() {
+        const input = document.getElementById('id_target_date');
+        if (!input) return;
+        document.querySelectorAll('.quick-date-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const offset = parseInt(btn.dataset.dateOffset || '0', 10);
+                const d = new Date();
+                d.setDate(d.getDate() + offset);
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                input.value = `${yyyy}-${mm}-${dd}`;
+            });
+        });
+    })();
+</script>
 {% endblock %}

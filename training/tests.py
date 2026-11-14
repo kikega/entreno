@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from users.models import TrainerProfile, AthleteProfile
 from training.models import (
     Exercise, WorkoutPlan, PlannedExercise, WorkoutSession, LoggedExercise, LoggedSet,
+    TrainerNotification,
 )
 
 User = get_user_model()
@@ -830,6 +831,185 @@ class TrainerAthleteManagementIsolationTests(TestCase):
         self.assertIsNone(other_res.context['form'].initial.get('athlete'))
 
 
+class TrainerNavigationAndWorkflowUXTests(TestCase):
+    """
+    Pruebas para las mejoras de flujo, navegación, filtros del catálogo y notificaciones
+    orientadas a facilitar la gestión diaria del entrenador.
+    """
 
+    def setUp(self):
+        self.trainer_user = User.objects.create_user(
+            email='ux.trainer@test.com',
+            password='Password123!',
+            first_name='Mario',
+            last_name='Entrenador',
+        )
+        self.trainer = TrainerProfile.objects.create(user=self.trainer_user)
 
+        self.other_trainer_user = User.objects.create_user(
+            email='ux.other@test.com',
+            password='Password123!',
+            first_name='Clara',
+            last_name='Coach',
+        )
+        self.other_trainer = TrainerProfile.objects.create(user=self.other_trainer_user)
+
+        self.athlete_user = User.objects.create_user(
+            email='ux.athlete@test.com',
+            password='Password123!',
+            first_name='Elena',
+            last_name='Luchadora',
+        )
+        self.athlete = AthleteProfile.objects.create(
+            user=self.athlete_user,
+            sport='mma',
+            assigned_trainer=self.trainer_user,
+            trainer_confirmed=True,
+        )
+
+    def test_mark_all_notifications_read_updates_trainer_alerts_and_badge(self):
+        """
+        POST a `mark_all_notifications_read` marca solo las alertas del entrenador actual
+        como leídas y actualiza el contador del badge de «Mis deportistas».
+        """
+        TrainerNotification.objects.create(
+            trainer=self.trainer,
+            athlete=self.athlete,
+            event_type='triage_updated',
+            message='Actualización de triage 1',
+            is_read=False,
+        )
+        TrainerNotification.objects.create(
+            trainer=self.trainer,
+            athlete=self.athlete,
+            event_type='low_readiness',
+            message='Alerta de fatiga 2',
+            is_read=False,
+        )
+        other_alert = TrainerNotification.objects.create(
+            trainer=self.other_trainer,
+            athlete=self.athlete,
+            event_type='injury_omitted',
+            message='Alerta de otro entrenador',
+            is_read=False,
+        )
+
+        self.client.force_login(self.trainer_user)
+        home_before = self.client.get(reverse('home') + '?tab=trainer')
+        self.assertEqual(home_before.status_code, 200)
+        self.assertEqual(home_before.context['caps']['trainer_unread_alerts'], 2)
+        self.assertContains(home_before, 'trainer-athlete-search')
+        self.assertContains(home_before, 'confirmActionDialog')
+
+        url = reverse('training:mark_all_notifications_read')
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+        res = self.client.post(url)
+        self.assertRedirects(res, reverse('home') + '?tab=trainer', fetch_redirect_response=False)
+        self.assertEqual(self.trainer.notifications.filter(is_read=False).count(), 0)
+
+        other_alert.refresh_from_db()
+        self.assertFalse(other_alert.is_read)
+
+        home_after = self.client.get(reverse('home') + '?tab=trainer')
+        self.assertEqual(home_after.context['caps']['trainer_unread_alerts'], 0)
+
+    def test_exercise_catalog_block_and_mine_filters_and_htmx_partial(self):
+        """
+        El catálogo de ejercicios permite filtrar por bloque de sesión (`?block=`)
+        y autoría propia (`?mine=1`), manteniendo compatibilidad con HTMX y diálogo guía.
+        """
+        global_b1 = Exercise.objects.create(
+            name='Movilidad Torácica Global',
+            category='movilidad',
+            session_block='B1_Movilidad',
+            movement_pattern='movilidad_torso',
+            created_by=None,
+        )
+        own_b2 = Exercise.objects.create(
+            name='Salto Propio Potencia',
+            category='potencia',
+            session_block='B2_Velocidad',
+            movement_pattern='salto_vertical',
+            created_by=self.trainer,
+        )
+        other_b2 = Exercise.objects.create(
+            name='Ejercicio Privado Ajeno',
+            category='potencia',
+            session_block='B2_Velocidad',
+            movement_pattern='empuje_horizontal',
+            created_by=self.other_trainer,
+        )
+
+        self.client.force_login(self.trainer_user)
+
+        res_block = self.client.get(reverse('training:exercise_list') + '?block=B2_Velocidad')
+        self.assertEqual(res_block.status_code, 200)
+        self.assertContains(res_block, own_b2.name)
+        self.assertNotContains(res_block, global_b1.name)
+        self.assertContains(res_block, 'exerciseGuideDialog')
+
+        res_mine = self.client.get(reverse('training:exercise_list') + '?mine=1')
+        self.assertEqual(res_mine.status_code, 200)
+        self.assertContains(res_mine, own_b2.name)
+        self.assertNotContains(res_mine, global_b1.name)
+        self.assertNotContains(res_mine, other_b2.name)
+
+        res_htmx = self.client.get(
+            reverse('training:exercise_list') + '?block=B1_Movilidad',
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(res_htmx.status_code, 200)
+        self.assertContains(res_htmx, global_b1.name)
+        self.assertContains(res_htmx, 'Ficha técnica')
+        self.assertContains(res_htmx, 'exerciseGuideDialogBody')
+
+    def test_trainer_detail_and_analytics_navigation_ux_and_active_nav(self):
+        """
+        Verifica los contadores del expediente, breadcrumbs, gráfico Chart.js del dashboard visual
+        y el marcado activo de la sección «Mis deportistas» en subvistas de planificación.
+        """
+        completed_plan = WorkoutPlan.objects.create(
+            name='Sesión A Completada',
+            trainer=self.trainer,
+            athlete=self.athlete,
+            sport='mma',
+            target_date=date.today() - timedelta(days=2),
+            is_completed=True,
+        )
+        pending_plan = WorkoutPlan.objects.create(
+            name='Sesión B Pendiente',
+            trainer=self.trainer,
+            athlete=self.athlete,
+            sport='mma',
+            target_date=date.today() + timedelta(days=1),
+            is_completed=False,
+        )
+        WorkoutSession.objects.create(
+            workout_plan=completed_plan,
+            athlete=self.athlete,
+            duration_minutes=45,
+        )
+
+        self.client.force_login(self.trainer_user)
+
+        detail_res = self.client.get(reverse('training:athlete_detail', kwargs={'pk': self.athlete.pk}))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertEqual(detail_res.context['pending_plans_count'], 1)
+        self.assertEqual(detail_res.context['completed_plans_count'], 1)
+        self.assertContains(detail_res, 'Ruta de navegación')
+        active_urls = [i['url_name'] for i in detail_res.context['caps']['nav_items'] if i['active']]
+        self.assertEqual(active_urls, ['training:trainer_dashboard'])
+
+        plan_res = self.client.get(reverse('training:plan_detail', kwargs={'pk': pending_plan.pk}))
+        self.assertEqual(plan_res.status_code, 200)
+        self.assertContains(plan_res, 'quick-text-filter')
+        plan_active = [i['url_name'] for i in plan_res.context['caps']['nav_items'] if i['active']]
+        self.assertEqual(plan_active, ['training:trainer_dashboard'])
+
+        dash_res = self.client.get(reverse('training:am_visual_dashboard', kwargs={'pk': self.athlete.pk}))
+        self.assertEqual(dash_res.status_code, 200)
+        self.assertContains(dash_res, 'amWeeklyLoadChart')
+        self.assertContains(dash_res, 'am-weekly-series-data')
+        self.assertContains(dash_res, 'filter-macrocycle-block')
 

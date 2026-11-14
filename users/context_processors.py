@@ -33,7 +33,17 @@ SECTION_MAP = {
         'trainer_athlete_edit',
         'trainer_athlete_delete',
         'mark_notification_read',
+        'mark_all_notifications_read',
         'generate_smart_plan',
+        'plan_update_meta',
+        'plan_duplicate',
+        'plan_delete',
+        'edit_planned_exercise',
+        'delete_planned_exercise',
+        'move_planned_exercise',
+        'block_delete_exercise_row',
+        'block_move_exercise_row',
+        'block_update_cell_prescription',
     },
     'training:exercise_list': {
         'exercise_list',
@@ -105,6 +115,12 @@ def capabilities(request):
         # 3. Resto de vistas mapeadas por sección funcional
         return current_url_name in SECTION_MAP.get(url_name, {url_name})
 
+    trainer_unread_alerts = 0
+    if is_trainer:
+        trainer_profile = getattr(user, 'trainer_profile', None)
+        if trainer_profile is not None:
+            trainer_unread_alerts = trainer_profile.notifications.filter(is_read=False).count()
+
     nav_items = [
         {
             'url_name': 'home',
@@ -123,6 +139,7 @@ def capabilities(request):
             'label': 'Mis deportistas',
             'icon_path': 'M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z',
             'available': is_trainer,
+            'badge': trainer_unread_alerts,
         },
         {
             'url_name': 'training:exercise_list',
@@ -145,6 +162,7 @@ def capabilities(request):
         'is_trainer': is_trainer,
         'is_athlete': is_athlete,
         'is_dual': is_trainer and is_athlete,
+        'trainer_unread_alerts': trainer_unread_alerts,
         'role_label': user.role_label,
         'role_description': user.role_description,
         'nav_items': [item for item in nav_items if item['available']],

@@ -113,6 +113,9 @@
                       hx-post="{% url 'training:delete_planned_exercise' exercise.id %}"
                       hx-target="#plan-exercises-container"
                       hx-swap="outerHTML"
+                      data-confirm-title="Quitar ejercicio"
+                      data-confirm-label="Quitar"
+                      data-confirm-message="¿Quitar «{{ exercise.exercise.name|escapejs }}» de esta sesión?"
                       class="m-0 inline">
                     {% csrf_token %}
                     <button type="submit"

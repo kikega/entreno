@@ -91,9 +91,19 @@ def build_trainer_context(user):
     ):
         active_macrocycles_by_athlete.setdefault(mc.athlete_id, mc)
 
+    plans_by_athlete = {}
+    for plan in (
+        WorkoutPlan.objects.filter(athlete__in=athletes)
+        .select_related('macrocycle_block')
+        .order_by('target_date', 'id')
+    ):
+        plans_by_athlete.setdefault(plan.athlete_id, []).append(plan)
+
     athletes_metrics = []
     pending_triage_count = 0
+    athletes_without_pending_count = 0
     acwr_distribution = {'emerald': 0, 'amber': 0, 'orange': 0, 'rose': 0}
+    sports_seen = {}
     for athlete in athletes:
         metrics = get_athlete_sport_metrics(athlete)
         status_color = metrics['acwr'].get('status_color')
@@ -102,17 +112,27 @@ def build_trainer_context(user):
         triage = getattr(athlete, 'mma_triage', None)
         if triage and triage.review_status == 'pendiente_revision':
             pending_triage_count += 1
+        athlete_plans = plans_by_athlete.get(athlete.id, [])
+        pending_plans = [p for p in athlete_plans if not p.is_completed]
+        if not pending_plans:
+            athletes_without_pending_count += 1
+        if athlete.sport and athlete.sport not in sports_seen:
+            sports_seen[athlete.sport] = athlete.get_sport_display()
         athletes_metrics.append({
             'athlete': athlete,
             'metrics': metrics,
             'mma_triage': triage,
             'active_macrocycle': active_macrocycles_by_athlete.get(athlete.id),
+            'pending_plans_count': len(pending_plans),
+            'completed_plans_count': len(athlete_plans) - len(pending_plans),
+            'next_plan': pending_plans[0] if pending_plans else None,
+            'sport_code': athlete.sport or '',
+            'sport_label': athlete.get_sport_display(),
         })
 
-    unread_notifications = list(
-        trainer.notifications.filter(is_read=False)
-        .select_related('athlete__user')[:10]
-    )
+    unread_notifications_qs = trainer.notifications.filter(is_read=False).select_related('athlete__user')
+    unread_notifications_count = unread_notifications_qs.count()
+    unread_notifications = list(unread_notifications_qs[:10])
 
     return {
         'athletes': athletes,
@@ -121,7 +141,10 @@ def build_trainer_context(user):
         'total_plans': trainer.created_plans.count(),
         'total_exercises': Exercise.objects.count(),
         'unread_notifications': unread_notifications,
+        'unread_notifications_count': unread_notifications_count,
         'pending_triage_count': pending_triage_count,
+        'athletes_without_pending_count': athletes_without_pending_count,
+        'sports_filter_options': [{'value': k, 'label': v} for k, v in sports_seen.items()],
         'acwr_distribution': acwr_distribution,
     }
 
@@ -1087,7 +1110,16 @@ class AthleteDetailView(TrainerRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         """Carga los planes asignados ordenados por fecha, ficha de Triage MMA, macrociclo activo y métricas del deportista."""
         context = super().get_context_data(**kwargs)
-        context['plans'] = self.object.assigned_plans.all().order_by('-target_date')
+        plans = list(
+            self.object.assigned_plans
+            .select_related('macrocycle_block')
+            .prefetch_related('planned_exercises')
+            .order_by('-target_date', '-id')
+        )
+        pending_plans_count = sum(1 for p in plans if not p.is_completed)
+        context['plans'] = plans
+        context['pending_plans_count'] = pending_plans_count
+        context['completed_plans_count'] = len(plans) - pending_plans_count
         context['metrics'] = get_athlete_sport_metrics(self.object)
         context['mma_triage'] = MMATriageProfile.objects.filter(athlete=self.object).first()
         context['active_macrocycle'] = (
@@ -1191,13 +1223,21 @@ class ExerciseListView(TrainerRequiredMixin, ListView):
 
     def get_queryset(self):
         self.base_qs = Exercise.objects.all()
-        qs = self.base_qs.order_by('name')
+        qs = self.base_qs.select_related('created_by__user').order_by('name')
         q = self.request.GET.get('q', '').strip()
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q))
         self.current_category = self.request.GET.get('cat', '').strip()
         if self.current_category in dict(Exercise.CATEGORY_CHOICES):
             qs = qs.filter(category=self.current_category)
+        self.current_block = self.request.GET.get('block', '').strip()
+        if self.current_block in dict(Exercise.SESSION_BLOCK_CHOICES):
+            qs = qs.filter(session_block=self.current_block)
+        else:
+            self.current_block = ''
+        self.only_mine = self.request.GET.get('mine', '').strip() == '1'
+        if self.only_mine and self.request.user.is_trainer:
+            qs = qs.filter(created_by=self.request.user.trainer_profile)
         return qs
 
     def render_to_response(self, context, **response_kwargs):
@@ -1220,8 +1260,11 @@ class ExerciseListView(TrainerRequiredMixin, ListView):
             if item['total'] > 0
         ]
         context['categories'] = categories
+        context['session_blocks'] = Exercise.SESSION_BLOCK_CHOICES
         context['total_exercises'] = self.base_qs.count()
         context['current_category'] = getattr(self, 'current_category', '')
+        context['current_block'] = getattr(self, 'current_block', '')
+        context['only_mine'] = getattr(self, 'only_mine', False)
         context['search'] = self.request.GET.get('q', '')
         return context
 
@@ -1426,6 +1469,20 @@ def mark_notification_read(request, notification_id: int):
     )
     notif.is_read = True
     notif.save(update_fields=['is_read'])
+    if request.headers.get('HX-Request'):
+        return HttpResponse("")
+    return redirect(f"{reverse('home')}?tab=trainer")
+
+
+@login_required
+@require_POST
+def mark_all_notifications_read(request):
+    """Marca todas las alertas pendientes del entrenador como leídas."""
+    if not request.user.is_trainer:
+        return HttpResponse("No autorizado", status=403)
+    updated = request.user.trainer_profile.notifications.filter(is_read=False).update(is_read=True)
+    if updated:
+        messages.success(request, f"Se marcaron {updated} alertas como leídas.")
     if request.headers.get('HX-Request'):
         return HttpResponse("")
     return redirect(f"{reverse('home')}?tab=trainer")

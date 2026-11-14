@@ -1,197 +1,195 @@
 {% load training_extras %}
-<div id="catalog-browser" class="space-y-6">
-
-    <!-- Buscador + contador -->
-    <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="text-sm text-slate-600">
-            <span class="font-headline font-bold text-slate-800">{{ page_obj.paginator.count }}</span> ejercicio{{ page_obj.paginator.count|pluralize }} en el catálogo
-        </div>
-        <form hx-get="{% url 'training:exercise_list' %}" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            <input type="hidden" name="cat" value="{{ current_category }}">
-            <input type="search" name="q" value="{{ search }}" placeholder="Buscar por nombre..." aria-label="Buscar ejercicios por nombre" autocorrect="off" autocapitalize="off" spellcheck="false" class="w-full sm:w-72 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:outline-none transition">
-            <div class="flex items-center gap-2">
-                <button type="submit" class="btn-primary flex-1 sm:flex-initial min-h-[42px] px-4 py-2.5 text-sm font-semibold rounded-xl">Buscar</button>
-                {% if search or current_category %}
-                    <a href="{% url 'training:exercise_list' %}" hx-get="{% url 'training:exercise_list' %}" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true" class="btn-secondary min-h-[42px] px-3.5 py-2.5 text-sm font-semibold rounded-xl">Limpiar</a>
-                {% endif %}
+<div id="catalog-browser" class="space-y-5">
+    <!-- Buscador en vivo + filtros de bloque y autoría -->
+    <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div class="text-sm text-slate-600 flex items-center gap-2">
+                <span class="font-headline font-extrabold text-slate-900 tabular-nums">{{ page_obj.paginator.count }}</span>
+                <span>ejercicio{{ page_obj.paginator.count|pluralize }} encontrado{{ page_obj.paginator.count|pluralize }}</span>
             </div>
-        </form>
-    </div>
 
-    <!-- Píldoras de categoría -->
-    <div class="flex items-center gap-2 overflow-x-auto pb-1 -mb-1">
-        <a href="{% url 'training:exercise_list' %}" hx-get="{% url 'training:exercise_list' %}" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true" hx-include="[name='q']" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-headline font-semibold rounded-full border transition {% if not current_category %}bg-primary text-white border-primary shadow-sm shadow-primary/20{% else %}bg-white text-slate-600 border-slate-200 hover:border-primary/50 hover:text-slate-800{% endif %}">
-            Todos
-            <span class="px-2 py-0.5 text-xs font-bold rounded-full {% if not current_category %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-500{% endif %}">{{ total_exercises }}</span>
-        </a>
-        {% for cat in categories %}
-            <a href="?cat={{ cat.value }}" hx-get="?cat={{ cat.value }}" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true" hx-include="[name='q']" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-headline font-semibold rounded-full border transition {% if current_category == cat.value %}bg-primary text-white border-primary shadow-sm shadow-primary/20{% else %}bg-white text-slate-600 border-slate-200 hover:border-primary/50 hover:text-slate-800{% endif %}">
-                {{ cat.label }}
-                <span class="px-2 py-0.5 text-xs font-bold rounded-full {% if current_category == cat.value %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-500{% endif %}">{{ cat.count }}</span>
+            <form id="catalog-filter-form"
+                  hx-get="{% url 'training:exercise_list' %}"
+                  hx-target="#catalog-browser"
+                  hx-swap="innerHTML"
+                  hx-push-url="true"
+                  class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
+                <input type="hidden" name="cat" value="{{ current_category }}">
+
+                <div class="relative flex-1 sm:w-64">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="search" name="q" value="{{ search }}"
+                           hx-get="{% url 'training:exercise_list' %}"
+                           hx-target="#catalog-browser"
+                           hx-swap="innerHTML"
+                           hx-push-url="true"
+                           hx-include="#catalog-filter-form"
+                           hx-trigger="input changed delay:300ms, search"
+                           placeholder="Buscar por nombre o código..."
+                           aria-label="Buscar ejercicios por nombre o código"
+                           class="w-full min-h-[42px] rounded-xl border border-slate-300 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 shadow-xs focus:border-primary focus:outline-none">
+                </div>
+
+                <select name="block" aria-label="Filtrar por bloque AM"
+                        hx-get="{% url 'training:exercise_list' %}"
+                        hx-target="#catalog-browser"
+                        hx-swap="innerHTML"
+                        hx-push-url="true"
+                        hx-include="#catalog-filter-form"
+                        class="min-h-[42px] rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700">
+                    <option value="">Todos los bloques AM</option>
+                    {% for val, label in session_blocks %}
+                        <option value="{{ val }}" {% if current_block == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+
+                <label class="inline-flex items-center gap-2 min-h-[42px] px-3 py-2 rounded-xl border {% if only_mine %}border-primary bg-sky-50 text-primary{% else %}border-slate-300 bg-white text-slate-700{% endif %} text-xs sm:text-sm font-semibold cursor-pointer shrink-0 select-none">
+                    <input type="checkbox" name="mine" value="1" {% if only_mine %}checked{% endif %}
+                           hx-get="{% url 'training:exercise_list' %}"
+                           hx-target="#catalog-browser"
+                           hx-swap="innerHTML"
+                           hx-push-url="true"
+                           hx-include="#catalog-filter-form"
+                           class="h-4 w-4 accent-sky-600 rounded">
+                    <span>Solo los míos</span>
+                </label>
+
+                <button type="submit" class="btn-primary min-h-[42px] px-4 py-2 text-sm font-semibold rounded-xl">Buscar</button>
+                {% if search or current_category or current_block or only_mine %}
+                    <a href="{% url 'training:exercise_list' %}" hx-get="{% url 'training:exercise_list' %}" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true"
+                       class="btn-secondary min-h-[42px] px-3.5 py-2 text-sm font-semibold rounded-xl">Limpiar</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Píldoras de categoría -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 -mb-1 border-t border-slate-100 pt-3">
+            <a href="?q={{ search|urlencode }}&block={{ current_block|urlencode }}&mine={% if only_mine %}1{% endif %}"
+               hx-get="?q={{ search|urlencode }}&block={{ current_block|urlencode }}&mine={% if only_mine %}1{% endif %}"
+               hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true"
+               class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-headline font-semibold rounded-full border transition {% if not current_category %}bg-primary text-white border-primary shadow-sm shadow-primary/20{% else %}bg-white text-slate-600 border-slate-200 hover:border-primary/50 hover:text-slate-800{% endif %}">
+                Todos
+                <span class="px-2 py-0.5 text-[11px] font-bold rounded-full {% if not current_category %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-500{% endif %}">{{ total_exercises }}</span>
             </a>
-        {% endfor %}
+            {% for cat in categories %}
+                <a href="?cat={{ cat.value }}&q={{ search|urlencode }}&block={{ current_block|urlencode }}&mine={% if only_mine %}1{% endif %}"
+                   hx-get="?cat={{ cat.value }}&q={{ search|urlencode }}&block={{ current_block|urlencode }}&mine={% if only_mine %}1{% endif %}"
+                   hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true"
+                   class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-headline font-semibold rounded-full border transition {% if current_category == cat.value %}bg-primary text-white border-primary shadow-sm shadow-primary/20{% else %}bg-white text-slate-600 border-slate-200 hover:border-primary/50 hover:text-slate-800{% endif %}">
+                    {{ cat.label }}
+                    <span class="px-2 py-0.5 text-[11px] font-bold rounded-full {% if current_category == cat.value %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-500{% endif %}">{{ cat.count }}</span>
+                </a>
+            {% endfor %}
+        </div>
     </div>
 
-    <!-- Resultados (grid + paginación / estado vacío) -->
     {% if exercises %}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {% for ex in exercises %}
-                <div class="bg-white shadow-sm rounded-2xl border border-slate-200 overflow-hidden flex flex-col transition hover:shadow-md">
-                    <div class="p-5 border-b border-slate-100 bg-slate-50/40 flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <h3 class="text-base font-headline font-bold text-slate-800 truncate" title="{{ ex.name }}">{{ ex.name }}</h3>
-                            <div class="flex flex-wrap items-center gap-2 mt-2">
-                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-sky-50 text-primary border border-sky-100">{{ ex.get_category_display }}</span>
-                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">{{ ex.get_movement_pattern_display }}</span>
-                                {% if ex.created_by %}
-                                    {% if ex.created_by == request.user.trainer_profile %}
-                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Creado por ti</span>
-                                    {% else %}
-                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200" title="Creado por {{ ex.created_by.user.display_name }}">Por: {{ ex.created_by.user.display_name }}</span>
-                                    {% endif %}
-                                {% else %}
-                                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-sky-50 text-sky-700 border border-sky-100">Catálogo Global</span>
-                                {% endif %}
-                            </div>
+                <article class="bg-white shadow-sm rounded-2xl border border-slate-200 flex flex-col justify-between transition hover:shadow-md hover:border-sky-200 overflow-hidden">
+                    <div class="p-5 space-y-3">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            {% if ex.code %}
+                                <span class="px-2 py-0.5 text-[11px] font-mono font-bold rounded bg-slate-900 text-sky-300">{{ ex.code }}</span>
+                            {% endif %}
+                            <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-sky-50 text-primary border border-sky-100">{{ ex.get_category_display }}</span>
+                            {% if ex.session_block %}
+                                <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">{{ ex.get_session_block_display }}</span>
+                            {% endif %}
+                            {% if ex.created_by and ex.created_by == request.user.trainer_profile %}
+                                <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Tuyo</span>
+                            {% endif %}
                         </div>
-                        <div class="h-11 w-11 shrink-0 bg-sky-100 text-primary rounded-xl flex items-center justify-center font-headline font-bold text-lg border border-sky-200">
-                            {{ ex.name|first|upper }}
+
+                        <h3 class="text-base sm:text-lg font-headline font-bold text-slate-900 leading-snug">
+                            {{ ex.name }}
+                        </h3>
+
+                        <p class="text-xs text-slate-500">
+                            Patrón: <strong class="text-slate-700">{{ ex.get_movement_pattern_display }}</strong>
+                        </p>
+
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            <button type="button"
+                                    hx-get="{% url 'training:exercise_detail_modal' ex.pk %}"
+                                    hx-target="#exerciseGuideDialogBody"
+                                    hx-swap="innerHTML"
+                                    hx-on::after-request="if(event.detail.successful) document.getElementById('exerciseGuideDialog').showModal()"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-50 hover:text-primary text-xs font-bold text-slate-700 transition cursor-pointer">
+                                <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                <span>{% if ex.description %}Ver guía{% else %}Ficha técnica{% endif %}</span>
+                            </button>
+
+                            {% if ex.video_url %}
+                                <a href="{{ ex.video_url }}" target="_blank" rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-primary text-xs font-bold border border-sky-100 transition">
+                                    <span>Vídeo</span>
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                </a>
+                            {% endif %}
                         </div>
-                    </div>
-
-                    <div class="p-5 flex-1 space-y-3 text-xs">
-                        {% if ex.sport_tags %}
-                            <div class="flex flex-wrap gap-1.5">
-                                {% for tag in ex.sport_tags %}
-                                    <span class="px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-100 font-semibold">{{ tag }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                        {% if ex.description %}
-                            <div class="space-y-2">
-                                <button type="button"
-                                        onclick="toggleCatalogGuide('cat-guide-{{ ex.pk }}')"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-sky-50 text-primary border border-sky-200 hover:bg-sky-100 transition shadow-sm"
-                                        title="Ver guía completa con anatomía y técnica">
-                                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                                    <span>Guía y Anatomía</span>
-                                    <svg class="w-3.5 h-3.5 transition-transform" id="cat-arrow-{{ ex.pk }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                </button>
-                                <div id="cat-guide-{{ ex.pk }}" class="hidden p-4 bg-slate-50/90 rounded-xl border border-slate-200 exercise-markdown max-h-80 overflow-y-auto shadow-inner animate-fade-in">
-                                    {{ ex.description|render_markdown }}
-                                </div>
-                            </div>
-                        {% else %}
-                            <p class="text-slate-400 italic">Sin descripción técnica.</p>
-                        {% endif %}
-
-
-                        {% if ex.video_url %}
-                            <a href="{{ ex.video_url }}" target="_blank" class="inline-flex items-center gap-1.5 text-primary font-semibold hover:underline">
-                                Ver video
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                            </a>
-                        {% endif %}
                     </div>
 
                     {% if ex.created_by and ex.created_by == request.user.trainer_profile %}
-                        <div class="px-5 py-4 border-t border-slate-100 bg-slate-50/40 flex items-center gap-2">
-                            <a href="{% url 'training:exercise_edit' ex.pk %}" class="btn-secondary flex-1 min-h-[38px] px-3 py-2 text-xs font-semibold rounded-xl">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        <div class="px-5 py-3.5 border-t border-slate-100 bg-slate-50/50 flex items-center gap-2">
+                            <a href="{% url 'training:exercise_edit' ex.pk %}" class="btn-secondary flex-1 min-h-[36px] px-3 py-1.5 text-xs font-semibold rounded-xl">
                                 Editar
                             </a>
-                            <a href="{% url 'training:exercise_delete' ex.pk %}" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3 py-2 border border-red-200 text-xs font-semibold rounded-xl text-red-600 bg-white hover:bg-red-50 transition shadow-sm">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            <a href="{% url 'training:exercise_delete' ex.pk %}" class="flex-1 inline-flex items-center justify-center min-h-[36px] px-3 py-1.5 border border-red-200 text-xs font-semibold rounded-xl text-red-600 bg-white hover:bg-red-50 transition">
                                 Eliminar
                             </a>
                         </div>
                     {% else %}
-                        <div class="px-5 py-3.5 border-t border-slate-100 bg-slate-50/40 flex items-center justify-between text-xs text-slate-500">
+                        <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/40 flex items-center justify-between text-xs text-slate-500">
                             <span class="inline-flex items-center gap-1.5 text-emerald-700 font-medium">
-                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 Disponible en tus planes
                             </span>
-                            <span class="text-slate-400 font-medium">
-                                {% if ex.created_by %}
-                                    Autor: {{ ex.created_by.user.display_name }}
-                                {% else %}
-                                    Global
-                                {% endif %}
+                            <span class="text-slate-400 font-medium truncate max-w-[9rem]">
+                                {% if ex.created_by %}{{ ex.created_by.user.display_name }}{% else %}Catálogo global{% endif %}
                             </span>
                         </div>
                     {% endif %}
-                </div>
+                </article>
             {% endfor %}
         </div>
 
-        <!-- Paginación numerada -->
-        {% if page_obj.paginator.num_pages > 1 %}
-            <nav class="flex flex-col sm:flex-row items-center justify-center gap-3" aria-label="Paginación de ejercicios">
-                <div class="flex items-center gap-1.5 flex-wrap justify-center">
-                    <!-- Primera -->
+        {% if is_paginated %}
+            <nav class="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3" aria-label="Paginación de ejercicios">
+                <div class="flex flex-wrap items-center justify-center gap-1.5">
                     {% if page_obj.has_previous %}
-                        <a href="?q={{ search|urlencode }}&cat={{ current_category }}&page=1" class="inline-flex items-center justify-center min-h-[38px] px-3 py-2 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm" hx-get="?q={{ search|urlencode }}&cat={{ current_category }}&page=1" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true" title="Ir a la primera página" aria-label="Primera página">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                        </a>
-                        <a href="?q={{ search|urlencode }}&cat={{ current_category }}&page={{ page_obj.previous_page_number }}" class="inline-flex items-center justify-center min-h-[38px] px-3.5 py-2 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm" hx-get="?q={{ search|urlencode }}&cat={{ current_category }}&page={{ page_obj.previous_page_number }}" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true">Anterior</a>
-                    {% else %}
-                        <span class="inline-flex items-center justify-center min-h-[38px] px-3 py-2 border border-slate-100 text-sm font-semibold rounded-xl text-slate-300 bg-slate-50 cursor-not-allowed">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                        </span>
-                        <span class="inline-flex items-center justify-center min-h-[38px] px-3.5 py-2 border border-slate-100 text-sm font-semibold rounded-xl text-slate-300 bg-slate-50 cursor-not-allowed">Anterior</span>
+                        <a href="?q={{ search|urlencode }}&cat={{ current_category|urlencode }}&block={{ current_block|urlencode }}{% if only_mine %}&mine=1{% endif %}&page={{ page_obj.previous_page_number }}"
+                           hx-get="?q={{ search|urlencode }}&cat={{ current_category|urlencode }}&block={{ current_block|urlencode }}{% if only_mine %}&mine=1{% endif %}&page={{ page_obj.previous_page_number }}"
+                           hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true"
+                           class="btn-secondary min-h-[36px] px-3 py-1.5 text-xs rounded-xl">Anterior</a>
                     {% endif %}
-
-                    <!-- Números de página -->
                     {% for num in page_obj.paginator.get_elided_page_range %}
                         {% if num == page_obj.paginator.ELLIPSIS %}
-                            <span class="inline-flex items-center justify-center min-h-[38px] px-2 py-2 text-sm font-semibold text-slate-400 select-none">…</span>
+                            <span class="px-2 text-xs text-slate-400">…</span>
+                        {% elif num == page_obj.number %}
+                            <span aria-current="page" class="inline-flex items-center justify-center min-h-[36px] min-w-[36px] px-3 text-xs font-bold rounded-xl bg-primary text-white">{{ num }}</span>
                         {% else %}
-                            {% if num == page_obj.number %}
-                                <span aria-current="page" class="inline-flex items-center justify-center min-h-[38px] min-w-[38px] px-3.5 py-2 text-sm font-headline font-bold rounded-xl border border-primary bg-primary text-white shadow-sm shadow-primary/20">{{ num }}</span>
-                            {% else %}
-                                <a href="?q={{ search|urlencode }}&cat={{ current_category }}&page={{ num }}" class="inline-flex items-center justify-center min-h-[38px] min-w-[38px] px-3.5 py-2 text-sm font-semibold rounded-xl border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:border-primary/50 transition shadow-sm" hx-get="?q={{ search|urlencode }}&cat={{ current_category }}&page={{ num }}" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true">{{ num }}</a>
-                            {% endif %}
+                            <a href="?q={{ search|urlencode }}&cat={{ current_category|urlencode }}&block={{ current_block|urlencode }}{% if only_mine %}&mine=1{% endif %}&page={{ num }}"
+                               hx-get="?q={{ search|urlencode }}&cat={{ current_category|urlencode }}&block={{ current_block|urlencode }}{% if only_mine %}&mine=1{% endif %}&page={{ num }}"
+                               hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true"
+                               class="inline-flex items-center justify-center min-h-[36px] min-w-[36px] px-3 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{{ num }}</a>
                         {% endif %}
                     {% endfor %}
-
-                    <!-- Siguiente y última -->
                     {% if page_obj.has_next %}
-                        <a href="?q={{ search|urlencode }}&cat={{ current_category }}&page={{ page_obj.next_page_number }}" class="inline-flex items-center justify-center min-h-[38px] px-3.5 py-2 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm" hx-get="?q={{ search|urlencode }}&cat={{ current_category }}&page={{ page_obj.next_page_number }}" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true">Siguiente</a>
-                        <a href="?q={{ search|urlencode }}&cat={{ current_category }}&page={{ page_obj.paginator.num_pages }}" class="inline-flex items-center justify-center min-h-[38px] px-3 py-2 border border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm" hx-get="?q={{ search|urlencode }}&cat={{ current_category }}&page={{ page_obj.paginator.num_pages }}" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true" title="Ir a la última página" aria-label="Última página">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
-                        </a>
-                    {% else %}
-                        <span class="inline-flex items-center justify-center min-h-[38px] px-3.5 py-2 border border-slate-100 text-sm font-semibold rounded-xl text-slate-300 bg-slate-50 cursor-not-allowed">Siguiente</span>
-                        <span class="inline-flex items-center justify-center min-h-[38px] px-3 py-2 border border-slate-100 text-sm font-semibold rounded-xl text-slate-300 bg-slate-50 cursor-not-allowed">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
-                        </span>
+                        <a href="?q={{ search|urlencode }}&cat={{ current_category|urlencode }}&block={{ current_block|urlencode }}{% if only_mine %}&mine=1{% endif %}&page={{ page_obj.next_page_number }}"
+                           hx-get="?q={{ search|urlencode }}&cat={{ current_category|urlencode }}&block={{ current_block|urlencode }}{% if only_mine %}&mine=1{% endif %}&page={{ page_obj.next_page_number }}"
+                           hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true"
+                           class="btn-secondary min-h-[36px] px-3 py-1.5 text-xs rounded-xl">Siguiente</a>
                     {% endif %}
                 </div>
                 <span class="text-xs text-slate-500 font-medium">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
             </nav>
         {% endif %}
     {% else %}
-        <div class="bg-white shadow-sm rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
-            <svg class="mx-auto h-16 w-16 text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-            {% if search %}
-                No se encontraron ejercicios para "<strong class="text-slate-500">{{ search }}</strong>".
-            {% elif current_category %}
-                No hay ejercicios en esta categoría.
-            {% else %}
-                Aún no has creado ejercicios. ¡Crea tu primer ejercicio para empezar a planificar!
-            {% endif %}
+        <div class="bg-white rounded-2xl border border-slate-200 p-10 text-center text-slate-400">
+            <p class="font-bold text-slate-600">No se encontraron ejercicios con los filtros actuales.</p>
+            <a href="{% url 'training:exercise_list' %}" hx-get="{% url 'training:exercise_list' %}" hx-target="#catalog-browser" hx-swap="innerHTML" hx-push-url="true"
+               class="mt-4 btn-secondary px-4 py-2 text-xs rounded-xl">Restablecer catálogo</a>
         </div>
     {% endif %}
-
-    <script>
-        function toggleCatalogGuide(id) {
-            const el = document.getElementById(id);
-            const pk = id.replace('cat-guide-', '');
-            const arrow = document.getElementById('cat-arrow-' + pk);
-            if (!el) return;
-            el.classList.toggle('hidden');
-            if (arrow) arrow.classList.toggle('rotate-180');
-        }
-    </script>
-
 </div>

@@ -3,6 +3,16 @@
 
 {% block title %}Editar Deportista - EntrenoPro{% endblock %}
 
+{% block breadcrumbs %}
+<nav aria-label="Ruta de navegación" class="trainer-breadcrumbs">
+    <a href="{% url 'training:trainer_dashboard' %}">Mis deportistas</a>
+    <span aria-hidden="true" class="text-slate-300">/</span>
+    <a href="{% url 'training:athlete_detail' athlete.id %}">{{ athlete.user.display_name }}</a>
+    <span aria-hidden="true" class="text-slate-300">/</span>
+    <span class="text-slate-800 font-bold truncate" aria-current="page">Editar perfil</span>
+</nav>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-4xl mx-auto py-6 sm:py-10 px-4 sm:px-6 lg:px-8 space-y-8 trainer-theme animate-fade-in">
 

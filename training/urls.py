@@ -51,6 +51,7 @@ urlpatterns = [
     path('athlete/<int:pk>/edit/', views.TrainerAthleteProfileUpdateView.as_view(), name='trainer_athlete_edit'),
     path('athlete/<int:pk>/delete/', views.TrainerAthleteDeleteView.as_view(), name='trainer_athlete_delete'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
+    path('notifications/read-all/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
 
     # Exercise Catalog (CRUD entrenador + XLOOKUP Autocomplete)
     path('exercises/', views.ExerciseListView.as_view(), name='exercise_list'),

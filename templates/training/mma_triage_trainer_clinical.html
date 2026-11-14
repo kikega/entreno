@@ -2,6 +2,16 @@
 
 {% block title %}Triage Clínico & Cerrojo AM - {{ athlete.user.display_name }}{% endblock %}
 
+{% block breadcrumbs %}
+<nav aria-label="Ruta de navegación" class="trainer-breadcrumbs">
+    <a href="{% url 'training:trainer_dashboard' %}">Mis deportistas</a>
+    <span aria-hidden="true" class="text-slate-300">/</span>
+    <a href="{% url 'training:athlete_detail' athlete.pk %}">{{ athlete.user.display_name }}</a>
+    <span aria-hidden="true" class="text-slate-300">/</span>
+    <span class="text-slate-800 font-bold truncate" aria-current="page">Triage Clínico y Cerrojo AM</span>
+</nav>
+{% endblock %}
+
 {% block extra_head %}
 <style>
     .am-clinical-form input:user-invalid,
@@ -149,8 +159,16 @@
         </div>
     </div>
 
+    <!-- Navegación rápida por secciones del expediente clínico -->
+    <nav aria-label="Secciones de la auditoría clínica" class="sticky top-16 lg:top-3 z-20 flex flex-wrap items-center gap-2 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 px-4 py-2.5 shadow-sm text-xs font-headline font-bold">
+        <span class="text-slate-400 uppercase tracking-wider mr-1 hidden sm:inline">Ir a:</span>
+        <a href="#sec-resumen" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-primary transition">Resumen Atleta</a>
+        <a href="#sec-biometria" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-primary transition">A. Biometría y RM</a>
+        <a href="#sec-locks" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-sky-300 transition">B. Candados y Cerrojo</a>
+    </nav>
+
     <!-- Resumen de Lectura Rápida de lo reportado por el Atleta -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+    <div id="sec-resumen" class="scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
         <h2 class="text-base font-headline font-bold text-slate-800">Resumen Declarado por el Atleta (Secciones 1, 2 y 4)</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
@@ -192,7 +210,7 @@
         {% csrf_token %}
 
         <!-- BLOQUE COMPARTIDO DE ENTREVISTA: Biometría, Pruebas y Confirmación Legal -->
-        <fieldset class="min-w-0 flow-root bg-white shadow-sm rounded-2xl border border-slate-200 p-6 sm:p-8">
+        <fieldset id="sec-biometria" class="scroll-mt-24 min-w-0 flow-root bg-white shadow-sm rounded-2xl border border-slate-200 p-6 sm:p-8">
             <legend class="float-left w-full pb-4 mb-6 border-b border-slate-100 text-lg font-headline font-extrabold text-slate-800">
                 A. Pruebas Biométricas y Ajustes de Entrevista (Ángulo ISA, RM, Wingate y Marco Legal)
             </legend>
@@ -356,7 +374,7 @@
         </fieldset>
 
         <!-- BLOQUE EXCLUSIVO DEL BACKEND: 100% PRIVADO E INVISIBLE PARA EL ATLETA -->
-        <fieldset class="min-w-0 flow-root bg-slate-900 text-white shadow-xl rounded-2xl border border-slate-700 p-6 sm:p-8">
+        <fieldset id="sec-locks" class="scroll-mt-24 min-w-0 flow-root bg-slate-900 text-white shadow-xl rounded-2xl border border-slate-700 p-6 sm:p-8">
             <legend class="float-left w-full pb-4 mb-6 border-b border-slate-700 text-base sm:text-lg font-headline font-extrabold text-sky-300">
                 🔒 B. Bloque Exclusivo Backend (100% Privado · Invisible para el Atleta)
             </legend>
@@ -437,13 +455,16 @@
             </div>
         </fieldset>
 
-        <div class="flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
-            <a href="{% url 'training:athlete_detail' athlete.pk %}" class="btn-secondary w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-xl text-sm font-semibold">
-                Cancelar
-            </a>
-            <button type="submit" id="clinical-submit-btn" class="btn-primary w-full sm:w-auto min-h-[48px] px-7 py-3 rounded-xl font-headline font-bold text-sm">
-                Guardar Auditoría Clínica y Estado del Cerrojo
-            </button>
+        <div class="sticky bottom-16 lg:bottom-4 z-20 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 p-4 shadow-lg flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
+            <span class="text-xs text-slate-500 hidden sm:inline">Los cambios en el bloque B son privados y activan el cerrojo de generación.</span>
+            <div class="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 w-full sm:w-auto">
+                <a href="{% url 'training:athlete_detail' athlete.pk %}" class="btn-secondary w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-semibold">
+                    Cancelar
+                </a>
+                <button type="submit" id="clinical-submit-btn" class="btn-primary w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-xl font-headline font-bold text-sm shadow-sm">
+                    Guardar Auditoría Clínica y Estado del Cerrojo
+                </button>
+            </div>
         </div>
     </form>
 </div>

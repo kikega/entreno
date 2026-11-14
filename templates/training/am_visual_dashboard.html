@@ -2,6 +2,22 @@
 
 {% block title %}Dashboard Visual y Registro Histórico AM · {{ athlete.user.display_name }} | EntrenoPro{% endblock %}
 
+{% block breadcrumbs %}
+<nav aria-label="Ruta de navegación" class="trainer-breadcrumbs">
+    {% if is_trainer_view %}
+        <a href="{% url 'training:trainer_dashboard' %}">Mis deportistas</a>
+        <span aria-hidden="true" class="text-slate-300">/</span>
+        <a href="{% url 'training:athlete_detail' athlete.id %}">{{ athlete.user.display_name }}</a>
+        <span aria-hidden="true" class="text-slate-300">/</span>
+        <span class="text-slate-800 font-bold truncate" aria-current="page">Dashboard Visual e Histórico</span>
+    {% else %}
+        <a href="{% url 'training:athlete_active_block' %}">Entrenamiento Activo</a>
+        <span aria-hidden="true" class="text-slate-300">/</span>
+        <span class="text-slate-800 font-bold truncate" aria-current="page">Dashboard Visual e Histórico</span>
+    {% endif %}
+</nav>
+{% endblock %}
+
 {% block content %}
 <div class="space-y-8">
     <!-- Cabecera del Dashboard_Visual y Registro_Historico -->
@@ -111,33 +127,10 @@
 
             {% if dashboard.weekly_series %}
                 <figure class="space-y-3">
-                    <svg role="img"
-                         aria-labelledby="svg-weekly-load-title"
-                         viewBox="0 0 560 190"
-                         class="w-full h-44 bg-slate-50 rounded-xl border border-slate-100 p-3">
-                        <title id="svg-weekly-load-title">
-                            Gráfico comparativo de Tonelaje en kilogramos y Carga Interna sRPE durante las últimas semanas registradas
-                        </title>
-                        {% for w in dashboard.weekly_series %}
-                            <g transform="translate({{ forloop.counter0|add:forloop.counter0 }}0, 0)">
-                                <!-- Barra de Tonelaje (Azul) -->
-                                <rect x="{{ forloop.counter0 }}5"
-                                      y="20"
-                                      width="18"
-                                      height="{{ w.tonnage_pct }}"
-                                      rx="4"
-                                      fill="#0284c7" />
-                                <!-- Barra de sRPE (Índigo) -->
-                                <rect x="{{ forloop.counter0 }}5"
-                                      y="125"
-                                      width="18"
-                                      height="35"
-                                      rx="3"
-                                      fill="#6366f1"
-                                      opacity="0.85" />
-                            </g>
-                        {% endfor %}
-                    </svg>
+                    <div class="h-56 sm:h-64 w-full relative bg-slate-50/70 rounded-xl border border-slate-100 p-3">
+                        <canvas id="amWeeklyLoadChart" role="img" aria-label="Gráfico comparativo de Tonelaje en kilogramos y Carga Interna sRPE por semana"></canvas>
+                    </div>
+                    {{ dashboard.weekly_series|json_script:"am-weekly-series-data" }}
                     <figcaption class="text-xs text-slate-500">
                         Resumen tabular accesible por semana de entrenamiento (Tonelaje mecánico y sRPE acumulado):
                     </figcaption>
@@ -232,7 +225,23 @@
                 </p>
             </div>
 
-            <form method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                <div>
+                    <label for="filter-macrocycle-block" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
+                        Bloque del Macrociclo
+                    </label>
+                    <select id="filter-macrocycle-block"
+                            name="block"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800">
+                        <option value="">Todos los bloques</option>
+                        {% for item in dashboard.macrocycle_adherence %}
+                            <option value="{{ item.block.id }}" {% if selected_block_id == item.block.id %}selected{% endif %}>
+                                B{{ item.block.block_number }} · {{ item.block.title }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
                 <div>
                     <label for="filter-session-block" class="block text-[11px] font-headline font-bold text-slate-600 mb-1">
                         Bloque Concurrente
@@ -364,4 +373,77 @@
         {% endif %}
     </section>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const dataEl = document.getElementById('am-weekly-series-data');
+    const canvas = document.getElementById('amWeeklyLoadChart');
+    if (!dataEl || !canvas || typeof window.Chart === 'undefined') return;
+
+    let series = [];
+    try {
+        series = JSON.parse(dataEl.textContent || '[]');
+    } catch (_) {
+        series = [];
+    }
+    if (!Array.isArray(series) || series.length === 0) return;
+
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    new window.Chart(canvas.getContext('2d'), {
+        data: {
+            labels: series.map((w) => w.label || ''),
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Tonelaje (kg)',
+                    data: series.map((w) => Number(w.tonnage_kg || 0)),
+                    backgroundColor: 'rgba(2, 132, 199, 0.85)',
+                    borderRadius: 6,
+                    yAxisID: 'y',
+                },
+                {
+                    type: 'line',
+                    label: 'Carga Interna sRPE (UA)',
+                    data: series.map((w) => Number(w.srpe_total || 0)),
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.14)',
+                    borderWidth: 2.5,
+                    pointRadius: 3.5,
+                    tension: 0.25,
+                    yAxisID: 'y1',
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: reduceMotion ? false : undefined,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    beginAtZero: true,
+                    title: { display: true, text: 'Tonelaje (kg)', font: { size: 11 } },
+                    ticks: { font: { size: 10 } },
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'sRPE (UA)', font: { size: 11 } },
+                    ticks: { font: { size: 10 } },
+                },
+            },
+        },
+    });
+})();
+</script>
 {% endblock %}

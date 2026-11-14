@@ -2,6 +2,16 @@
 
 {% block title %}Desasignar Deportista - EntrenoPro{% endblock %}
 
+{% block breadcrumbs %}
+<nav aria-label="Ruta de navegación" class="trainer-breadcrumbs">
+    <a href="{% url 'training:trainer_dashboard' %}">Mis deportistas</a>
+    <span aria-hidden="true" class="text-slate-300">/</span>
+    <a href="{% url 'training:athlete_detail' athlete.id %}">{{ athlete.user.display_name }}</a>
+    <span aria-hidden="true" class="text-slate-300">/</span>
+    <span class="text-slate-800 font-bold truncate" aria-current="page">Desasignar Deportista</span>
+</nav>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-xl mx-auto py-8 trainer-theme">
     <div class="bg-white shadow-md rounded-2xl border border-slate-200 overflow-hidden animate-fade-in">

@@ -2,6 +2,16 @@
 
 {% block title %}Panel de Control Macrociclo - EntrenoPro{% endblock %}
 
+{% block breadcrumbs %}
+<nav aria-label="Ruta de navegación" class="trainer-breadcrumbs">
+    <a href="{% url 'training:trainer_dashboard' %}">Mis deportistas</a>
+    <span aria-hidden="true" class="text-slate-300">/</span>
+    <a href="{% url 'training:athlete_detail' macrocycle.athlete_id %}">{{ macrocycle.athlete.user.display_name }}</a>
+    <span aria-hidden="true" class="text-slate-300">/</span>
+    <span class="text-slate-800 font-bold truncate" aria-current="page">Macrociclo: {{ macrocycle.name }}</span>
+</nav>
+{% endblock %}
+
 {% block content %}
 <div class="space-y-8">
     <!-- Cabecera del Macrociclo (Panel_Control) -->
@@ -74,13 +84,19 @@
                 📅 Módulo 8: Recalcular Calendario Pelea
             </button>
         </div>
-        <div class="flex flex-wrap gap-2">
-            {% for rule_msg in am_diagnosis.active_rules_log %}
-                <span class="text-[11px] leading-snug px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700">
-                    {{ rule_msg }}
-                </span>
-            {% endfor %}
-        </div>
+        <details class="pt-1">
+            <summary class="cursor-pointer list-none inline-flex items-center gap-2 text-xs font-bold text-sky-300 hover:text-sky-200 transition">
+                <span>Ver detalle de reglas, equipamiento y vetos aplicados ({{ am_diagnosis.active_rules_log|length }})</span>
+                <span aria-hidden="true">▾</span>
+            </summary>
+            <div class="flex flex-wrap gap-2 mt-3">
+                {% for rule_msg in am_diagnosis.active_rules_log %}
+                    <span class="text-[11px] leading-snug px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700">
+                        {{ rule_msg }}
+                    </span>
+                {% endfor %}
+            </div>
+        </details>
     </div>
     {% endif %}
 
@@ -266,22 +282,31 @@
             {% csrf_token %}
             <input type="hidden" name="editing_row_exercise_id" id="id_editing_row_exercise_id" value="">
             <input type="hidden" name="editing_row_order" id="id_editing_row_order" value="">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
+                <div class="lg:col-span-4">
                     <label for="prescribe-category-filter" class="block text-xs font-headline font-bold text-slate-600 mb-1">
-                        Categoría de ejercicio (Filtro)
+                        Categoría (Filtro)
                     </label>
                     <select id="prescribe-category-filter"
                             name="category_filter"
                             onchange="filterExerciseSelectByCategory('{{ prescribe_form.exercise.id_for_label }}', this.value)"
-                            class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-base text-slate-900 shadow-sm focus:border-primary focus:ring-primary focus:outline-none transition">
+                            class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 shadow-sm focus:border-primary focus:ring-primary focus:outline-none transition">
                         <option value="">Todas las categorías</option>
                         {% for cat_val, cat_label in exercise_categories %}
                             <option value="{{ cat_val }}">{{ cat_label }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div>
+                <div class="lg:col-span-3">
+                    <label for="prescribe-text-filter" class="block text-xs font-headline font-bold text-slate-600 mb-1">
+                        Buscar por nombre o código
+                    </label>
+                    <input id="prescribe-text-filter" type="search" autocomplete="off"
+                           placeholder="Ej: sentadilla, B4..."
+                           oninput="filterExerciseSelectByCategory('{{ prescribe_form.exercise.id_for_label }}', document.getElementById('prescribe-category-filter')?.value || '')"
+                           class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-primary focus:outline-none">
+                </div>
+                <div class="sm:col-span-2 lg:col-span-5">
                     <label for="{{ prescribe_form.exercise.id_for_label }}" class="block text-xs font-headline font-bold text-slate-600 mb-1">{{ prescribe_form.exercise.label }}</label>
                     <div hx-get="{% url 'training:exercise_xlookup_meta' %}"
                          hx-trigger="change from:#{{ prescribe_form.exercise.id_for_label }}"
@@ -519,6 +544,7 @@
             });
         }
 
+        const textQuery = (document.getElementById('prescribe-text-filter')?.value || '').trim().toLowerCase();
         const currentVal = selectEl.value;
         const cat = (category || '').trim();
         selectEl.innerHTML = '';
@@ -527,7 +553,9 @@
         let firstValidValue = '';
 
         selectEl._allExerciseOptions.forEach(function(item) {
-            if (item.isPlaceholder || !cat || item.category === cat) {
+            const matchesCat = !cat || item.category === cat;
+            const matchesText = !textQuery || item.text.toLowerCase().includes(textQuery);
+            if (item.isPlaceholder || (matchesCat && matchesText)) {
                 const opt = document.createElement('option');
                 opt.value = item.value;
                 opt.text = item.text;
@@ -545,7 +573,7 @@
         });
 
         if (!currentStillAvailable) {
-            if (cat && firstValidValue) {
+            if ((cat || textQuery) && firstValidValue) {
                 selectEl.value = firstValidValue;
             } else {
                 selectEl.value = selectEl.options.length > 0 && selectEl.options[0].value === '' ? '' : firstValidValue;

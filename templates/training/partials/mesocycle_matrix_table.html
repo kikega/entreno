@@ -175,6 +175,9 @@
                                           hx-post="{% url 'training:block_delete_exercise_row' matrix.block.id %}"
                                           hx-target="#macrocycle-matrix-table-area"
                                           hx-swap="outerHTML"
+                                          data-confirm-title="Quitar fila del mesociclo"
+                                          data-confirm-label="Quitar"
+                                          data-confirm-message="¿Quitar «{{ row.exercise.name|escapejs }}» de las semanas pendientes de este día?"
                                           class="m-0 inline">
                                         {% csrf_token %}
                                         <input type="hidden" name="day_number" value="{{ matrix.day_number }}">
